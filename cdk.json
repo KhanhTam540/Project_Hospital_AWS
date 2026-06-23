@@ -1,0 +1,14 @@
+{
+  "app": "node bin/hospital.js",
+  "watch": {
+    "include": ["bin/**/*.js", "lib/**/*.js", "services/**/*.js"],
+    "exclude": ["README.md", "cdk*.json", "node_modules", "web"]
+  },
+  "context": {
+    "@aws-cdk/aws-lambda:recognizeLayerVersion": true,
+    "@aws-cdk/core:checkSecretUsage": true,
+    "@aws-cdk/core:target-partitions": ["aws"],
+    "@aws-cdk/aws-cloudfront:defaultSecurityPolicyTLSv1.2_2021": true,
+    "@aws-cdk/aws-iam:minimizePolicies": true
+  }
+}
