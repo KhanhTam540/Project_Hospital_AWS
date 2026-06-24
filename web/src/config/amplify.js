@@ -1,25 +1,18 @@
-import { Amplify } from 'aws-amplify';
+import { Amplify } from "aws-amplify";
+import { COGNITO_CONFIG, isCognitoEnabled } from "./cognito";
 
-const region = import.meta.env.VITE_AWS_REGION;
-const userPoolId = import.meta.env.VITE_COGNITO_USER_POOL_ID;
-const userPoolClientId = import.meta.env.VITE_COGNITO_WEB_CLIENT_ID;
+export const configureAmplify = () => {
+  if (!isCognitoEnabled()) return false;
 
-if (!region || !userPoolId || !userPoolClientId) {
-  console.warn(
-    'Thiếu cấu hình Cognito. Hãy tạo web/.env.local hoặc chạy npm run outputs sau khi deploy.',
-  );
-}
-
-Amplify.configure({
-  Auth: {
-    Cognito: {
-      userPoolId,
-      userPoolClientId,
-      loginWith: {
-        email: true,
+  Amplify.configure({
+    Auth: {
+      Cognito: {
+        userPoolId: COGNITO_CONFIG.userPoolId,
+        userPoolClientId: COGNITO_CONFIG.userPoolClientId,
+        loginWith: { email: true, username: true },
       },
-      signUpVerificationMethod: 'code',
-      allowGuestAccess: false,
     },
-  },
-});
+  });
+
+  return true;
+};
