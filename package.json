@@ -5,6 +5,8 @@
   "description": "Hospital AWS Week 1 - JavaScript CDK, Lambda and React implementation.",
   "scripts": {
     "seed:dataset": "node scripts/seed-dataset.js",
+    "verify:dataset": "node scripts/verify-dataset.js",
+    "test:dataset": "node scripts/test-dataset.js",
     "build": "node scripts/check-js.js",
     "test": "node --test tests/*.test.js",
     "synth": "cdk synth",
