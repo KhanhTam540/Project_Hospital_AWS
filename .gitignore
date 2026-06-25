@@ -33,3 +33,8 @@ credentials.json
 # Logs
 *.log
 npm-debug.log*
+
+# Temporary integration-test tokens and patch backups
+.medical-test-tokens.json
+_backup_dinhbao_week1_*/
+_backup_audit_fix_*/

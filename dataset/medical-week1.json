@@ -1,0 +1,167 @@
+{
+  "patients": [
+    {
+      "patientId": "BN001",
+      "fullName": "Nguyễn Văn An",
+      "dateOfBirth": "1995-04-12",
+      "gender": "NAM",
+      "phoneNumber": "0900000001",
+      "address": "TP. Hồ Chí Minh",
+      "healthInsuranceNumber": "BHYT-P2TB-001"
+    },
+    {
+      "patientId": "BN002",
+      "fullName": "Trần Thị Bình",
+      "dateOfBirth": "1998-09-20",
+      "gender": "NU",
+      "phoneNumber": "0900000002",
+      "address": "Bình Dương",
+      "healthInsuranceNumber": "BHYT-P2TB-002"
+    },
+    {
+      "patientId": "BN003",
+      "fullName": "Lê Hoàng Minh",
+      "dateOfBirth": "1987-01-15",
+      "gender": "NAM",
+      "phoneNumber": "0900000003",
+      "address": "Đồng Nai",
+      "healthInsuranceNumber": "BHYT-P2TB-003"
+    },
+    {
+      "patientId": "BN004",
+      "fullName": "Phạm Ngọc Lan",
+      "dateOfBirth": "2001-07-08",
+      "gender": "NU",
+      "phoneNumber": "0900000004",
+      "address": "Long An",
+      "healthInsuranceNumber": "BHYT-P2TB-004"
+    },
+    {
+      "patientId": "BN005",
+      "fullName": "Võ Quốc Huy",
+      "dateOfBirth": "1992-11-30",
+      "gender": "NAM",
+      "phoneNumber": "0900000005",
+      "address": "Bến Tre",
+      "healthInsuranceNumber": "BHYT-P2TB-005"
+    }
+  ],
+  "records": [
+    {
+      "recordId": "HS001",
+      "patientId": "BN001",
+      "doctorId": "BS001",
+      "symptoms": "Đau họng, sốt nhẹ",
+      "diagnosis": "Viêm họng cấp",
+      "treatment": "Theo dõi và sử dụng thuốc theo đơn",
+      "note": "Tái khám sau 7 ngày"
+    },
+    {
+      "recordId": "HS002",
+      "patientId": "BN002",
+      "doctorId": "BS002",
+      "symptoms": "Đau đầu, mệt mỏi",
+      "diagnosis": "Rối loạn giấc ngủ",
+      "treatment": "Điều chỉnh sinh hoạt và theo dõi",
+      "note": "Tái khám nếu triệu chứng kéo dài"
+    },
+    {
+      "recordId": "HS003",
+      "patientId": "BN001",
+      "doctorId": "BS001",
+      "symptoms": "Ho khan",
+      "diagnosis": "Theo dõi viêm đường hô hấp",
+      "treatment": "Uống đủ nước và dùng thuốc theo đơn",
+      "note": "Theo dõi thân nhiệt"
+    }
+  ],
+  "examinations": [
+    {
+      "examinationId": "PK001",
+      "patientId": "BN001",
+      "actorId": "BS001",
+      "vitals": {
+        "temperature": 37.5,
+        "heartRate": 82,
+        "systolicBloodPressure": 118,
+        "diastolicBloodPressure": 76,
+        "oxygenSaturation": 98,
+        "weightKg": 62,
+        "heightCm": 170
+      },
+      "symptoms": "Đau họng",
+      "diagnosis": "Viêm họng cấp",
+      "status": "COMPLETED"
+    },
+    {
+      "examinationId": "PK002",
+      "patientId": "BN002",
+      "actorId": "NS001",
+      "vitals": {
+        "temperature": 36.8,
+        "heartRate": 76,
+        "systolicBloodPressure": 110,
+        "diastolicBloodPressure": 70,
+        "oxygenSaturation": 99,
+        "weightKg": 50,
+        "heightCm": 158
+      },
+      "symptoms": "Mệt mỏi",
+      "status": "VITALS_RECORDED"
+    }
+  ],
+  "prescriptions": [
+    {
+      "prescriptionId": "DT001",
+      "patientId": "BN001",
+      "doctorId": "BS001",
+      "recordId": "HS001",
+      "medicineItems": [
+        {
+          "medicineId": "TH001",
+          "medicineName": "Paracetamol 500mg",
+          "quantity": 10,
+          "dosage": "1 viên",
+          "frequency": "2 lần/ngày",
+          "durationDays": 5,
+          "instructions": "Uống sau ăn"
+        }
+      ],
+      "generalInstructions": "Uống đủ nước"
+    },
+    {
+      "prescriptionId": "DT002",
+      "patientId": "BN002",
+      "doctorId": "BS002",
+      "recordId": "HS002",
+      "medicineItems": [
+        {
+          "medicineId": "TH002",
+          "medicineName": "Vitamin B1",
+          "quantity": 14,
+          "dosage": "1 viên",
+          "frequency": "1 lần/ngày",
+          "durationDays": 14,
+          "instructions": "Uống sau bữa sáng"
+        }
+      ],
+      "generalInstructions": "Ngủ đủ giấc"
+    }
+  ],
+  "documents": [
+    {
+      "documentId": "DOC001",
+      "patientId": "BN001",
+      "fileName": "xquang-nguc-demo.png",
+      "contentType": "image/png",
+      "status": "DEMO_METADATA"
+    },
+    {
+      "documentId": "DOC002",
+      "patientId": "BN002",
+      "fileName": "ket-qua-demo.pdf",
+      "contentType": "application/pdf",
+      "status": "DEMO_METADATA"
+    }
+  ]
+}

@@ -1,8 +1,7 @@
-import React, { useState } from "react";
-import { useNavigate, Link } from "react-router-dom";
+import React, { useEffect, useState } from "react";
+import { useLocation, useNavigate, Link } from "react-router-dom";
 import axios from "../api/axiosClient";
 import toast from "react-hot-toast";
-import { Toaster } from "react-hot-toast";
 import ChatbotWidget from "../components/Chatbot/ChatbotWidget.jsx";
 import AuthLayout, { AuthInput, AuthButton, AuthLink } from "../components/auth/AuthLayout";
 import { isCognitoEnabled } from "../config/cognito";
@@ -12,13 +11,21 @@ import { useAuth } from "../auth/AuthContext";
 
 function LoginPage() {
   const navigate = useNavigate();
+  const location = useLocation();
   const { setSession } = useAuth();
   const cognitoMode = isCognitoEnabled();
 
-  const [username, setUsername] = useState("");
+  const [username, setUsername] = useState(location.state?.email || "");
   const [password, setPassword] = useState("");
   const [showPassword, setShowPassword] = useState(false);
   const [loading, setLoading] = useState(false);
+
+  useEffect(() => {
+    if (location.state?.message) {
+      toast.success(location.state.message);
+      navigate(location.pathname, { replace: true, state: { email: location.state?.email } });
+    }
+  }, [location.pathname, location.state, navigate]);
 
   const persistLegacySession = (token, user) => {
     localStorage.setItem("token", token);
@@ -50,7 +57,8 @@ function LoginPage() {
 
         if (result.needsConfirmation) {
           toast.error("Tài khoản chưa xác nhận email. Vui lòng kiểm tra hộp thư.");
-          navigate("/register", { state: { email: username, needsConfirm: true } });
+          sessionStorage.setItem("pendingConfirmationEmail", username.trim().toLowerCase());
+          navigate("/confirm-email", { state: { email: username } });
           return;
         }
 
@@ -102,7 +110,6 @@ function LoginPage() {
 
   return (
     <>
-      <Toaster position="top-center" />
       <AuthLayout
         title="Đăng nhập"
         subtitle={cognitoMode ? "Xác thực qua AWS Cognito" : "Đăng nhập tài khoản hệ thống"}

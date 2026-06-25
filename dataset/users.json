@@ -1,0 +1,50 @@
+[
+  {
+    "pk": "USER#USER001",
+    "sk": "PROFILE",
+    "entityType": "USER",
+    "userId": "USER001",
+    "email": "admin.p2tb@example.com",
+    "role": "ADMIN",
+    "status": "ACTIVE",
+    "dataSource": "P2TB_SAMPLE",
+    "createdAt": "2026-06-24T00:00:00.000Z",
+    "updatedAt": "2026-06-24T00:00:00.000Z"
+  },
+  {
+    "pk": "USER#USER002",
+    "sk": "PROFILE",
+    "entityType": "USER",
+    "userId": "USER002",
+    "email": "doctor.p2tb@example.com",
+    "role": "BACSI",
+    "status": "ACTIVE",
+    "dataSource": "P2TB_SAMPLE",
+    "createdAt": "2026-06-24T00:00:00.000Z",
+    "updatedAt": "2026-06-24T00:00:00.000Z"
+  },
+  {
+    "pk": "USER#USER003",
+    "sk": "PROFILE",
+    "entityType": "USER",
+    "userId": "USER003",
+    "email": "staff.p2tb@example.com",
+    "role": "NHANSU",
+    "status": "ACTIVE",
+    "dataSource": "P2TB_SAMPLE",
+    "createdAt": "2026-06-24T00:00:00.000Z",
+    "updatedAt": "2026-06-24T00:00:00.000Z"
+  },
+  {
+    "pk": "USER#USER004",
+    "sk": "PROFILE",
+    "entityType": "USER",
+    "userId": "USER004",
+    "email": "patient.p2tb@example.com",
+    "role": "BENHNHAN",
+    "status": "ACTIVE",
+    "dataSource": "P2TB_SAMPLE",
+    "createdAt": "2026-06-24T00:00:00.000Z",
+    "updatedAt": "2026-06-24T00:00:00.000Z"
+  }
+]

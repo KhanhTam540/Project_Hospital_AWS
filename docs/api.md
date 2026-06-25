@@ -1,37 +1,10 @@
-# API tuần 1
+# API Tuần 1 – Medical Data Lambda
 
-## Quy ước
+Mọi route bên dưới, trừ `/api/health`, yêu cầu:
 
-- API Gateway HTTP API xác thực JWT cho tất cả route bảo vệ.
-- Client gửi access token trong header `Authorization: Bearer <token>`.
-- Backend kiểm tra `cognito:groups` để phân quyền nghiệp vụ.
-- Nhóm quyền: `ADMIN`, `BACSI`, `NHANSU`, `BENHNHAN`.
-
-## Public route
-
-### `GET /api/health`
-
-Kết quả mẫu:
-
-```json
-{
-  "service": "hospital-api",
-  "status": "ok",
-  "environment": "dev",
-  "region": "ap-southeast-1",
-  "timestamp": "2026-06-21T00:00:00.000Z"
-}
+```http
+Authorization: Bearer <Cognito access token>
 ```
-
-## Route xác thực
-
-### `GET /api/me`
-
-Nhóm: mọi tài khoản đã đăng nhập.
-
-### `GET /api/admin/ping`
-
-Nhóm: `ADMIN`.
 
 ## Bệnh nhân
 
@@ -44,8 +17,8 @@ Nhóm: `ADMIN`, `NHANSU`.
   "fullName": "Nguyễn Văn A",
   "dateOfBirth": "2000-01-01",
   "gender": "NAM",
-  "phoneNumber": "+84901234567",
-  "address": "Bến Tre",
+  "phoneNumber": "0900000000",
+  "address": "TP. Hồ Chí Minh",
   "healthInsuranceNumber": "BHYT001"
 }
 ```
@@ -62,8 +35,9 @@ Nhóm: `BACSI`.
 
 ```json
 {
-  "diagnosis": "Viêm họng",
-  "symptoms": "Đau họng, sốt nhẹ",
+  "symptoms": "Đau họng",
+  "diagnosis": "Viêm họng cấp",
+  "treatment": "Theo dõi và dùng thuốc theo đơn",
   "medicalHistory": "Không có",
   "note": "Tái khám sau 7 ngày"
 }
@@ -73,35 +47,84 @@ Nhóm: `BACSI`.
 
 Nhóm: `ADMIN`, `BACSI`, `NHANSU`.
 
+## Phiếu khám
+
+### `POST /api/patients/{patientId}/examinations`
+
+Nhóm: `BACSI`, `NHANSU`. `NHANSU` chỉ nhập chỉ số sinh tồn; `diagnosis` và `treatment` chỉ dành cho `BACSI`.
+
+```json
+{
+  "vitals": {
+    "temperature": 36.8,
+    "heartRate": 78,
+    "systolicBloodPressure": 115,
+    "diastolicBloodPressure": 75,
+    "oxygenSaturation": 99,
+    "weightKg": 60,
+    "heightCm": 168
+  },
+  "symptoms": "Mệt mỏi"
+}
+```
+
+### `GET /api/patients/{patientId}/examinations`
+
+Nhóm: `ADMIN`, `BACSI`, `NHANSU`.
+
+## Đơn thuốc
+
+### `POST /api/patients/{patientId}/prescriptions`
+
+Nhóm: `BACSI`.
+
+```json
+{
+  "recordId": "...",
+  "medicineItems": [
+    {
+      "medicineId": "TH001",
+      "medicineName": "Paracetamol 500mg",
+      "quantity": 10,
+      "dosage": "1 viên",
+      "frequency": "2 lần/ngày",
+      "durationDays": 5,
+      "instructions": "Uống sau ăn"
+    }
+  ],
+  "generalInstructions": "Uống đủ nước"
+}
+```
+
+### `GET /api/patients/{patientId}/prescriptions`
+
+Nhóm: `ADMIN`, `BACSI`, `NHANSU`.
+
 ## Tài liệu y tế
 
 ### `POST /api/medical/upload-url`
 
 Nhóm: `BACSI`, `NHANSU`.
 
-```json
-{
-  "patientId": "uuid",
-  "fileName": "xquang.png",
-  "contentType": "image/png",
-  "fileSize": 123456
-}
-```
-
-Client dùng URL trả về để `PUT` trực tiếp file lên S3, giữ đúng header `Content-Type`.
+Chỉ chấp nhận `application/pdf`, `image/jpeg`, `image/png`; tối đa 10 MB.
 
 ### `POST /api/medical/complete-upload`
 
-Nhóm: `BACSI`, `NHANSU`.
-
-```json
-{
-  "documentId": "uuid"
-}
-```
-
-Lambda kiểm tra object đã tồn tại trên S3 và xác nhận kích thước file.
+Nhóm: `ADMIN`, `BACSI`, `NHANSU`. Chỉ uploader hoặc `ADMIN` được xác nhận.
 
 ### `GET /api/medical/download-url?documentId=...`
 
 Nhóm: `ADMIN`, `BACSI`, `NHANSU`.
+
+### `GET /api/patients/{patientId}/documents`
+
+Nhóm: `ADMIN`, `BACSI`, `NHANSU`.
+
+## Mã lỗi
+
+- `400`: request hoặc dữ liệu không hợp lệ.
+- `401`: chưa đăng nhập hoặc JWT không hợp lệ.
+- `403`: không đúng nhóm Cognito.
+- `404`: bệnh nhân, hồ sơ hoặc tài liệu không tồn tại.
+- `409`: dữ liệu xung đột hoặc upload chưa hợp lệ.
+- `500`: lỗi nội bộ.

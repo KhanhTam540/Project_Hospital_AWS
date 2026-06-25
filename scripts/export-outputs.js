@@ -1,3 +1,5 @@
+'use strict';
+
 const fs = require('fs');
 const path = require('path');
 const {
@@ -5,6 +7,7 @@ const {
   DescribeStacksCommand,
 } = require('@aws-sdk/client-cloudformation');
 
+const projectRoot = path.resolve(__dirname, '..');
 const stackName = process.env.STACK_NAME || 'HospitalDevStack';
 const region =
   process.env.AWS_REGION ||
@@ -13,7 +16,26 @@ const region =
 
 const client = new CloudFormationClient({ region });
 
-const main = async () => {
+function normalizeBaseUrl(value = '') {
+  return String(value).replace(/\/$/, '');
+}
+
+function writeWebEnv(filePath, apiBaseUrl, outputs) {
+  fs.writeFileSync(
+    filePath,
+    [
+      `VITE_API_BASE_URL=${apiBaseUrl}`,
+      'VITE_COGNITO_ENABLED=true',
+      `VITE_COGNITO_REGION=${region}`,
+      `VITE_COGNITO_USER_POOL_ID=${outputs.UserPoolId}`,
+      `VITE_COGNITO_CLIENT_ID=${outputs.WebClientId}`,
+      'VITE_GOOGLE_CLIENT_ID=',
+      '',
+    ].join('\n'),
+  );
+}
+
+async function main() {
   const response = await client.send(
     new DescribeStacksCommand({ StackName: stackName }),
   );
@@ -31,9 +53,6 @@ const main = async () => {
 
   const required = [
     'ApiEndpoint',
-    'CloudFrontDistributionId',
-    'CloudFrontUrl',
-    'FrontendBucketName',
     'MedicalBucketName',
     'MobileClientId',
     'TableName',
@@ -47,57 +66,56 @@ const main = async () => {
     }
   }
 
-  const outputFile = path.resolve(
-    __dirname,
-    '..',
+  const cloudFrontEnabled = Boolean(
+    outputs.CloudFrontDistributionId &&
+      outputs.CloudFrontUrl &&
+      outputs.FrontendBucketName,
+  );
+
+  const accountId = stack.StackId?.split(':')[4] || undefined;
+  const outputFile = path.join(
+    projectRoot,
     'docs',
     'aws-dev-outputs.json',
   );
+
   fs.writeFileSync(
     outputFile,
-    `${JSON.stringify({ stackName, region, ...outputs }, null, 2)}\n`,
+    `${JSON.stringify(
+      {
+        stackName,
+        region,
+        accountId,
+        ...outputs,
+      },
+      null,
+      2,
+    )}\n`,
   );
 
-  const webEnvFile = path.resolve(
-    __dirname,
-    '..',
-    'web',
-    '.env.production.local',
-  );
-  fs.writeFileSync(
-    webEnvFile,
-    [
-      `VITE_AWS_REGION=${region}`,
-      `VITE_COGNITO_USER_POOL_ID=${outputs.UserPoolId}`,
-      `VITE_COGNITO_WEB_CLIENT_ID=${outputs.WebClientId}`,
-      'VITE_API_BASE_URL=',
-      '',
-    ].join('\n'),
+  const localApiBaseUrl = `${normalizeBaseUrl(outputs.ApiEndpoint)}/api`;
+  writeWebEnv(
+    path.join(projectRoot, 'web', '.env.local.generated'),
+    localApiBaseUrl,
+    outputs,
   );
 
-  const localEnvExample = path.resolve(
-    __dirname,
-    '..',
-    'web',
-    '.env.local.generated',
-  );
-  fs.writeFileSync(
-    localEnvExample,
-    [
-      `VITE_AWS_REGION=${region}`,
-      `VITE_COGNITO_USER_POOL_ID=${outputs.UserPoolId}`,
-      `VITE_COGNITO_WEB_CLIENT_ID=${outputs.WebClientId}`,
-      `VITE_API_BASE_URL=${outputs.ApiEndpoint}`,
-      '',
-    ].join('\n'),
-  );
+  if (cloudFrontEnabled) {
+    writeWebEnv(
+      path.join(projectRoot, 'web', '.env.production.local'),
+      '/api',
+      outputs,
+    );
+  }
 
   console.log(`Saved outputs to ${outputFile}`);
-  console.log(`Saved production web environment to ${webEnvFile}`);
-  console.log(
-    `For local development, copy ${localEnvExample} to web/.env.local`,
-  );
-};
+  console.log('Saved local frontend config to web/.env.local.generated');
+  if (cloudFrontEnabled) {
+    console.log('Saved production frontend config to web/.env.production.local');
+  } else {
+    console.log('CloudFront outputs were not found; production config was not written.');
+  }
+}
 
 main().catch((error) => {
   console.error(error.message || error);
