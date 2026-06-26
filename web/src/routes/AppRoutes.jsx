@@ -1,8 +1,9 @@
 import React from "react";
-import { Routes, Route } from "react-router-dom";
+import { Navigate, Routes, Route } from "react-router-dom";
 import HomePage from "../pages/HomePage";
 import LoginPage from "../pages/LoginPage";
 import RegisterPage from "../pages/RegisterPage";
+import ConfirmEmailPage from "../pages/ConfirmEmailPage";
 import NotFoundPage from "../pages/NotFoundPage";
 import ForgotPasswordPage from "../pages/ForgotPasswordPage.jsx";
 import PaymentResultPage from "../pages/benhnhan/hoadon/PaymentResultPage";
@@ -62,8 +63,12 @@ function AppRoutes() {
       {/* Trang công khai */}
       <Route path="/" element={<HomePage />} />
       <Route path="/login" element={<LoginPage />} />
+      <Route path="/dang-nhap" element={<Navigate to="/login" replace />} />
       <Route path="/staff/login" element={<StaffLoginPage />} />
       <Route path="/register" element={<RegisterPage />} />
+      <Route path="/dang-ky" element={<Navigate to="/register" replace />} />
+      <Route path="/confirm-email" element={<ConfirmEmailPage />} />
+      <Route path="/xac-thuc-email" element={<Navigate to="/confirm-email" replace />} />
       <Route path="/forgot-password" element={<ForgotPasswordPage />} />
       <Route path="/403" element={<ForbiddenPage />} />
       <Route path="/payment-result" element={<PaymentResultPage />} />

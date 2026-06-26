@@ -1,42 +1,59 @@
+'use strict';
+
 const { randomUUID } = require('crypto');
-const { DynamoDBClient } = require('@aws-sdk/client-dynamodb');
 const {
-  DynamoDBDocumentClient,
+  DeleteObjectCommand,
+  GetObjectCommand,
+  HeadObjectCommand,
+  PutObjectCommand,
+  S3Client,
+} = require('@aws-sdk/client-s3');
+const {
   GetCommand,
   PutCommand,
   QueryCommand,
   TransactWriteCommand,
   UpdateCommand,
 } = require('@aws-sdk/lib-dynamodb');
-const {
-  GetObjectCommand,
-  HeadObjectCommand,
-  PutObjectCommand,
-  S3Client,
-} = require('@aws-sdk/client-s3');
 const { getSignedUrl } = require('@aws-sdk/s3-request-presigner');
 const {
   ApiError,
-  getSubject,
+  getRouteKey,
   handleError,
-  json,
   parseJsonBody,
   queryParameter,
-  requireAnyGroup,
+  requestId,
   routeParameter,
+  success,
 } = require('../shared/http');
+const { hasGroup, requireGroups } = require('../shared/auth');
+const {
+  dateOnly,
+  optionalString,
+  requiredString,
+} = require('../shared/validation');
+const {
+  chronologicalSk,
+  directKey,
+  documentClient,
+  patientPk,
+  patientProfileKey,
+} = require('../shared/dynamodb');
+const {
+  createMedicalObjectKey,
+  normalizeMedicineItems,
+  normalizeVitals,
+  safeFileName,
+} = require('./domain');
 
 const s3 = new S3Client({});
-const ddb = DynamoDBDocumentClient.from(new DynamoDBClient({}), {
-  marshallOptions: {
-    removeUndefinedValues: true,
-  },
-});
-
 const tableName = process.env.TABLE_NAME;
 const bucketName = process.env.MEDICAL_BUCKET_NAME;
 const maxFileSizeBytes = Number(
   process.env.MAX_FILE_SIZE_BYTES || 10 * 1024 * 1024,
+);
+const presignedUrlTtlSeconds = Number(
+  process.env.PRESIGNED_URL_TTL_SECONDS || 300,
 );
 
 const allowedContentTypes = new Set([
@@ -45,274 +62,73 @@ const allowedContentTypes = new Set([
   'image/png',
 ]);
 
-const requireEnvironment = () => {
+function requireEnvironment() {
   if (!tableName || !bucketName) {
-    throw new Error('Medical service environment is not configured');
-  }
-};
-
-const cleanText = (value, fieldName, maxLength = 255) => {
-  if (typeof value !== 'string' || !value.trim()) {
-    throw new ApiError(400, `${fieldName} is required`);
-  }
-
-  const normalized = value.trim();
-  if (normalized.length > maxLength) {
-    throw new ApiError(
-      400,
-      `${fieldName} must not exceed ${maxLength} characters`,
+    throw new Error(
+      'Medical Lambda requires TABLE_NAME and MEDICAL_BUCKET_NAME',
     );
   }
+}
 
-  return normalized;
-};
-
-const optionalText = (value, maxLength = 1000) => {
-  if (value === undefined || value === null || value === '') {
-    return undefined;
-  }
-
-  if (typeof value !== 'string') {
-    throw new ApiError(400, 'Optional text fields must be strings');
-  }
-
-  const normalized = value.trim();
-  if (normalized.length > maxLength) {
-    throw new ApiError(
-      400,
-      `Text field must not exceed ${maxLength} characters`,
-    );
-  }
-
-  return normalized || undefined;
-};
-
-const safeFileName = (value) => {
-  const originalName = cleanText(value, 'fileName', 180);
-  const sanitized = originalName
-    .replace(/[\\/]/g, '_')
-    .replace(/[^a-zA-Z0-9._ -]/g, '_')
-    .replace(/\s+/g, '_');
-
-  if (!sanitized || sanitized === '.' || sanitized === '..') {
-    throw new ApiError(400, 'fileName is invalid');
-  }
-
-  return sanitized;
-};
-
-const patientKey = (patientId) => ({
-  pk: `PATIENT#${patientId}`,
-  sk: 'PROFILE',
-});
-
-const getPatient = async (patientId) => {
-  const result = await ddb.send(
+async function getItem(key, consistentRead = true) {
+  const response = await documentClient.send(
     new GetCommand({
       TableName: tableName,
-      Key: patientKey(patientId),
-      ConsistentRead: true,
+      Key: key,
+      ConsistentRead: consistentRead,
     }),
   );
+  return response.Item || null;
+}
 
-  return result.Item;
-};
+async function getPatient(patientId) {
+  return getItem(patientProfileKey(patientId));
+}
 
-const ensurePatientExists = async (patientId) => {
+async function ensurePatient(patientId) {
   const patient = await getPatient(patientId);
   if (!patient) {
-    throw new ApiError(404, 'Patient not found');
+    throw new ApiError(404, 'PATIENT_NOT_FOUND', 'Patient not found');
   }
   return patient;
-};
+}
 
-const createPatient = async (event) => {
-  requireAnyGroup(event, ['ADMIN', 'NHANSU']);
-  const subject = getSubject(event);
-  const body = parseJsonBody(event.body);
-
-  const fullName = cleanText(body.fullName, 'fullName', 150);
-  const dateOfBirth = cleanText(body.dateOfBirth, 'dateOfBirth', 10);
-  const gender = cleanText(body.gender, 'gender', 10).toUpperCase();
-
-  if (!/^\d{4}-\d{2}-\d{2}$/.test(dateOfBirth)) {
-    throw new ApiError(400, 'dateOfBirth must use YYYY-MM-DD format');
+async function ensureDirectEntity(entity, id, patientId) {
+  const item = await getItem(directKey(entity, id));
+  if (!item) {
+    throw new ApiError(404, `${entity}_NOT_FOUND`, `${entity} not found`);
   }
-
-  if (!['NAM', 'NU', 'KHAC'].includes(gender)) {
-    throw new ApiError(400, 'gender must be NAM, NU or KHAC');
-  }
-
-  const patientId = randomUUID();
-  const now = new Date().toISOString();
-  const item = {
-    ...patientKey(patientId),
-    entityType: 'PATIENT',
-    patientId,
-    fullName,
-    dateOfBirth,
-    gender,
-    phoneNumber: optionalText(body.phoneNumber, 20),
-    address: optionalText(body.address, 300),
-    healthInsuranceNumber: optionalText(body.healthInsuranceNumber, 30),
-    createdBy: subject,
-    createdAt: now,
-    updatedAt: now,
-  };
-
-  await ddb.send(
-    new PutCommand({
-      TableName: tableName,
-      Item: item,
-      ConditionExpression:
-        'attribute_not_exists(pk) AND attribute_not_exists(sk)',
-    }),
-  );
-
-  return json(201, item);
-};
-
-const readPatient = async (event) => {
-  requireAnyGroup(event, ['ADMIN', 'BACSI', 'NHANSU']);
-  const patientId = routeParameter(event, 'patientId');
-  const patient = await getPatient(patientId);
-
-  if (!patient) {
-    throw new ApiError(404, 'Patient not found');
-  }
-
-  return json(200, patient);
-};
-
-const createMedicalRecord = async (event) => {
-  requireAnyGroup(event, ['BACSI']);
-  const subject = getSubject(event);
-  const patientId = routeParameter(event, 'patientId');
-  await ensurePatientExists(patientId);
-
-  const body = parseJsonBody(event.body);
-  const diagnosis = cleanText(body.diagnosis, 'diagnosis', 500);
-  const recordId = randomUUID();
-  const now = new Date().toISOString();
-
-  const item = {
-    pk: `PATIENT#${patientId}`,
-    sk: `RECORD#${now}#${recordId}`,
-    entityType: 'MEDICAL_RECORD',
-    patientId,
-    recordId,
-    diagnosis,
-    symptoms: optionalText(body.symptoms, 1000),
-    medicalHistory: optionalText(body.medicalHistory, 2000),
-    note: optionalText(body.note, 2000),
-    createdBy: subject,
-    createdAt: now,
-  };
-
-  await ddb.send(
-    new PutCommand({
-      TableName: tableName,
-      Item: item,
-      ConditionExpression:
-        'attribute_not_exists(pk) AND attribute_not_exists(sk)',
-    }),
-  );
-
-  return json(201, item);
-};
-
-const listMedicalRecords = async (event) => {
-  requireAnyGroup(event, ['ADMIN', 'BACSI', 'NHANSU']);
-  const patientId = routeParameter(event, 'patientId');
-  await ensurePatientExists(patientId);
-
-  const result = await ddb.send(
-    new QueryCommand({
-      TableName: tableName,
-      KeyConditionExpression:
-        'pk = :pk AND begins_with(sk, :recordPrefix)',
-      ExpressionAttributeValues: {
-        ':pk': `PATIENT#${patientId}`,
-        ':recordPrefix': 'RECORD#',
-      },
-      ScanIndexForward: false,
-      Limit: 50,
-    }),
-  );
-
-  return json(200, {
-    patientId,
-    items: result.Items || [],
-    count: result.Count || 0,
-  });
-};
-
-const createUploadUrl = async (event) => {
-  requireAnyGroup(event, ['BACSI', 'NHANSU']);
-  const subject = getSubject(event);
-  const body = parseJsonBody(event.body);
-
-  const patientId = cleanText(body.patientId, 'patientId', 100);
-  await ensurePatientExists(patientId);
-
-  const fileName = safeFileName(body.fileName);
-  const contentType = cleanText(body.contentType, 'contentType', 100);
-  const fileSize = Number(body.fileSize);
-
-  if (!allowedContentTypes.has(contentType)) {
-    throw new ApiError(400, 'Only PDF, JPEG and PNG files are allowed');
-  }
-
-  if (
-    !Number.isInteger(fileSize) ||
-    fileSize <= 0 ||
-    fileSize > maxFileSizeBytes
-  ) {
+  if (patientId && item.patientId !== patientId) {
     throw new ApiError(
-      400,
-      `fileSize must be an integer between 1 and ${maxFileSizeBytes}`,
+      409,
+      'PATIENT_RELATION_MISMATCH',
+      `${entity} does not belong to this patient`,
     );
   }
+  return item;
+}
 
-  const documentId = randomUUID();
-  const now = new Date().toISOString();
-  const key = `patients/${patientId}/documents/${documentId}/${fileName}`;
-  const patientDocumentSk = `DOCUMENT#${now}#${documentId}`;
-
+async function putPatientProjection({
+  entity,
+  id,
+  patientId,
+  prefix,
+  createdAt,
+  item,
+}) {
+  const patientSk = chronologicalSk(prefix, createdAt, id);
   const directItem = {
-    pk: `DOCUMENT#${documentId}`,
-    sk: 'METADATA',
-    entityType: 'MEDICAL_DOCUMENT',
-    documentId,
-    patientId,
-    patientDocumentSk,
-    uploadedBy: subject,
-    key,
-    fileName,
-    contentType,
-    expectedFileSize: fileSize,
-    status: 'PENDING_UPLOAD',
-    createdAt: now,
-    updatedAt: now,
+    ...item,
+    ...directKey(entity, id),
+    patientSk,
   };
-
   const patientItem = {
     ...directItem,
-    pk: `PATIENT#${patientId}`,
-    sk: patientDocumentSk,
+    pk: patientPk(patientId),
+    sk: patientSk,
   };
 
-  const uploadUrl = await getSignedUrl(
-    s3,
-    new PutObjectCommand({
-      Bucket: bucketName,
-      Key: key,
-      ContentType: contentType,
-    }),
-    { expiresIn: 300 },
-  );
-
-  await ddb.send(
+  await documentClient.send(
     new TransactWriteCommand({
       TransactItems: [
         {
@@ -335,35 +151,413 @@ const createUploadUrl = async (event) => {
     }),
   );
 
-  return json(201, {
-    documentId,
-    uploadUrl,
-    expiresInSeconds: 300,
-    requiredHeaders: {
-      'Content-Type': contentType,
-    },
-  });
-};
+  return patientItem;
+}
 
-const completeUpload = async (event) => {
-  requireAnyGroup(event, ['BACSI', 'NHANSU']);
-  const body = parseJsonBody(event.body);
-  const documentId = cleanText(body.documentId, 'documentId', 100);
-
-  const result = await ddb.send(
-    new GetCommand({
+async function queryPatientItems(patientId, prefix, limit = 100) {
+  const response = await documentClient.send(
+    new QueryCommand({
       TableName: tableName,
-      Key: {
-        pk: `DOCUMENT#${documentId}`,
-        sk: 'METADATA',
+      KeyConditionExpression:
+        'pk = :pk AND begins_with(sk, :prefix)',
+      ExpressionAttributeValues: {
+        ':pk': patientPk(patientId),
+        ':prefix': `${prefix}#`,
       },
-      ConsistentRead: true,
+      ScanIndexForward: false,
+      Limit: Math.min(Math.max(Number(limit) || 100, 1), 100),
+    }),
+  );
+  return response.Items || [];
+}
+
+async function createPatient(event) {
+  const actor = requireGroups(event, ['ADMIN', 'NHANSU']);
+  const body = parseJsonBody(event);
+  const patientId = randomUUID();
+  const now = new Date().toISOString();
+
+  const item = {
+    ...patientProfileKey(patientId),
+    entityType: 'PATIENT',
+    patientId,
+    fullName: requiredString(body.fullName, 'fullName', {
+      maxLength: 150,
+    }),
+    dateOfBirth: dateOnly(body.dateOfBirth, 'dateOfBirth'),
+    gender: requiredString(body.gender, 'gender', {
+      maxLength: 10,
+    }).toUpperCase(),
+    phoneNumber: optionalString(body.phoneNumber, 'phoneNumber', {
+      maxLength: 20,
+    }),
+    address: optionalString(body.address, 'address', { maxLength: 300 }),
+    healthInsuranceNumber: optionalString(
+      body.healthInsuranceNumber,
+      'healthInsuranceNumber',
+      { maxLength: 30 },
+    ),
+    status: 'ACTIVE',
+    createdBy: actor.sub,
+    createdAt: now,
+    updatedAt: now,
+  };
+
+  if (!['NAM', 'NU', 'KHAC'].includes(item.gender)) {
+    throw new ApiError(
+      400,
+      'VALIDATION_ERROR',
+      'gender must be NAM, NU or KHAC',
+    );
+  }
+
+  await documentClient.send(
+    new PutCommand({
+      TableName: tableName,
+      Item: item,
+      ConditionExpression:
+        'attribute_not_exists(pk) AND attribute_not_exists(sk)',
     }),
   );
 
-  const document = result.Item;
-  if (!document) {
-    throw new ApiError(404, 'Document not found');
+  return success(item, 201);
+}
+
+async function readPatient(event) {
+  requireGroups(event, ['ADMIN', 'BACSI', 'NHANSU']);
+  const patientId = routeParameter(event, 'patientId');
+  return success(await ensurePatient(patientId));
+}
+
+async function createMedicalRecord(event) {
+  const actor = requireGroups(event, ['BACSI']);
+  const patientId = routeParameter(event, 'patientId');
+  await ensurePatient(patientId);
+
+  const body = parseJsonBody(event);
+  const recordId = randomUUID();
+  const now = new Date().toISOString();
+  const item = {
+    entityType: 'MEDICAL_RECORD',
+    recordId,
+    patientId,
+    doctorId: actor.sub,
+    symptoms: optionalString(body.symptoms, 'symptoms', {
+      maxLength: 1500,
+    }),
+    diagnosis: requiredString(body.diagnosis, 'diagnosis', {
+      maxLength: 1000,
+    }),
+    treatment: optionalString(body.treatment, 'treatment', {
+      maxLength: 2000,
+    }),
+    medicalHistory: optionalString(body.medicalHistory, 'medicalHistory', {
+      maxLength: 3000,
+    }),
+    note: optionalString(body.note, 'note', { maxLength: 2000 }),
+    examinationId: optionalString(body.examinationId, 'examinationId', {
+      maxLength: 100,
+    }),
+    prescriptionId: optionalString(body.prescriptionId, 'prescriptionId', {
+      maxLength: 100,
+    }),
+    createdBy: actor.sub,
+    createdAt: now,
+    updatedAt: now,
+  };
+
+  const created = await putPatientProjection({
+    entity: 'RECORD',
+    id: recordId,
+    patientId,
+    prefix: 'RECORD',
+    createdAt: now,
+    item,
+  });
+
+  return success(created, 201);
+}
+
+async function listMedicalRecords(event) {
+  requireGroups(event, ['ADMIN', 'BACSI', 'NHANSU']);
+  const patientId = routeParameter(event, 'patientId');
+  await ensurePatient(patientId);
+  const items = await queryPatientItems(patientId, 'RECORD');
+  return success({ patientId, items, count: items.length });
+}
+
+async function createExamination(event) {
+  const actor = requireGroups(event, ['BACSI', 'NHANSU']);
+  const patientId = routeParameter(event, 'patientId');
+  await ensurePatient(patientId);
+
+  const body = parseJsonBody(event);
+  const examinationId = randomUUID();
+  const now = new Date().toISOString();
+  const doctorOnlyFieldsPresent = Boolean(body.diagnosis || body.treatment);
+
+  if (doctorOnlyFieldsPresent && !hasGroup(actor, 'BACSI')) {
+    throw new ApiError(
+      403,
+      'DOCTOR_FIELDS_FORBIDDEN',
+      'Only BACSI can enter diagnosis or treatment',
+    );
+  }
+
+  const item = {
+    entityType: 'EXAMINATION',
+    examinationId,
+    patientId,
+    actorId: actor.sub,
+    actorGroups: actor.groups,
+    vitals: normalizeVitals(body.vitals || {}),
+    symptoms: optionalString(body.symptoms, 'symptoms', {
+      maxLength: 1500,
+    }),
+    diagnosis: optionalString(body.diagnosis, 'diagnosis', {
+      maxLength: 1000,
+    }),
+    treatment: optionalString(body.treatment, 'treatment', {
+      maxLength: 2000,
+    }),
+    advice: optionalString(body.advice, 'advice', { maxLength: 1500 }),
+    status: body.diagnosis ? 'COMPLETED' : 'VITALS_RECORDED',
+    createdBy: actor.sub,
+    createdAt: now,
+    updatedAt: now,
+  };
+
+  const created = await putPatientProjection({
+    entity: 'EXAMINATION',
+    id: examinationId,
+    patientId,
+    prefix: 'EXAM',
+    createdAt: now,
+    item,
+  });
+
+  return success(created, 201);
+}
+
+async function listExaminations(event) {
+  requireGroups(event, ['ADMIN', 'BACSI', 'NHANSU']);
+  const patientId = routeParameter(event, 'patientId');
+  await ensurePatient(patientId);
+  const items = await queryPatientItems(patientId, 'EXAM');
+  return success({ patientId, items, count: items.length });
+}
+
+async function createPrescription(event) {
+  const actor = requireGroups(event, ['BACSI']);
+  const patientId = routeParameter(event, 'patientId');
+  await ensurePatient(patientId);
+
+  const body = parseJsonBody(event);
+  if (body.recordId) {
+    await ensureDirectEntity('RECORD', body.recordId, patientId);
+  }
+
+  const prescriptionId = randomUUID();
+  const now = new Date().toISOString();
+  const item = {
+    entityType: 'PRESCRIPTION',
+    prescriptionId,
+    patientId,
+    doctorId: actor.sub,
+    recordId: optionalString(body.recordId, 'recordId', { maxLength: 100 }),
+    medicineItems: normalizeMedicineItems(body.medicineItems),
+    generalInstructions: optionalString(
+      body.generalInstructions,
+      'generalInstructions',
+      { maxLength: 1500 },
+    ),
+    status: 'ACTIVE',
+    createdBy: actor.sub,
+    createdAt: now,
+    updatedAt: now,
+  };
+
+  const created = await putPatientProjection({
+    entity: 'PRESCRIPTION',
+    id: prescriptionId,
+    patientId,
+    prefix: 'PRESCRIPTION',
+    createdAt: now,
+    item,
+  });
+
+  return success(created, 201);
+}
+
+async function listPrescriptions(event) {
+  requireGroups(event, ['ADMIN', 'BACSI', 'NHANSU']);
+  const patientId = routeParameter(event, 'patientId');
+  await ensurePatient(patientId);
+  const items = await queryPatientItems(patientId, 'PRESCRIPTION');
+  return success({ patientId, items, count: items.length });
+}
+
+async function createUploadUrl(event) {
+  const actor = requireGroups(event, ['BACSI', 'NHANSU']);
+  const body = parseJsonBody(event);
+  const patientId = requiredString(body.patientId, 'patientId', {
+    maxLength: 100,
+  });
+  await ensurePatient(patientId);
+
+  const fileName = safeFileName(body.fileName);
+  const contentType = requiredString(body.contentType, 'contentType', {
+    maxLength: 100,
+  }).toLowerCase();
+  const fileSize = Number(body.fileSize);
+
+  if (!allowedContentTypes.has(contentType)) {
+    throw new ApiError(
+      400,
+      'UNSUPPORTED_FILE_TYPE',
+      'Only PDF, JPEG and PNG files are allowed',
+    );
+  }
+  if (
+    !Number.isInteger(fileSize) ||
+    fileSize <= 0 ||
+    fileSize > maxFileSizeBytes
+  ) {
+    throw new ApiError(
+      400,
+      'INVALID_FILE_SIZE',
+      `fileSize must be between 1 and ${maxFileSizeBytes} bytes`,
+    );
+  }
+
+  const documentId = randomUUID();
+  const now = new Date().toISOString();
+  const key = createMedicalObjectKey(patientId, documentId, fileName);
+  const patientSk = chronologicalSk('DOCUMENT', now, documentId);
+  const item = {
+    entityType: 'MEDICAL_DOCUMENT',
+    documentId,
+    patientId,
+    fileName,
+    contentType,
+    expectedFileSize: fileSize,
+    key,
+    status: 'PENDING_UPLOAD',
+    uploadedBy: actor.sub,
+    createdAt: now,
+    updatedAt: now,
+  };
+
+  await putPatientProjection({
+    entity: 'DOCUMENT',
+    id: documentId,
+    patientId,
+    prefix: 'DOCUMENT',
+    createdAt: now,
+    item,
+  });
+
+  const metadata = {
+    documentid: documentId,
+    patientid: patientId,
+  };
+  const uploadUrl = await getSignedUrl(
+    s3,
+    new PutObjectCommand({
+      Bucket: bucketName,
+      Key: key,
+      ContentType: contentType,
+      Metadata: metadata,
+    }),
+    { expiresIn: presignedUrlTtlSeconds },
+  );
+
+  return success(
+    {
+      documentId,
+      objectKey: key,
+      uploadUrl,
+      expiresInSeconds: presignedUrlTtlSeconds,
+      requiredHeaders: {
+        'Content-Type': contentType,
+        'x-amz-meta-documentid': documentId,
+        'x-amz-meta-patientid': patientId,
+      },
+      status: 'PENDING_UPLOAD',
+      patientSk,
+    },
+    201,
+  );
+}
+
+async function rejectUploadedDocument(document, reason) {
+  try {
+    await s3.send(
+      new DeleteObjectCommand({
+        Bucket: bucketName,
+        Key: document.key,
+      }),
+    );
+  } catch (error) {
+    console.error('Unable to remove rejected medical object', {
+      documentId: document.documentId,
+      message: error.message,
+    });
+  }
+
+  const values = {
+    ':status': 'REJECTED',
+    ':reason': reason,
+    ':updatedAt': new Date().toISOString(),
+  };
+  const update = {
+    TableName: tableName,
+    UpdateExpression:
+      'SET #status = :status, rejectionReason = :reason, updatedAt = :updatedAt',
+    ExpressionAttributeNames: { '#status': 'status' },
+    ExpressionAttributeValues: values,
+  };
+
+  await Promise.all([
+    documentClient.send(
+      new UpdateCommand({
+        ...update,
+        Key: directKey('DOCUMENT', document.documentId),
+      }),
+    ),
+    documentClient.send(
+      new UpdateCommand({
+        ...update,
+        Key: {
+          pk: patientPk(document.patientId),
+          sk: document.patientSk,
+        },
+      }),
+    ),
+  ]);
+}
+
+async function completeUpload(event) {
+  const actor = requireGroups(event, ['ADMIN', 'BACSI', 'NHANSU']);
+  const body = parseJsonBody(event);
+  const documentId = requiredString(body.documentId, 'documentId', {
+    maxLength: 100,
+  });
+  const document = await ensureDirectEntity('DOCUMENT', documentId);
+
+  if (document.uploadedBy !== actor.sub && !hasGroup(actor, 'ADMIN')) {
+    throw new ApiError(
+      403,
+      'UPLOAD_OWNER_MISMATCH',
+      'Only the uploader or ADMIN can complete this upload',
+    );
+  }
+  if (document.status === 'AVAILABLE') {
+    return success({
+      documentId,
+      status: document.status,
+      actualFileSize: document.actualFileSize,
+    });
   }
 
   let head;
@@ -375,94 +569,78 @@ const completeUpload = async (event) => {
       }),
     );
   } catch {
-    throw new ApiError(409, 'The file has not been uploaded to S3 yet');
+    throw new ApiError(
+      409,
+      'OBJECT_NOT_UPLOADED',
+      'The file has not been uploaded to S3 yet',
+    );
   }
 
   const actualFileSize = Number(head.ContentLength || 0);
-  if (head.ContentType && head.ContentType !== document.contentType) {
-    throw new ApiError(409, 'Uploaded content type does not match the request');
-  }
+  const invalidReason =
+    actualFileSize <= 0 || actualFileSize > maxFileSizeBytes
+      ? 'Uploaded file size is invalid'
+      : document.expectedFileSize &&
+          actualFileSize !== Number(document.expectedFileSize)
+        ? 'Uploaded file size does not match the request'
+        : head.ContentType && head.ContentType !== document.contentType
+          ? 'Uploaded content type does not match the request'
+          : head.Metadata?.documentid !== documentId ||
+              head.Metadata?.patientid !== document.patientId
+            ? 'Uploaded metadata does not match the request'
+            : null;
 
-  if (actualFileSize <= 0 || actualFileSize > maxFileSizeBytes) {
-    throw new ApiError(400, 'Uploaded file size is invalid');
-  }
-
-  if (
-    document.expectedFileSize &&
-    actualFileSize !== Number(document.expectedFileSize)
-  ) {
-    throw new ApiError(409, 'Uploaded file size does not match the request');
+  if (invalidReason) {
+    await rejectUploadedDocument(document, invalidReason);
+    throw new ApiError(409, 'UPLOAD_VALIDATION_FAILED', invalidReason);
   }
 
   const now = new Date().toISOString();
-  const updateExpression =
-    'SET #status = :available, actualFileSize = :actualFileSize, etag = :etag, updatedAt = :updatedAt';
-  const expressionAttributeNames = {
-    '#status': 'status',
-  };
-  const expressionAttributeValues = {
-    ':available': 'AVAILABLE',
-    ':actualFileSize': actualFileSize,
-    ':etag': head.ETag || null,
-    ':updatedAt': now,
+  const update = {
+    TableName: tableName,
+    UpdateExpression:
+      'SET #status = :status, actualFileSize = :size, etag = :etag, updatedAt = :updatedAt REMOVE rejectionReason',
+    ExpressionAttributeNames: { '#status': 'status' },
+    ExpressionAttributeValues: {
+      ':status': 'AVAILABLE',
+      ':size': actualFileSize,
+      ':etag': head.ETag || null,
+      ':updatedAt': now,
+    },
   };
 
   await Promise.all([
-    ddb.send(
+    documentClient.send(
       new UpdateCommand({
-        TableName: tableName,
-        Key: {
-          pk: `DOCUMENT#${documentId}`,
-          sk: 'METADATA',
-        },
-        UpdateExpression: updateExpression,
-        ExpressionAttributeNames: expressionAttributeNames,
-        ExpressionAttributeValues: expressionAttributeValues,
+        ...update,
+        Key: directKey('DOCUMENT', documentId),
       }),
     ),
-    ddb.send(
+    documentClient.send(
       new UpdateCommand({
-        TableName: tableName,
+        ...update,
         Key: {
-          pk: `PATIENT#${document.patientId}`,
-          sk: document.patientDocumentSk,
+          pk: patientPk(document.patientId),
+          sk: document.patientSk,
         },
-        UpdateExpression: updateExpression,
-        ExpressionAttributeNames: expressionAttributeNames,
-        ExpressionAttributeValues: expressionAttributeValues,
       }),
     ),
   ]);
 
-  return json(200, {
-    documentId,
-    status: 'AVAILABLE',
-    actualFileSize,
-  });
-};
+  return success({ documentId, status: 'AVAILABLE', actualFileSize });
+}
 
-const createDownloadUrl = async (event) => {
-  requireAnyGroup(event, ['ADMIN', 'BACSI', 'NHANSU']);
+async function createDownloadUrl(event) {
+  requireGroups(event, ['ADMIN', 'BACSI', 'NHANSU']);
   const documentId = queryParameter(event, 'documentId');
-
-  const result = await ddb.send(
-    new GetCommand({
-      TableName: tableName,
-      Key: {
-        pk: `DOCUMENT#${documentId}`,
-        sk: 'METADATA',
-      },
-      ConsistentRead: true,
-    }),
-  );
-
-  const document = result.Item;
-  if (!document) {
-    throw new ApiError(404, 'Document not found');
-  }
+  const document = await ensureDirectEntity('DOCUMENT', documentId);
 
   if (document.status !== 'AVAILABLE') {
-    throw new ApiError(409, 'Document upload is not complete');
+    throw new ApiError(
+      409,
+      'DOCUMENT_NOT_AVAILABLE',
+      'Document upload is not complete',
+    );
   }
 
   const downloadUrl = await getSignedUrl(
@@ -474,41 +652,69 @@ const createDownloadUrl = async (event) => {
         document.fileName || 'medical-document',
       )}"`,
     }),
-    { expiresIn: 300 },
+    { expiresIn: presignedUrlTtlSeconds },
   );
 
-  return json(200, {
+  return success({
     documentId,
+    patientId: document.patientId,
     fileName: document.fileName,
     contentType: document.contentType,
     downloadUrl,
-    expiresInSeconds: 300,
+    expiresInSeconds: presignedUrlTtlSeconds,
   });
-};
+}
 
-exports.handler = async (event) => {
+async function listDocuments(event) {
+  requireGroups(event, ['ADMIN', 'BACSI', 'NHANSU']);
+  const patientId = routeParameter(event, 'patientId');
+  await ensurePatient(patientId);
+  const items = await queryPatientItems(patientId, 'DOCUMENT');
+  return success({ patientId, items, count: items.length });
+}
+
+const routeHandlers = Object.freeze({
+  'POST /api/patients': createPatient,
+  'GET /api/patients/{patientId}': readPatient,
+  'POST /api/patients/{patientId}/records': createMedicalRecord,
+  'GET /api/patients/{patientId}/records': listMedicalRecords,
+  'POST /api/patients/{patientId}/examinations': createExamination,
+  'GET /api/patients/{patientId}/examinations': listExaminations,
+  'POST /api/patients/{patientId}/prescriptions': createPrescription,
+  'GET /api/patients/{patientId}/prescriptions': listPrescriptions,
+  'GET /api/patients/{patientId}/documents': listDocuments,
+  'POST /api/medical/upload-url': createUploadUrl,
+  'POST /api/medical/complete-upload': completeUpload,
+  'GET /api/medical/download-url': createDownloadUrl,
+});
+
+async function handler(event) {
+  const routeKey = getRouteKey(event);
+  const context = {
+    requestId: requestId(event),
+    routeKey,
+  };
+
   try {
     requireEnvironment();
-
-    switch (event.routeKey) {
-      case 'POST /api/patients':
-        return await createPatient(event);
-      case 'GET /api/patients/{patientId}':
-        return await readPatient(event);
-      case 'POST /api/patients/{patientId}/records':
-        return await createMedicalRecord(event);
-      case 'GET /api/patients/{patientId}/records':
-        return await listMedicalRecords(event);
-      case 'POST /api/medical/upload-url':
-        return await createUploadUrl(event);
-      case 'POST /api/medical/complete-upload':
-        return await completeUpload(event);
-      case 'GET /api/medical/download-url':
-        return await createDownloadUrl(event);
-      default:
-        return json(404, { message: 'Route not found' });
+    const routeHandler = routeHandlers[routeKey];
+    if (!routeHandler) {
+      throw new ApiError(404, 'ROUTE_NOT_FOUND', `Route ${routeKey} not found`);
     }
+
+    console.info('Medical API request started', context);
+    const response = await routeHandler(event);
+    console.info('Medical API request completed', {
+      ...context,
+      statusCode: response.statusCode,
+    });
+    return response;
   } catch (error) {
-    return handleError(error, 'Medical API request failed');
+    return handleError(error, context);
   }
+}
+
+module.exports = {
+  handler,
+  routeHandlers,
 };

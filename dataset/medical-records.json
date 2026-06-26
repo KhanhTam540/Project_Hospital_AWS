@@ -1,0 +1,5 @@
+[
+  {"pk":"PATIENT#BN001","sk":"MEDICAL_RECORD#HS001","entityType":"MEDICAL_RECORD","recordId":"HS001","patientId":"BN001","doctorId":"BS001","diagnosis":"Viêm họng cấp - dữ liệu minh họa","status":"OPEN","dataSource":"P2TB_SAMPLE","createdAt":"2026-06-24T00:00:00.000Z","updatedAt":"2026-06-24T00:00:00.000Z"},
+  {"pk":"PATIENT#BN002","sk":"MEDICAL_RECORD#HS002","entityType":"MEDICAL_RECORD","recordId":"HS002","patientId":"BN002","doctorId":"BS001","diagnosis":"Rối loạn tiêu hóa - dữ liệu minh họa","status":"CLOSED","dataSource":"P2TB_SAMPLE","createdAt":"2026-06-24T00:00:00.000Z","updatedAt":"2026-06-24T00:00:00.000Z"},
+  {"pk":"PATIENT#BN003","sk":"MEDICAL_RECORD#HS003","entityType":"MEDICAL_RECORD","recordId":"HS003","patientId":"BN003","doctorId":"BS002","diagnosis":"Theo dõi huyết áp - dữ liệu minh họa","status":"OPEN","dataSource":"P2TB_SAMPLE","createdAt":"2026-06-24T00:00:00.000Z","updatedAt":"2026-06-24T00:00:00.000Z"}
+]

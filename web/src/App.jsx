@@ -1,12 +1,16 @@
 import React from "react";
-import AppRoutes from "./routes/AppRoutes";
 import { Toaster } from "react-hot-toast";
+import AppRoutes from "./routes/AppRoutes";
 
 function App() {
   return (
     <>
       <AppRoutes />
-      <Toaster position="top-right" reverseOrder={false} />
+      <Toaster
+        position="top-right"
+        reverseOrder={false}
+        toastOptions={{ duration: 4000 }}
+      />
     </>
   );
 }

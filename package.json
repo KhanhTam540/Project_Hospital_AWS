@@ -16,15 +16,23 @@
     "deploy:web": "node scripts/deploy-web.js",
     "create:users": "node scripts/create-demo-users.js",
     "smoke": "node scripts/smoke-test.js",
-    "check": "npm run build && npm test && npm run synth && npm run build:web"
+    "check": "npm run build && npm test && npm run synth && npm run build:web",
+    "seed:data": "node scripts/seed-dynamodb.js",
+    "verify:data": "node scripts/verify-dynamodb-data.js",
+    "reset:data": "node scripts/reset-dynamodb-data.js",
+    "test:medical": "node --test tests/medical-handler.test.js",
+    "seed:medical": "node scripts/seed-medical-data.js",
+    "verify:medical": "node scripts/verify-medical-data.js",
+    "tokens:medical": "node scripts/get-demo-tokens.js",
+    "test:medical:api": "node scripts/test-medical-api.js"
   },
   "dependencies": {
     "@aws-sdk/client-cloudformation": "^3.850.0",
     "@aws-sdk/client-cloudfront": "^3.850.0",
-    "@aws-sdk/client-cognito-identity-provider": "^3.850.0",
-    "@aws-sdk/client-dynamodb": "^3.850.0",
+    "@aws-sdk/client-cognito-identity-provider": "^3.1075.0",
+    "@aws-sdk/client-dynamodb": "^3.1075.0",
     "@aws-sdk/client-s3": "^3.850.0",
-    "@aws-sdk/lib-dynamodb": "^3.850.0",
+    "@aws-sdk/lib-dynamodb": "^3.1075.0",
     "@aws-sdk/s3-request-presigner": "^3.850.0",
     "aws-cdk-lib": "^2.260.0",
     "constructs": "^10.4.2"

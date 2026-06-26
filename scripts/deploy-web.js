@@ -59,6 +59,23 @@ const main = async () => {
   const bucketName = outputs.FrontendBucketName;
   const distributionId = outputs.CloudFrontDistributionId;
 
+  if (!bucketName || !distributionId || !outputs.CloudFrontUrl) {
+    throw new Error(
+      'CloudFront outputs are missing. Deploy the stack with CloudFront enabled, then run npm run outputs.',
+    );
+  }
+
+  const productionEnv = path.join(
+    projectRoot,
+    'web',
+    '.env.production.local',
+  );
+  if (!fs.existsSync(productionEnv)) {
+    throw new Error(
+      'Missing web/.env.production.local. Run npm run outputs before npm run deploy:web.',
+    );
+  }
+
   execFileSync('npm', ['--prefix', 'web', 'run', 'build'], {
     cwd: projectRoot,
     stdio: 'inherit',

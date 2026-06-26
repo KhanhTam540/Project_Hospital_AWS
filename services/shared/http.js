@@ -1,130 +1,188 @@
+'use strict';
+
+const DEFAULT_HEADERS = Object.freeze({
+  'content-type': 'application/json; charset=utf-8',
+  'cache-control': 'no-store',
+  'x-content-type-options': 'nosniff',
+});
+
 class ApiError extends Error {
-  constructor(statusCode, message, details) {
+  constructor(statusCode, code, message, details) {
     super(message);
     this.name = 'ApiError';
     this.statusCode = statusCode;
+    this.code = code;
     this.details = details;
   }
 }
 
-const json = (statusCode, body) => ({
-  statusCode,
-  headers: {
-    'content-type': 'application/json; charset=utf-8',
-    'cache-control': 'no-store',
-    'x-content-type-options': 'nosniff',
-  },
-  body: JSON.stringify(body),
-});
+function json(statusCode, body, headers = {}) {
+  return {
+    statusCode,
+    headers: {
+      ...DEFAULT_HEADERS,
+      ...headers,
+    },
+    body: JSON.stringify(body),
+  };
+}
 
-const parseJsonBody = (body) => {
-  if (!body) {
-    throw new ApiError(400, 'Request body is required');
+function success(data, statusCode = 200, headers = {}) {
+  return json(statusCode, { success: true, data }, headers);
+}
+
+function failure(statusCode, code, message, details) {
+  const error = { code, message };
+  if (details !== undefined) error.details = details;
+  return json(statusCode, { success: false, error });
+}
+
+function parseJsonBody(input) {
+  const rawBody =
+    input &&
+    typeof input === 'object' &&
+    Object.prototype.hasOwnProperty.call(input, 'body')
+      ? input.body
+      : input;
+
+  if (rawBody === undefined || rawBody === null || rawBody === '') {
+    throw new ApiError(400, 'BODY_REQUIRED', 'Request body is required');
+  }
+
+  if (typeof rawBody === 'object') return rawBody;
+  if (typeof rawBody !== 'string') {
+    throw new ApiError(
+      400,
+      'INVALID_BODY',
+      'Request body must be a JSON string',
+    );
   }
 
   try {
-    return JSON.parse(body);
+    return JSON.parse(rawBody);
   } catch {
-    throw new ApiError(400, 'Request body must be valid JSON');
+    throw new ApiError(400, 'INVALID_JSON', 'Request body is not valid JSON');
   }
-};
+}
 
-const getJwtClaims = (event) =>
-  event?.requestContext?.authorizer?.jwt?.claims || {};
 
-const getSubject = (event) => {
-  const subject = getJwtClaims(event).sub;
-  return typeof subject === 'string' && subject.trim()
-    ? subject.trim()
-    : undefined;
-};
+function getMethod(event = {}) {
+  return (
+    event.requestContext?.http?.method ||
+    event.httpMethod ||
+    String(event.routeKey || '').split(' ')[0] ||
+    ''
+  ).toUpperCase();
+}
 
-const getGroups = (event) => {
-  const value = getJwtClaims(event)['cognito:groups'];
+function getPath(event = {}) {
+  if (event.rawPath) return event.rawPath;
+  if (event.path) return event.path;
+  const routeKey = String(event.routeKey || '');
+  const index = routeKey.indexOf(' ');
+  return index >= 0 ? routeKey.slice(index + 1) : '';
+}
 
-  if (Array.isArray(value)) {
-    return value.map(String);
-  }
+function getJwtClaims(event = {}) {
+  return (
+    event.requestContext?.authorizer?.jwt?.claims ||
+    event.requestContext?.authorizer?.claims ||
+    {}
+  );
+}
 
-  if (typeof value !== 'string' || value.trim() === '') {
-    return [];
-  }
+function getSubject(event = {}) {
+  const claims = getJwtClaims(event);
+  return claims.sub || claims.username || claims['cognito:username'];
+}
 
-  try {
-    const parsed = JSON.parse(value);
-    if (Array.isArray(parsed)) {
-      return parsed.map(String);
-    }
-  } catch {
-    // API Gateway can expose this claim as a comma-separated string.
-  }
+function getRouteKey(event = {}) {
+  if (event.routeKey) return event.routeKey;
 
-  return value
-    .replace(/[\[\]"]/g, '')
-    .split(',')
-    .map((group) => group.trim())
-    .filter(Boolean);
-};
+  const method = (
+    event.requestContext?.http?.method ||
+    event.httpMethod ||
+    ''
+  ).toUpperCase();
+  const path = event.rawPath || event.path || '';
+  return `${method} ${path}`.trim();
+}
 
-const requireAuthenticated = (event) => {
-  const subject = getSubject(event);
-  if (!subject) {
-    throw new ApiError(401, 'Unauthorized');
-  }
-  return subject;
-};
-
-const hasAnyGroup = (event, allowedGroups) => {
-  const groups = getGroups(event);
-  return groups.some((group) => allowedGroups.includes(group));
-};
-
-const requireAnyGroup = (event, allowedGroups) => {
-  requireAuthenticated(event);
-  if (!hasAnyGroup(event, allowedGroups)) {
-    throw new ApiError(403, 'Forbidden');
-  }
-};
-
-const routeParameter = (event, name) => {
+function routeParameter(event, name) {
   const value = event?.pathParameters?.[name];
   if (typeof value !== 'string' || !value.trim()) {
-    throw new ApiError(400, `${name} is required`);
+    throw new ApiError(400, 'PATH_PARAMETER_REQUIRED', `${name} is required`);
   }
   return value.trim();
-};
+}
 
-const queryParameter = (event, name) => {
+function queryParameter(event, name, { required = true } = {}) {
   const value = event?.queryStringParameters?.[name];
-  if (typeof value !== 'string' || !value.trim()) {
-    throw new ApiError(400, `${name} query parameter is required`);
+  if (value === undefined || value === null || value === '') {
+    if (!required) return undefined;
+    throw new ApiError(
+      400,
+      'QUERY_PARAMETER_REQUIRED',
+      `${name} query parameter is required`,
+    );
   }
-  return value.trim();
-};
+  return String(value).trim();
+}
 
-const handleError = (error, context = 'Request failed') => {
+function requestId(event = {}) {
+  return (
+    event.requestContext?.requestId ||
+    event.requestContext?.http?.requestId ||
+    'unknown-request'
+  );
+}
+
+function handleError(error, context = {}) {
   if (error instanceof ApiError) {
-    return json(error.statusCode, {
-      message: error.message,
-      ...(error.details ? { details: error.details } : {}),
-    });
+    return failure(
+      error.statusCode,
+      error.code,
+      error.message,
+      error.details,
+    );
   }
 
-  console.error(context, error);
-  return json(500, { message: 'Internal server error' });
-};
+  if (error?.name === 'ConditionalCheckFailedException') {
+    return failure(409, 'RESOURCE_CONFLICT', 'Resource already exists');
+  }
+
+  if (error?.name === 'TransactionCanceledException') {
+    return failure(
+      409,
+      'TRANSACTION_CONFLICT',
+      'The request conflicts with existing data',
+    );
+  }
+
+  console.error('Unhandled API error', {
+    ...context,
+    name: error?.name,
+    message: error?.message,
+    stack: error?.stack,
+  });
+
+  return failure(500, 'INTERNAL_ERROR', 'Internal server error');
+}
 
 module.exports = {
   ApiError,
-  getGroups,
+  DEFAULT_HEADERS,
+  failure,
   getJwtClaims,
+  getMethod,
+  getPath,
+  getRouteKey,
   getSubject,
   handleError,
-  hasAnyGroup,
   json,
   parseJsonBody,
   queryParameter,
-  requireAnyGroup,
-  requireAuthenticated,
+  requestId,
   routeParameter,
+  success,
 };
