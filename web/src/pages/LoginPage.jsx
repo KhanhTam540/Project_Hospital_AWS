@@ -1,7 +1,15 @@
+<<<<<<< HEAD
 import React, { useEffect, useState } from "react";
 import { useLocation, useNavigate, Link } from "react-router-dom";
 import axios from "../api/axiosClient";
 import toast from "react-hot-toast";
+=======
+import React, { useState } from "react";
+import { useNavigate, Link } from "react-router-dom";
+import axios from "../api/axiosClient";
+import toast from "react-hot-toast";
+import { Toaster } from "react-hot-toast";
+>>>>>>> 783fda1d827d49c69e82f3a6033e117577ee6a2c
 import ChatbotWidget from "../components/Chatbot/ChatbotWidget.jsx";
 import AuthLayout, { AuthInput, AuthButton, AuthLink } from "../components/auth/AuthLayout";
 import { isCognitoEnabled } from "../config/cognito";
@@ -11,15 +19,23 @@ import { useAuth } from "../auth/AuthContext";
 
 function LoginPage() {
   const navigate = useNavigate();
+<<<<<<< HEAD
   const location = useLocation();
   const { setSession } = useAuth();
   const cognitoMode = isCognitoEnabled();
 
   const [username, setUsername] = useState(location.state?.email || "");
+=======
+  const { setSession } = useAuth();
+  const cognitoMode = isCognitoEnabled();
+
+  const [username, setUsername] = useState("");
+>>>>>>> 783fda1d827d49c69e82f3a6033e117577ee6a2c
   const [password, setPassword] = useState("");
   const [showPassword, setShowPassword] = useState(false);
   const [loading, setLoading] = useState(false);
 
+<<<<<<< HEAD
   useEffect(() => {
     if (location.state?.message) {
       toast.success(location.state.message);
@@ -27,6 +43,8 @@ function LoginPage() {
     }
   }, [location.pathname, location.state, navigate]);
 
+=======
+>>>>>>> 783fda1d827d49c69e82f3a6033e117577ee6a2c
   const persistLegacySession = (token, user) => {
     localStorage.setItem("token", token);
     localStorage.setItem("user", JSON.stringify(user));
@@ -57,8 +75,12 @@ function LoginPage() {
 
         if (result.needsConfirmation) {
           toast.error("Tài khoản chưa xác nhận email. Vui lòng kiểm tra hộp thư.");
+<<<<<<< HEAD
           sessionStorage.setItem("pendingConfirmationEmail", username.trim().toLowerCase());
           navigate("/confirm-email", { state: { email: username } });
+=======
+          navigate("/register", { state: { email: username, needsConfirm: true } });
+>>>>>>> 783fda1d827d49c69e82f3a6033e117577ee6a2c
           return;
         }
 
@@ -110,6 +132,10 @@ function LoginPage() {
 
   return (
     <>
+<<<<<<< HEAD
+=======
+      <Toaster position="top-center" />
+>>>>>>> 783fda1d827d49c69e82f3a6033e117577ee6a2c
       <AuthLayout
         title="Đăng nhập"
         subtitle={cognitoMode ? "Xác thực qua AWS Cognito" : "Đăng nhập tài khoản hệ thống"}

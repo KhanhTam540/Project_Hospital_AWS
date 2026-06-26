@@ -1,9 +1,16 @@
 import React from "react";
+<<<<<<< HEAD
 import { Navigate, Routes, Route } from "react-router-dom";
 import HomePage from "../pages/HomePage";
 import LoginPage from "../pages/LoginPage";
 import RegisterPage from "../pages/RegisterPage";
 import ConfirmEmailPage from "../pages/ConfirmEmailPage";
+=======
+import { Routes, Route } from "react-router-dom";
+import HomePage from "../pages/HomePage";
+import LoginPage from "../pages/LoginPage";
+import RegisterPage from "../pages/RegisterPage";
+>>>>>>> 783fda1d827d49c69e82f3a6033e117577ee6a2c
 import NotFoundPage from "../pages/NotFoundPage";
 import ForgotPasswordPage from "../pages/ForgotPasswordPage.jsx";
 import PaymentResultPage from "../pages/benhnhan/hoadon/PaymentResultPage";
@@ -63,12 +70,17 @@ function AppRoutes() {
       {/* Trang công khai */}
       <Route path="/" element={<HomePage />} />
       <Route path="/login" element={<LoginPage />} />
+<<<<<<< HEAD
       <Route path="/dang-nhap" element={<Navigate to="/login" replace />} />
       <Route path="/staff/login" element={<StaffLoginPage />} />
       <Route path="/register" element={<RegisterPage />} />
       <Route path="/dang-ky" element={<Navigate to="/register" replace />} />
       <Route path="/confirm-email" element={<ConfirmEmailPage />} />
       <Route path="/xac-thuc-email" element={<Navigate to="/confirm-email" replace />} />
+=======
+      <Route path="/staff/login" element={<StaffLoginPage />} />
+      <Route path="/register" element={<RegisterPage />} />
+>>>>>>> 783fda1d827d49c69e82f3a6033e117577ee6a2c
       <Route path="/forgot-password" element={<ForgotPasswordPage />} />
       <Route path="/403" element={<ForbiddenPage />} />
       <Route path="/payment-result" element={<PaymentResultPage />} />

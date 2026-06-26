@@ -4,6 +4,7 @@
   "private": true,
   "description": "Hospital AWS Week 1 - JavaScript CDK, Lambda and React implementation.",
   "scripts": {
+    "seed:dataset": "node scripts/seed-dataset.js",
     "build": "node scripts/check-js.js",
     "test": "node --test tests/*.test.js",
     "synth": "cdk synth",
@@ -24,7 +25,11 @@
   "dependencies": {
     "@aws-sdk/client-cloudformation": "^3.850.0",
     "@aws-sdk/client-cloudfront": "^3.850.0",
+<<<<<<< HEAD
     "@aws-sdk/client-cognito-identity-provider": "^3.1075.0",
+=======
+    "@aws-sdk/client-cognito-identity-provider": "^3.850.0",
+>>>>>>> 783fda1d827d49c69e82f3a6033e117577ee6a2c
     "@aws-sdk/client-dynamodb": "^3.1075.0",
     "@aws-sdk/client-s3": "^3.850.0",
     "@aws-sdk/lib-dynamodb": "^3.1075.0",
