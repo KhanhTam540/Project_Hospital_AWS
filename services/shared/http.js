@@ -1,130 +1,99 @@
-class ApiError extends Error {
-  constructor(statusCode, message, details) {
-    super(message);
-    this.name = 'ApiError';
-    this.statusCode = statusCode;
-    this.details = details;
+'use strict';
+
+const DEFAULT_HEADERS = Object.freeze({
+  'content-type': 'application/json; charset=utf-8',
+  'cache-control': 'no-store',
+});
+
+function json(statusCode, body, headers = {}) {
+  return {
+    statusCode,
+    headers: {
+      ...DEFAULT_HEADERS,
+      ...headers,
+    },
+    body: JSON.stringify(body),
+  };
+}
+
+function success(data, statusCode = 200, headers = {}) {
+  return json(statusCode, { success: true, data }, headers);
+}
+
+function failure(statusCode, code, message, details) {
+  const error = { code, message };
+  if (details !== undefined) error.details = details;
+  return json(statusCode, { success: false, error });
+}
+
+function parseJsonBody(input) {
+  const rawBody =
+    input && typeof input === 'object' && Object.prototype.hasOwnProperty.call(input, 'body')
+      ? input.body
+      : input;
+
+  if (rawBody === undefined || rawBody === null || rawBody === '') {
+    throw new Error('Request body is required');
+  }
+
+  if (typeof rawBody === 'object') return rawBody;
+  if (typeof rawBody !== 'string') {
+    throw new Error('Request body must be a JSON string');
+  }
+
+  try {
+    return JSON.parse(rawBody);
+  } catch {
+    throw new Error('Request body is not valid JSON');
   }
 }
 
-const json = (statusCode, body) => ({
-  statusCode,
-  headers: {
-    'content-type': 'application/json; charset=utf-8',
-    'cache-control': 'no-store',
-    'x-content-type-options': 'nosniff',
-  },
-  body: JSON.stringify(body),
-});
+function getMethod(event = {}) {
+  return (
+    event.requestContext?.http?.method ||
+    event.httpMethod ||
+    String(event.routeKey || '').split(' ')[0] ||
+    ''
+  ).toUpperCase();
+}
 
-const parseJsonBody = (body) => {
-  if (!body) {
-    throw new ApiError(400, 'Request body is required');
-  }
+function getPath(event = {}) {
+  if (event.rawPath) return event.rawPath;
+  if (event.path) return event.path;
+  const routeKey = String(event.routeKey || '');
+  const separatorIndex = routeKey.indexOf(' ');
+  return separatorIndex >= 0 ? routeKey.slice(separatorIndex + 1) : '';
+}
 
-  try {
-    return JSON.parse(body);
-  } catch {
-    throw new ApiError(400, 'Request body must be valid JSON');
-  }
-};
+function getRouteKey(event = {}) {
+  if (event.routeKey) return event.routeKey;
+  return `${getMethod(event)} ${getPath(event)}`.trim();
+}
 
-const getJwtClaims = (event) =>
-  event?.requestContext?.authorizer?.jwt?.claims || {};
+// Backward-compatible exports for older Lambda files that imported these helpers
+// from shared/http.js.
+function getJwtClaims(event = {}) {
+  return (
+    event.requestContext?.authorizer?.jwt?.claims ||
+    event.requestContext?.authorizer?.claims ||
+    {}
+  );
+}
 
-const getSubject = (event) => {
-  const subject = getJwtClaims(event).sub;
-  return typeof subject === 'string' && subject.trim()
-    ? subject.trim()
-    : undefined;
-};
-
-const getGroups = (event) => {
-  const value = getJwtClaims(event)['cognito:groups'];
-
-  if (Array.isArray(value)) {
-    return value.map(String);
-  }
-
-  if (typeof value !== 'string' || value.trim() === '') {
-    return [];
-  }
-
-  try {
-    const parsed = JSON.parse(value);
-    if (Array.isArray(parsed)) {
-      return parsed.map(String);
-    }
-  } catch {
-    // API Gateway can expose this claim as a comma-separated string.
-  }
-
-  return value
-    .replace(/[\[\]"]/g, '')
-    .split(',')
-    .map((group) => group.trim())
-    .filter(Boolean);
-};
-
-const requireAuthenticated = (event) => {
-  const subject = getSubject(event);
-  if (!subject) {
-    throw new ApiError(401, 'Unauthorized');
-  }
-  return subject;
-};
-
-const hasAnyGroup = (event, allowedGroups) => {
-  const groups = getGroups(event);
-  return groups.some((group) => allowedGroups.includes(group));
-};
-
-const requireAnyGroup = (event, allowedGroups) => {
-  requireAuthenticated(event);
-  if (!hasAnyGroup(event, allowedGroups)) {
-    throw new ApiError(403, 'Forbidden');
-  }
-};
-
-const routeParameter = (event, name) => {
-  const value = event?.pathParameters?.[name];
-  if (typeof value !== 'string' || !value.trim()) {
-    throw new ApiError(400, `${name} is required`);
-  }
-  return value.trim();
-};
-
-const queryParameter = (event, name) => {
-  const value = event?.queryStringParameters?.[name];
-  if (typeof value !== 'string' || !value.trim()) {
-    throw new ApiError(400, `${name} query parameter is required`);
-  }
-  return value.trim();
-};
-
-const handleError = (error, context = 'Request failed') => {
-  if (error instanceof ApiError) {
-    return json(error.statusCode, {
-      message: error.message,
-      ...(error.details ? { details: error.details } : {}),
-    });
-  }
-
-  console.error(context, error);
-  return json(500, { message: 'Internal server error' });
-};
+function getSubject(event = {}) {
+  const claims = getJwtClaims(event);
+  return claims.sub || claims.username || claims['cognito:username'];
+}
 
 module.exports = {
-  ApiError,
-  getGroups,
+  DEFAULT_HEADERS,
+  json,
+  success,
+  failure,
+  parseJsonBody,
+  getMethod,
+  getPath,
+  getRouteKey,
   getJwtClaims,
   getSubject,
-  handleError,
-  hasAnyGroup,
-  json,
-  parseJsonBody,
-  queryParameter,
-  requireAnyGroup,
-  requireAuthenticated,
-  routeParameter,
 };

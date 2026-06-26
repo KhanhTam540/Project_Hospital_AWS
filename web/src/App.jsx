@@ -1,25 +1,18 @@
-import { Navigate, Route, Routes } from 'react-router-dom';
-import ProtectedRoute from './components/ProtectedRoute';
-import ConfirmPage from './pages/ConfirmPage';
-import DashboardPage from './pages/DashboardPage';
-import LoginPage from './pages/LoginPage';
-import RegisterPage from './pages/RegisterPage';
+import React from "react";
+import { Toaster } from "react-hot-toast";
+import AppRoutes from "./routes/AppRoutes";
 
-export default function App() {
+function App() {
   return (
-    <Routes>
-      <Route path="/login" element={<LoginPage />} />
-      <Route path="/register" element={<RegisterPage />} />
-      <Route path="/confirm" element={<ConfirmPage />} />
-      <Route
-        path="/dashboard"
-        element={
-          <ProtectedRoute>
-            <DashboardPage />
-          </ProtectedRoute>
-        }
+    <>
+      <AppRoutes />
+      <Toaster
+        position="top-right"
+        reverseOrder={false}
+        toastOptions={{ duration: 4000 }}
       />
-      <Route path="*" element={<Navigate to="/dashboard" replace />} />
-    </Routes>
+    </>
   );
 }
+
+export default App;

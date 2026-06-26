@@ -1,0 +1,5 @@
+[
+  {"pk":"MEDICINE#TH001","sk":"META","entityType":"MEDICINE","medicineId":"TH001","medicineName":"Paracetamol 500mg","unit":"VIEN","status":"ACTIVE","dataSource":"P2TB_SAMPLE","createdAt":"2026-06-24T00:00:00.000Z","updatedAt":"2026-06-24T00:00:00.000Z"},
+  {"pk":"MEDICINE#TH002","sk":"META","entityType":"MEDICINE","medicineId":"TH002","medicineName":"Vitamin C 500mg","unit":"VIEN","status":"ACTIVE","dataSource":"P2TB_SAMPLE","createdAt":"2026-06-24T00:00:00.000Z","updatedAt":"2026-06-24T00:00:00.000Z"},
+  {"pk":"MEDICINE#TH003","sk":"META","entityType":"MEDICINE","medicineId":"TH003","medicineName":"Nước muối sinh lý","unit":"CHAI","status":"ACTIVE","dataSource":"P2TB_SAMPLE","createdAt":"2026-06-24T00:00:00.000Z","updatedAt":"2026-06-24T00:00:00.000Z"}
+]

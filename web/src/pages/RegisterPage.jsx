@@ -1,75 +1,187 @@
-import { useState } from 'react';
-import { Link, useNavigate } from 'react-router-dom';
-import { registerPatient } from '../auth/authService';
+import React, { useState } from "react";
+import { useNavigate } from "react-router-dom";
+import toast from "react-hot-toast";
 
-export default function RegisterPage() {
+import AuthLayout, {
+  AuthButton,
+  AuthInput,
+  AuthLink,
+} from "../components/auth/AuthLayout";
+import { cognitoSignUp } from "../auth/cognitoAuth";
+import { isCognitoEnabled } from "../config/cognito";
+
+const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+const STRONG_PASSWORD_RE =
+  /^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[^A-Za-z0-9]).{10,}$/;
+
+function RegisterPage() {
   const navigate = useNavigate();
-  const [form, setForm] = useState({
-    email: '',
-    password: '',
-    phoneNumber: '',
-  });
-  const [message, setMessage] = useState('');
-  const [loading, setLoading] = useState(false);
+  const cognitoEnabled = isCognitoEnabled();
 
-  const change = (event) => {
-    setForm((current) => ({
-      ...current,
-      [event.target.name]: event.target.value,
-    }));
+  const [fullName, setFullName] = useState("");
+  const [email, setEmail] = useState("");
+  const [password, setPassword] = useState("");
+  const [confirmPassword, setConfirmPassword] = useState("");
+  const [showPassword, setShowPassword] = useState(false);
+  const [loading, setLoading] = useState(false);
+  const [errors, setErrors] = useState({});
+
+  const validate = () => {
+    const nextErrors = {};
+    const normalizedEmail = email.trim().toLowerCase();
+
+    if (!fullName.trim()) nextErrors.fullName = "Vui lòng nhập họ và tên.";
+
+    if (!normalizedEmail) {
+      nextErrors.email = "Vui lòng nhập email.";
+    } else if (!EMAIL_RE.test(normalizedEmail)) {
+      nextErrors.email = "Email không đúng định dạng.";
+    }
+
+    if (!password) {
+      nextErrors.password = "Vui lòng nhập mật khẩu.";
+    } else if (!STRONG_PASSWORD_RE.test(password)) {
+      nextErrors.password =
+        "Mật khẩu tối thiểu 10 ký tự, gồm chữ hoa, chữ thường, số và ký tự đặc biệt.";
+    }
+
+    if (confirmPassword !== password) {
+      nextErrors.confirmPassword = "Mật khẩu xác nhận không khớp.";
+    }
+
+    setErrors(nextErrors);
+    return Object.keys(nextErrors).length === 0;
   };
 
-  const submit = async (event) => {
+  const handleSubmit = async (event) => {
     event.preventDefault();
-    setLoading(true);
-    setMessage('');
+
+    if (!cognitoEnabled) {
+      toast.error("Cognito chưa được cấu hình trong web/.env.local.");
+      return;
+    }
+
+    if (!validate()) return;
+
+    const normalizedEmail = email.trim().toLowerCase();
 
     try {
-      const email = form.email.trim();
-      const result = await registerPatient(
-        email,
-        form.password,
-        form.phoneNumber.trim(),
-      );
+      setLoading(true);
+
+      const result = await cognitoSignUp({
+        email: normalizedEmail,
+        password,
+        name: fullName.trim(),
+      });
+
+      sessionStorage.setItem("pendingConfirmationEmail", normalizedEmail);
 
       if (result.isSignUpComplete) {
-        navigate('/login');
-      } else {
-        navigate(`/confirm?email=${encodeURIComponent(email)}`);
+        toast.success("Đăng ký thành công. Bạn có thể đăng nhập.");
+        navigate("/login", {
+          replace: true,
+          state: { email: normalizedEmail },
+        });
+        return;
       }
+
+      toast.success("Mã xác nhận đã được gửi đến email của bạn.");
+      navigate("/confirm-email", {
+        state: {
+          email: normalizedEmail,
+          destination: result.nextStep?.codeDeliveryDetails?.destination,
+        },
+      });
     } catch (error) {
-      setMessage(error.message || 'Đăng ký thất bại');
+      const message = String(error?.message || "Đăng ký thất bại.");
+
+      if (error?.name === "UsernameExistsException") {
+        sessionStorage.setItem("pendingConfirmationEmail", normalizedEmail);
+        toast.error("Email đã tồn tại. Hãy xác nhận hoặc đăng nhập.");
+        navigate("/confirm-email", { state: { email: normalizedEmail } });
+        return;
+      }
+
+      toast.error(message);
     } finally {
       setLoading(false);
     }
   };
 
   return (
-    <main className="auth-page">
-      <form className="panel auth-panel" onSubmit={submit}>
-        <p className="eyebrow">Hospital Cloud</p>
-        <h1>Đăng ký bệnh nhân</h1>
-        <label>
-          Email
-          <input name="email" type="email" value={form.email} onChange={change} required />
-        </label>
-        <label>
-          Số điện thoại quốc tế, ví dụ +84901234567
-          <input name="phoneNumber" value={form.phoneNumber} onChange={change} />
-        </label>
-        <label>
-          Mật khẩu
-          <input name="password" type="password" value={form.password} onChange={change} required />
-        </label>
-        <small>Mật khẩu tối thiểu 10 ký tự, có chữ hoa, chữ thường, số và ký tự đặc biệt.</small>
-        <button type="submit" disabled={loading}>
-          {loading ? 'Đang đăng ký...' : 'Đăng ký'}
-        </button>
-        {message && <p className="message error">{message}</p>}
+    <AuthLayout
+      title="Đăng ký tài khoản"
+      subtitle="Amazon Cognito sẽ gửi mã xác nhận đến email của bạn"
+      icon="📝"
+      footer={
         <p>
-          Đã có tài khoản? <Link to="/login">Đăng nhập</Link>
+          Đã có tài khoản? <AuthLink to="/login">Đăng nhập</AuthLink>
         </p>
+      }
+    >
+      <form onSubmit={handleSubmit} noValidate>
+        <AuthInput
+          label="Họ và tên"
+          value={fullName}
+          onChange={(event) => setFullName(event.target.value)}
+          error={errors.fullName}
+          placeholder="Nguyễn Văn A"
+          autoComplete="name"
+          disabled={loading}
+          autoFocus
+        />
+
+        <AuthInput
+          label="Email"
+          type="email"
+          value={email}
+          onChange={(event) => setEmail(event.target.value)}
+          error={errors.email}
+          placeholder="email@gmail.com"
+          autoComplete="email"
+          disabled={loading}
+        />
+
+        <AuthInput
+          label="Mật khẩu"
+          type={showPassword ? "text" : "password"}
+          value={password}
+          onChange={(event) => setPassword(event.target.value)}
+          error={errors.password}
+          autoComplete="new-password"
+          disabled={loading}
+          rightElement={
+            <button
+              type="button"
+              onClick={() => setShowPassword((value) => !value)}
+              className="text-slate-400 hover:text-slate-600"
+              aria-label={showPassword ? "Ẩn mật khẩu" : "Hiện mật khẩu"}
+            >
+              {showPassword ? "👁️" : "🙈"}
+            </button>
+          }
+        />
+
+        <AuthInput
+          label="Xác nhận mật khẩu"
+          type={showPassword ? "text" : "password"}
+          value={confirmPassword}
+          onChange={(event) => setConfirmPassword(event.target.value)}
+          error={errors.confirmPassword}
+          autoComplete="new-password"
+          disabled={loading}
+        />
+
+        <AuthButton type="submit" loading={loading} variant="primary">
+          {loading ? "Đang đăng ký..." : "Đăng ký và nhận mã"}
+        </AuthButton>
       </form>
-    </main>
+
+      <p className="mt-4 text-center text-xs text-slate-400">
+        Hãy dùng email thật. Các địa chỉ @example.com không nhận được mã xác nhận.
+      </p>
+    </AuthLayout>
   );
 }
+
+export default RegisterPage;

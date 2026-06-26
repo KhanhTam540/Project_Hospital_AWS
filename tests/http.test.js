@@ -1,41 +1,28 @@
+'use strict';
+
 const test = require('node:test');
 const assert = require('node:assert/strict');
-const {
-  ApiError,
-  getGroups,
-  requireAnyGroup,
-} = require('../services/shared/http');
+const { json, success, failure, parseJsonBody, getRouteKey } = require('../services/shared/http');
 
-const eventWithGroups = (value) => ({
-  requestContext: {
-    authorizer: {
-      jwt: {
-        claims: {
-          sub: 'user-123',
-          'cognito:groups': value,
-        },
-      },
-    },
-  },
+test('json creates an API Gateway response', () => {
+  const response = json(200, { ok: true });
+  assert.equal(response.statusCode, 200);
+  assert.deepEqual(JSON.parse(response.body), { ok: true });
 });
 
-test('getGroups reads JSON array string', () => {
-  assert.deepEqual(getGroups(eventWithGroups('["ADMIN","BACSI"]')), [
-    'ADMIN',
-    'BACSI',
-  ]);
+test('success and failure use a consistent envelope', () => {
+  assert.deepEqual(JSON.parse(success({ id: 1 }).body), { success: true, data: { id: 1 } });
+  assert.deepEqual(JSON.parse(failure(403, 'FORBIDDEN', 'Denied').body), {
+    success: false,
+    error: { code: 'FORBIDDEN', message: 'Denied' },
+  });
 });
 
-test('getGroups reads comma separated string', () => {
-  assert.deepEqual(getGroups(eventWithGroups('ADMIN, NHANSU')), [
-    'ADMIN',
-    'NHANSU',
-  ]);
+test('parseJsonBody accepts event or raw body', () => {
+  assert.deepEqual(parseJsonBody('{"a":1}'), { a: 1 });
+  assert.deepEqual(parseJsonBody({ body: '{"b":2}' }), { b: 2 });
 });
 
-test('requireAnyGroup rejects unauthorized group', () => {
-  assert.throws(
-    () => requireAnyGroup(eventWithGroups('BENHNHAN'), ['ADMIN']),
-    (error) => error instanceof ApiError && error.statusCode === 403,
-  );
+test('getRouteKey derives route from HTTP API event', () => {
+  assert.equal(getRouteKey({ requestContext: { http: { method: 'GET' } }, rawPath: '/api/health' }), 'GET /api/health');
 });
