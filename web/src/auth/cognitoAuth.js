@@ -11,6 +11,7 @@ import {
 } from "aws-amplify/auth";
 
 import { jwtDecode } from "jwt-decode";
+import axiosClient from "../api/axiosClient";
 
 export const STAFF_ROLES = [
   "ADMIN",
@@ -26,6 +27,21 @@ const ROLE_PRIORITY = [
   "THUNGAN",
   "BENHNHAN",
 ];
+
+/*
+ * Liên kết tài khoản Cognito demo với mã dữ liệu mẫu DynamoDB.
+ * Các tài khoản đăng ký thực tế vẫn sử dụng Cognito sub như trước.
+ */
+const DEMO_PROFILE_LINKS = Object.freeze({
+  "admin.demo@example.com": { maTK: "USER001" },
+  "doctor.demo@example.com": { maTK: "USER002", maBS: "BS001" },
+  "staff.demo@example.com": { maTK: "USER003", maNS: "NS001", loaiNS: "TN" },
+  "patient.demo@example.com": { maTK: "USER004", maBN: "BN001" },
+  "admin.p2tb@example.com": { maTK: "USER001" },
+  "doctor.p2tb@example.com": { maTK: "USER002", maBS: "BS001" },
+  "staff.p2tb@example.com": { maTK: "USER003", maNS: "NS001", loaiNS: "TN" },
+  "patient.p2tb@example.com": { maTK: "USER004", maBN: "BN001" },
+});
 
 /**
  * Giải mã ID Token của Cognito.
@@ -491,54 +507,31 @@ export const
 export const syncWithBackend = async ({
   staffOnly = false,
 } = {}) => {
-  const session =
-    await fetchAuthSession();
+  const session = await fetchAuthSession();
 
-  const accessToken =
-    session.tokens
-      ?.accessToken
-      ?.toString();
-
-  const idToken =
-    session.tokens
-      ?.idToken
-      ?.toString();
+  const accessToken = session.tokens?.accessToken?.toString();
+  const idToken = session.tokens?.idToken?.toString();
 
   if (!accessToken) {
-    throw new Error(
-      "Không lấy được Access Token Cognito.",
-    );
+    throw new Error("Không lấy được Access Token Cognito.");
   }
-
   if (!idToken) {
-    throw new Error(
-      "Không lấy được ID Token Cognito.",
-    );
+    throw new Error("Không lấy được ID Token Cognito.");
   }
 
-  const claims =
-    parseIdTokenClaims(idToken);
-
-  const role =
-    getRoleFromClaims(claims);
+  const claims = parseIdTokenClaims(idToken);
+  const role = getRoleFromClaims(claims);
 
   if (!role) {
     await cognitoSignOut();
-
     throw new Error(
       "Tài khoản chưa được gán nhóm Cognito: ADMIN, BACSI, NHANSU, THUNGAN hoặc BENHNHAN.",
     );
   }
 
-  if (
-    staffOnly &&
-    !STAFF_ROLES.includes(role)
-  ) {
+  if (staffOnly && !STAFF_ROLES.includes(role)) {
     await cognitoSignOut();
-
-    throw new Error(
-      "Tài khoản không thuộc cổng nhân viên nội bộ.",
-    );
+    throw new Error("Tài khoản không thuộc cổng nhân viên nội bộ.");
   }
 
   const subject =
@@ -548,54 +541,95 @@ export const syncWithBackend = async ({
 
   if (!subject) {
     await cognitoSignOut();
+    throw new Error("Không xác định được mã người dùng Cognito.");
+  }
 
-    throw new Error(
-      "Không xác định được mã người dùng Cognito.",
+  const normalizedEmail = String(claims.email || "")
+    .trim()
+    .toLowerCase();
+  const demoLink = DEMO_PROFILE_LINKS[normalizedEmail] || {};
+
+  // API /auth/me cần access token. Lưu tạm token trước khi gọi API,
+  // sau đó persistSession sẽ ghi lại toàn bộ phiên hoàn chỉnh.
+  localStorage.setItem("token", accessToken);
+  localStorage.setItem("accessToken", accessToken);
+  localStorage.setItem("idToken", idToken);
+
+  let backendProfile = {};
+  try {
+    const response = await axiosClient.get("/auth/me");
+    backendProfile = response?.data?.data ?? response?.data ?? {};
+  } catch (error) {
+    console.warn(
+      "Không đồng bộ được hồ sơ ứng dụng từ /auth/me, dùng dữ liệu Cognito tạm thời.",
+      error,
     );
   }
 
-  /*
-   * Tuần 1 chưa lưu custom:loaiNS.
-   * NHANSU mặc định vào cổng tiếp nhận.
-   */
+  const resolvedRole =
+    backendProfile.maNhom ||
+    backendProfile.primaryRole ||
+    role;
+
+  if (staffOnly && !STAFF_ROLES.includes(resolvedRole)) {
+    await cognitoSignOut();
+    throw new Error("Tài khoản không thuộc cổng nhân viên nội bộ.");
+  }
+
   const loaiNS =
+    backendProfile.loaiNS ||
+    demoLink.loaiNS ||
     getLoaiNSFromClaims(claims) ||
-    (
-      role === "NHANSU"
-        ? "TN"
-        : ""
-    );
+    (resolvedRole === "NHANSU" ? "TN" : "");
+
+  const displayName =
+    backendProfile.hoTen ||
+    backendProfile.fullName ||
+    claims.name ||
+    claims.email ||
+    claims["cognito:username"] ||
+    "Hospital P2TB User";
 
   const user = {
-    maTK: subject,
-
-    email:
-      claims.email || "",
-
-    hoTen:
-      claims.name ||
-      claims.email ||
-      claims[
-        "cognito:username"
-      ] ||
-      "Hospital P2TB User",
-
-    maNhom:
-      role,
-
+    maTK:
+      backendProfile.maTK ||
+      backendProfile.appUserId ||
+      demoLink.maTK ||
+      subject,
+    cognitoSub: subject,
+    email: backendProfile.email || claims.email || "",
+    hoTen: displayName,
+    HoTen: displayName,
+    maNhom: resolvedRole,
     loaiNS,
-
     maBN:
-      role === "BENHNHAN"
-        ? subject
+      resolvedRole === "BENHNHAN"
+        ? (
+            backendProfile.maBN ||
+            backendProfile.patientId ||
+            demoLink.maBN ||
+            subject
+          )
         : undefined,
-
     maBS:
-      role === "BACSI"
-        ? subject
+      resolvedRole === "BACSI"
+        ? (
+            backendProfile.maBS ||
+            backendProfile.doctorId ||
+            demoLink.maBS ||
+            subject
+          )
         : undefined,
-
-    permissions: [],
+    maNS:
+      resolvedRole === "NHANSU"
+        ? (
+            backendProfile.maNS ||
+            backendProfile.staffId ||
+            demoLink.maNS ||
+            subject
+          )
+        : undefined,
+    permissions: backendProfile.permissions || [],
   };
 
   persistSession({
@@ -604,14 +638,12 @@ export const syncWithBackend = async ({
     claims,
   });
 
-  localStorage.setItem(
-    "idToken",
-    idToken,
-  );
+  localStorage.setItem("idToken", idToken);
 
   return {
     user,
     claims,
+    backendProfile,
     legacyToken: accessToken,
   };
 };

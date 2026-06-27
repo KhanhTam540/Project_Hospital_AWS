@@ -210,7 +210,9 @@ const extractCount = (response) => {
   const value = body?.data ?? body?.items ?? body;
 
   if (Array.isArray(value)) return value.length;
+  if (Array.isArray(value?.users)) return value.users.length;
   if (Array.isArray(value?.items)) return value.items.length;
+  if (typeof value?.total === "number") return value.total;
   if (typeof value?.count === "number") return value.count;
   if (typeof body?.count === "number") return body.count;
   return 0;

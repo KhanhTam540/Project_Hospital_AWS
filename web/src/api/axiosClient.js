@@ -27,6 +27,17 @@ axiosClient.interceptors.request.use((config) => {
 axiosClient.interceptors.response.use(
   (response) => response,
   (error) => {
+    if (import.meta.env.DEV) {
+      console.error("API request failed", {
+        method: error.config?.method?.toUpperCase(),
+        url: error.config?.baseURL
+          ? `${error.config.baseURL}${error.config.url || ""}`
+          : error.config?.url,
+        status: error.response?.status,
+        response: error.response?.data,
+      });
+    }
+
     // A cart can legitimately be absent after an invoice is created.
     if (
       error.response?.status === 404 &&

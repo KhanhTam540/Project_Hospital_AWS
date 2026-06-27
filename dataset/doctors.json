@@ -12,7 +12,8 @@
     "status": "ACTIVE",
     "dataSource": "P2TB_SAMPLE",
     "createdAt": "2026-06-24T00:00:00.000Z",
-    "updatedAt": "2026-06-24T00:00:00.000Z"
+    "updatedAt": "2026-06-24T00:00:00.000Z",
+    "accountUserId": "USER002"
   },
   {
     "pk": "STAFF#BS002",

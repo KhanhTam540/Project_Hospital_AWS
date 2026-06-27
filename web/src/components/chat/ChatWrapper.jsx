@@ -65,8 +65,8 @@ const ChatWrapper = () => {
   const userRole = localStorage.getItem("role"); 
   const maTK = localStorage.getItem("maTK");
 
-  // FIX: Nếu không có mã tài khoản (chưa đăng nhập), KHÔNG render component này
-  if (!maTK) return null; 
+  // Không return trước các React Hooks. Việc ẩn chat được thực hiện
+  // sau khi toàn bộ hooks của component đã được gọi.
 
   // Quản lý các chế độ xem (view)
   const [currentView, setCurrentView] = useState(userRole === 'BENHNHAN' ? 'menu' : 'list'); 
@@ -409,6 +409,10 @@ const ChatWrapper = () => {
     // Mặc định (hoặc đang tải)
     return <div className="w-full h-full flex items-center justify-center text-gray-500">Đang tải...</div>;
   };
+
+  if (!maTK) {
+    return null;
+  }
 
   return (
     <>

@@ -7,7 +7,9 @@
       "gender": "NAM",
       "phoneNumber": "0900000001",
       "address": "TP. Hồ Chí Minh",
-      "healthInsuranceNumber": "BHYT-P2TB-001"
+      "healthInsuranceNumber": "BHYT-P2TB-001",
+      "accountUserId": "USER004",
+      "email": "patient.p2tb@example.com"
     },
     {
       "patientId": "BN002",

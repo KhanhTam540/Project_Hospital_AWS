@@ -21,7 +21,8 @@
     "status": "ACTIVE",
     "dataSource": "P2TB_SAMPLE",
     "createdAt": "2026-06-24T00:00:00.000Z",
-    "updatedAt": "2026-06-24T00:00:00.000Z"
+    "updatedAt": "2026-06-24T00:00:00.000Z",
+    "doctorId": "BS001"
   },
   {
     "pk": "USER#USER003",
@@ -33,7 +34,9 @@
     "status": "ACTIVE",
     "dataSource": "P2TB_SAMPLE",
     "createdAt": "2026-06-24T00:00:00.000Z",
-    "updatedAt": "2026-06-24T00:00:00.000Z"
+    "updatedAt": "2026-06-24T00:00:00.000Z",
+    "staffId": "NS001",
+    "staffType": "TN"
   },
   {
     "pk": "USER#USER004",
@@ -45,6 +48,7 @@
     "status": "ACTIVE",
     "dataSource": "P2TB_SAMPLE",
     "createdAt": "2026-06-24T00:00:00.000Z",
-    "updatedAt": "2026-06-24T00:00:00.000Z"
+    "updatedAt": "2026-06-24T00:00:00.000Z",
+    "patientId": "BN001"
   }
 ]

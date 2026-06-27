@@ -12,6 +12,7 @@ const {
   GetCommand,
   PutCommand,
   QueryCommand,
+  ScanCommand,
   TransactWriteCommand,
   UpdateCommand,
 } = require('@aws-sdk/lib-dynamodb');
@@ -26,7 +27,7 @@ const {
   routeParameter,
   success,
 } = require('../shared/http');
-const { hasGroup, requireGroups } = require('../shared/auth');
+const { getCurrentUser, hasGroup, requireGroups } = require('../shared/auth');
 const {
   dateOnly,
   optionalString,
@@ -227,6 +228,147 @@ async function readPatient(event) {
   requireGroups(event, ['ADMIN', 'BACSI', 'NHANSU']);
   const patientId = routeParameter(event, 'patientId');
   return success(await ensurePatient(patientId));
+}
+
+async function updatePatient(event) {
+  const actor = requireGroups(event, ['ADMIN', 'NHANSU', 'BENHNHAN']);
+  const currentUser = getCurrentUser(event);
+  const patientId = routeParameter(event, 'patientId');
+  const patient = await ensurePatient(patientId);
+
+  if (hasGroup(actor, 'BENHNHAN')) {
+    const userProfiles = await scanEntityTypes(['USER']);
+    const actorEmail = String(currentUser.email || '').trim().toLowerCase();
+    const appUser = userProfiles.find((item) =>
+      item.cognitoSub === currentUser.sub ||
+      item.cognitoUsername === currentUser.username ||
+      (actorEmail && String(item.email || '').trim().toLowerCase() === actorEmail),
+    );
+
+    const ownsProfile = [
+      currentUser.sub,
+      currentUser.username,
+      appUser?.userId,
+    ].filter(Boolean).includes(patient.accountUserId) ||
+      patient.cognitoSub === currentUser.sub ||
+      patient.cognitoUsername === currentUser.username ||
+      appUser?.patientId === patientId;
+
+    if (!ownsProfile) {
+      throw new ApiError(
+        403,
+        'FORBIDDEN',
+        'Bạn không có quyền cập nhật hồ sơ bệnh nhân này',
+      );
+    }
+  }
+
+  const body = parseJsonBody(event);
+  const genderInput = body.gender ?? body.gioiTinh;
+  const genderMap = {
+    NAM: 'NAM',
+    Nam: 'NAM',
+    nam: 'NAM',
+    NU: 'NU',
+    Nữ: 'NU',
+    NỮ: 'NU',
+    nữ: 'NU',
+    KHAC: 'KHAC',
+    Khác: 'KHAC',
+    khác: 'KHAC',
+  };
+
+  const updates = {};
+  if (body.fullName !== undefined || body.hoTen !== undefined) {
+    updates.fullName = requiredString(
+      body.fullName ?? body.hoTen,
+      'fullName',
+      { maxLength: 150 },
+    );
+  }
+  if (body.dateOfBirth !== undefined || body.ngaySinh !== undefined) {
+    const dateValue = body.dateOfBirth ?? body.ngaySinh;
+    updates.dateOfBirth = dateValue
+      ? dateOnly(dateValue, 'dateOfBirth')
+      : null;
+  }
+  if (genderInput !== undefined) {
+    const normalizedGender = genderMap[genderInput] ||
+      genderMap[String(genderInput).trim()] ||
+      String(genderInput).trim().toUpperCase();
+    if (!['NAM', 'NU', 'KHAC'].includes(normalizedGender)) {
+      throw new ApiError(
+        400,
+        'VALIDATION_ERROR',
+        'gender must be NAM, NU or KHAC',
+      );
+    }
+    updates.gender = normalizedGender;
+  }
+  if (body.phoneNumber !== undefined || body.soDienThoai !== undefined) {
+    updates.phoneNumber = optionalString(
+      body.phoneNumber ?? body.soDienThoai,
+      'phoneNumber',
+      { maxLength: 20 },
+    );
+  }
+  if (body.address !== undefined || body.diaChi !== undefined) {
+    updates.address = optionalString(
+      body.address ?? body.diaChi,
+      'address',
+      { maxLength: 300 },
+    );
+  }
+  if (
+    body.healthInsuranceNumber !== undefined ||
+    body.bhyt !== undefined
+  ) {
+    updates.healthInsuranceNumber = optionalString(
+      body.healthInsuranceNumber ?? body.bhyt,
+      'healthInsuranceNumber',
+      { maxLength: 30 },
+    );
+  }
+
+  if (Object.keys(updates).length === 0) {
+    throw new ApiError(
+      400,
+      'VALIDATION_ERROR',
+      'Không có trường hợp lệ để cập nhật',
+    );
+  }
+
+  updates.updatedAt = new Date().toISOString();
+  updates.updatedBy = currentUser.sub;
+
+  const expressionNames = {};
+  const expressionValues = {};
+  const assignments = [];
+
+  Object.entries(updates).forEach(([key, value], index) => {
+    const name = `#field${index}`;
+    const placeholder = `:value${index}`;
+    expressionNames[name] = key;
+    expressionValues[placeholder] = value;
+    assignments.push(`${name} = ${placeholder}`);
+  });
+
+  const response = await documentClient.send(
+    new UpdateCommand({
+      TableName: tableName,
+      Key: patientProfileKey(patientId),
+      UpdateExpression: `SET ${assignments.join(', ')}`,
+      ExpressionAttributeNames: expressionNames,
+      ExpressionAttributeValues: expressionValues,
+      ConditionExpression: 'attribute_exists(pk) AND attribute_exists(sk)',
+      ReturnValues: 'ALL_NEW',
+    }),
+  );
+
+  return success(toLegacyPatient(response.Attributes || {
+    ...patient,
+    ...updates,
+  }));
 }
 
 async function createMedicalRecord(event) {
@@ -673,9 +815,641 @@ async function listDocuments(event) {
   return success({ patientId, items, count: items.length });
 }
 
+
+/*
+ * =========================================================
+ * READ-ONLY COMPATIBILITY API FOR THE EXISTING REACT UI
+ * =========================================================
+ *
+ * The current frontend was originally written for REST resources such as
+ * /benhnhan, /bacsi, /khoa, /lichkham and /thuoc. The Week 1 AWS backend uses
+ * a single DynamoDB table and English resource names. These helpers expose
+ * read-only compatibility routes so the existing pages can render the data
+ * already seeded in DynamoDB without changing every React page at once.
+ *
+ * Scan is acceptable for the small Week 1 demonstration dataset. Replace it
+ * with GSIs and Query operations before using this pattern at production scale.
+ */
+async function scanEntityTypes(entityTypes = []) {
+  if (!Array.isArray(entityTypes) || entityTypes.length === 0) {
+    return [];
+  }
+
+  const expressionAttributeValues = {};
+  const placeholders = entityTypes.map((entityType, index) => {
+    const placeholder = `:entityType${index}`;
+    expressionAttributeValues[placeholder] = entityType;
+    return placeholder;
+  });
+
+  const items = [];
+  let exclusiveStartKey;
+
+  do {
+    const response = await documentClient.send(
+      new ScanCommand({
+        TableName: tableName,
+        ExclusiveStartKey: exclusiveStartKey,
+        FilterExpression: `#entityType IN (${placeholders.join(', ')})`,
+        ExpressionAttributeNames: {
+          '#entityType': 'entityType',
+        },
+        ExpressionAttributeValues: expressionAttributeValues,
+      }),
+    );
+
+    items.push(...(response.Items || []));
+    exclusiveStartKey = response.LastEvaluatedKey;
+  } while (exclusiveStartKey);
+
+  return items;
+}
+
+function uniqueBy(items, selector) {
+  const seen = new Set();
+  const result = [];
+
+  for (const item of items || []) {
+    const key = selector(item);
+    if (!key || seen.has(key)) continue;
+    seen.add(key);
+    result.push(item);
+  }
+
+  return result;
+}
+
+const normalizeStatus = (status) => String(status || 'ACTIVE').toUpperCase();
+
+function toLegacyPatient(item) {
+  return {
+    maBN: item.patientId,
+    patientId: item.patientId,
+    hoTen: item.fullName,
+    fullName: item.fullName,
+    ngaySinh: item.dateOfBirth || null,
+    dateOfBirth: item.dateOfBirth || null,
+    gioiTinh: item.gender || null,
+    gender: item.gender || null,
+    soDienThoai: item.phoneNumber || null,
+    phoneNumber: item.phoneNumber || null,
+    diaChi: item.address || null,
+    address: item.address || null,
+    bhyt: item.healthInsuranceNumber || null,
+    healthInsuranceNumber: item.healthInsuranceNumber || null,
+    trangThai: normalizeStatus(item.status),
+    status: normalizeStatus(item.status),
+    createdAt: item.createdAt || null,
+    updatedAt: item.updatedAt || null,
+  };
+}
+
+function toLegacyDepartment(item) {
+  return {
+    maKhoa: item.departmentId,
+    departmentId: item.departmentId,
+    tenKhoa: item.departmentName,
+    departmentName: item.departmentName,
+    moTa: item.description || '',
+    description: item.description || '',
+    trangThai: normalizeStatus(item.status),
+  };
+}
+
+function toLegacyDoctor(item, departmentMap = new Map()) {
+  const department = departmentMap.get(item.departmentId);
+  return {
+    maBS: item.doctorId || item.staffId,
+    doctorId: item.doctorId || item.staffId,
+    maTK: item.accountUserId || null,
+    hoTen: item.fullName,
+    fullName: item.fullName,
+    chuyenMon: item.specialty || '',
+    specialty: item.specialty || '',
+    maKhoa: item.departmentId || null,
+    departmentId: item.departmentId || null,
+    KhoaPhong: department ? toLegacyDepartment(department) : null,
+    trangThai: normalizeStatus(item.status),
+    status: normalizeStatus(item.status),
+  };
+}
+
+function toLegacyStaff(item, departmentMap = new Map()) {
+  const department = departmentMap.get(item.departmentId);
+  const typeMap = {
+    DIEU_DUONG: 'YT',
+    Y_TA: 'YT',
+    XET_NGHIEM: 'XN',
+    TIEP_DON: 'TN',
+    TIEP_NHAN: 'TN',
+  };
+
+  return {
+    maNS: item.staffId,
+    staffId: item.staffId,
+    maTK: item.accountUserId || null,
+    hoTen: item.fullName,
+    fullName: item.fullName,
+    loaiNS: typeMap[item.staffType] || item.staffType || 'TN',
+    staffType: item.staffType || null,
+    maKhoa: item.departmentId || null,
+    departmentId: item.departmentId || null,
+    KhoaPhong: department ? toLegacyDepartment(department) : null,
+    trangThai: normalizeStatus(item.status),
+    status: normalizeStatus(item.status),
+  };
+}
+
+function toLegacyAppointment(item, doctorMap = new Map(), patientMap = new Map()) {
+  const doctor = doctorMap.get(item.doctorId);
+  const patient = patientMap.get(item.patientId);
+  const ngayKham = item.appointmentDate || null;
+  const gioKham = item.appointmentTime || null;
+
+  return {
+    maLich: item.appointmentId,
+    appointmentId: item.appointmentId,
+    maBN: item.patientId,
+    patientId: item.patientId,
+    maBS: item.doctorId,
+    doctorId: item.doctorId,
+    maKhoa: item.departmentId || null,
+    maPhong: item.roomId || null,
+    phong: item.roomId || null,
+    ngayKham,
+    appointmentDate: ngayKham,
+    gioKham,
+    appointmentTime: gioKham,
+    trangThai: normalizeStatus(item.status),
+    status: normalizeStatus(item.status),
+    BacSi: doctor ? { maBS: doctor.doctorId || doctor.staffId, hoTen: doctor.fullName } : null,
+    BenhNhan: patient ? { maBN: patient.patientId, hoTen: patient.fullName } : null,
+    createdAt: item.createdAt || null,
+  };
+}
+
+function toLegacyMedicalRecord(item) {
+  return {
+    maHSBA: item.recordId,
+    recordId: item.recordId,
+    maBN: item.patientId,
+    patientId: item.patientId,
+    maBS: item.doctorId || item.createdBy || null,
+    doctorId: item.doctorId || item.createdBy || null,
+    trieuChung: item.symptoms || '',
+    symptoms: item.symptoms || '',
+    chuanDoan: item.diagnosis || '',
+    diagnosis: item.diagnosis || '',
+    dieuTri: item.treatment || '',
+    treatment: item.treatment || '',
+    ghiChu: item.note || '',
+    note: item.note || '',
+    trangThai: normalizeStatus(item.status || 'OPEN'),
+    ngayLap: item.createdAt || null,
+    createdAt: item.createdAt || null,
+  };
+}
+
+function toLegacyExamination(item) {
+  return {
+    maPK: item.examinationId,
+    examinationId: item.examinationId,
+    maBN: item.patientId,
+    patientId: item.patientId,
+    maBS: item.doctorId || item.actorId || null,
+    doctorId: item.doctorId || item.actorId || null,
+    trieuChung: item.symptoms || '',
+    symptoms: item.symptoms || '',
+    chuanDoan: item.diagnosis || '',
+    diagnosis: item.diagnosis || '',
+    dieuTri: item.treatment || '',
+    treatment: item.treatment || '',
+    loiDan: item.advice || '',
+    advice: item.advice || '',
+    sinhHieu: item.vitals || {},
+    vitals: item.vitals || {},
+    trangThai: normalizeStatus(item.status),
+    ngayKham: item.createdAt || null,
+    createdAt: item.createdAt || null,
+  };
+}
+
+function toLegacyPrescription(item) {
+  return {
+    maDT: item.prescriptionId,
+    prescriptionId: item.prescriptionId,
+    maHSBA: item.recordId || null,
+    recordId: item.recordId || null,
+    maBN: item.patientId,
+    patientId: item.patientId,
+    maBS: item.doctorId || item.createdBy || null,
+    doctorId: item.doctorId || item.createdBy || null,
+    chiTiet: item.medicineItems || [],
+    medicineItems: item.medicineItems || [],
+    loiDan: item.generalInstructions || '',
+    generalInstructions: item.generalInstructions || '',
+    trangThai: normalizeStatus(item.status),
+    ngayKeDon: item.createdAt || null,
+    createdAt: item.createdAt || null,
+  };
+}
+
+function toLegacyMedicine(item) {
+  return {
+    maThuoc: item.medicineId,
+    medicineId: item.medicineId,
+    tenThuoc: item.medicineName,
+    medicineName: item.medicineName,
+    donViTinh: item.unit || 'VIEN',
+    unit: item.unit || 'VIEN',
+    trangThai: normalizeStatus(item.status),
+    status: normalizeStatus(item.status),
+  };
+}
+
+function toLegacySchedule(item) {
+  return {
+    maLichLV: item.scheduleId,
+    scheduleId: item.scheduleId,
+    maBS: item.staffId,
+    maNS: item.staffId,
+    staffId: item.staffId,
+    maKhoa: item.departmentId || null,
+    maPhong: item.roomId || null,
+    ngayLamViec: item.workDate,
+    workDate: item.workDate,
+    maCa: item.shiftId,
+    shiftId: item.shiftId,
+    gioBatDau: item.startTime,
+    startTime: item.startTime,
+    gioKetThuc: item.endTime,
+    endTime: item.endTime,
+    trangThai: normalizeStatus(item.status),
+  };
+}
+
+async function legacyListPatients(event) {
+  requireGroups(event, ['ADMIN', 'BACSI', 'NHANSU']);
+  const patients = uniqueBy(await scanEntityTypes(['PATIENT']), (item) => item.patientId);
+  return success(patients.map(toLegacyPatient));
+}
+
+async function legacyReadPatient(event) {
+  requireGroups(event, ['ADMIN', 'BACSI', 'NHANSU', 'BENHNHAN']);
+  const patientId = routeParameter(event, 'patientId');
+  const patient = await getPatient(patientId);
+  if (!patient) throw new ApiError(404, 'PATIENT_NOT_FOUND', 'Patient not found');
+  return success(toLegacyPatient(patient));
+}
+
+async function legacyPatientByAccount(event) {
+  requireGroups(event, ['ADMIN', 'BACSI', 'NHANSU', 'BENHNHAN']);
+  const maTK = routeParameter(event, 'maTK');
+  const fallbackId = maTK === 'USER004' ? 'BN001' : maTK;
+  const patients = uniqueBy(await scanEntityTypes(['PATIENT']), (item) => item.patientId);
+  const patient = patients.find(
+    (item) => item.accountUserId === maTK || item.patientId === fallbackId,
+  );
+  if (!patient) throw new ApiError(404, 'PATIENT_NOT_FOUND', 'Patient not found');
+  return success(toLegacyPatient(patient));
+}
+
+async function legacyListDepartments(event) {
+  requireGroups(event, ['ADMIN', 'BACSI', 'NHANSU', 'BENHNHAN']);
+  const departments = uniqueBy(
+    await scanEntityTypes(['DEPARTMENT']),
+    (item) => item.departmentId,
+  );
+  return success(departments.map(toLegacyDepartment));
+}
+
+async function legacyListDoctors(event) {
+  requireGroups(event, ['ADMIN', 'BACSI', 'NHANSU', 'BENHNHAN']);
+  const [doctors, departments] = await Promise.all([
+    scanEntityTypes(['DOCTOR']),
+    scanEntityTypes(['DEPARTMENT']),
+  ]);
+  const departmentMap = new Map(
+    uniqueBy(departments, (item) => item.departmentId).map((item) => [
+      item.departmentId,
+      item,
+    ]),
+  );
+  return success(
+    uniqueBy(doctors, (item) => item.doctorId || item.staffId).map((item) =>
+      toLegacyDoctor(item, departmentMap),
+    ),
+  );
+}
+
+async function legacyDoctorByAccount(event) {
+  requireGroups(event, ['ADMIN', 'BACSI', 'NHANSU']);
+  const maTK = routeParameter(event, 'maTK');
+  const fallbackId = maTK === 'USER002' ? 'BS001' : maTK;
+  const [doctors, departments] = await Promise.all([
+    scanEntityTypes(['DOCTOR']),
+    scanEntityTypes(['DEPARTMENT']),
+  ]);
+  const departmentMap = new Map(
+    uniqueBy(departments, (item) => item.departmentId).map((item) => [
+      item.departmentId,
+      item,
+    ]),
+  );
+  const doctor = uniqueBy(doctors, (item) => item.doctorId || item.staffId).find(
+    (item) =>
+      item.accountUserId === maTK ||
+      item.doctorId === fallbackId ||
+      item.staffId === fallbackId,
+  );
+  if (!doctor) throw new ApiError(404, 'DOCTOR_NOT_FOUND', 'Doctor not found');
+  return success(toLegacyDoctor(doctor, departmentMap));
+}
+
+async function legacyListStaff(event) {
+  requireGroups(event, ['ADMIN', 'BACSI', 'NHANSU']);
+  const [staff, departments] = await Promise.all([
+    scanEntityTypes(['STAFF']),
+    scanEntityTypes(['DEPARTMENT']),
+  ]);
+  const departmentMap = new Map(
+    uniqueBy(departments, (item) => item.departmentId).map((item) => [
+      item.departmentId,
+      item,
+    ]),
+  );
+  return success(
+    uniqueBy(staff, (item) => item.staffId).map((item) =>
+      toLegacyStaff(item, departmentMap),
+    ),
+  );
+}
+
+async function legacyStaffByAccount(event) {
+  requireGroups(event, ['ADMIN', 'NHANSU']);
+  const maTK = routeParameter(event, 'maTK');
+  const fallbackId = maTK === 'USER003' ? 'NS001' : maTK;
+  const [staff, departments] = await Promise.all([
+    scanEntityTypes(['STAFF']),
+    scanEntityTypes(['DEPARTMENT']),
+  ]);
+  const departmentMap = new Map(
+    uniqueBy(departments, (item) => item.departmentId).map((item) => [
+      item.departmentId,
+      item,
+    ]),
+  );
+  const employee = uniqueBy(staff, (item) => item.staffId).find(
+    (item) => item.accountUserId === maTK || item.staffId === fallbackId,
+  );
+  if (!employee) throw new ApiError(404, 'STAFF_NOT_FOUND', 'Staff not found');
+  return success(toLegacyStaff(employee, departmentMap));
+}
+
+async function legacyListAppointments(event) {
+  const actor = requireGroups(event, ['ADMIN', 'BACSI', 'NHANSU', 'BENHNHAN']);
+  const [appointments, doctors, patients] = await Promise.all([
+    scanEntityTypes(['APPOINTMENT']),
+    scanEntityTypes(['DOCTOR']),
+    scanEntityTypes(['PATIENT']),
+  ]);
+  const doctorMap = new Map(
+    uniqueBy(doctors, (item) => item.doctorId || item.staffId).map((item) => [
+      item.doctorId || item.staffId,
+      item,
+    ]),
+  );
+  const patientMap = new Map(
+    uniqueBy(patients, (item) => item.patientId).map((item) => [item.patientId, item]),
+  );
+  const query = event.queryStringParameters || {};
+  let filtered = uniqueBy(appointments, (item) => item.appointmentId);
+
+  if (query.maBS) filtered = filtered.filter((item) => item.doctorId === query.maBS);
+  if (query.maBN) filtered = filtered.filter((item) => item.patientId === query.maBN);
+
+  // A patient must use the patient-specific route in the UI. The general route
+  // returns only a demo patient's own records when the role is BENHNHAN.
+  if (hasGroup(actor, 'BENHNHAN') && !query.maBN) {
+    filtered = filtered.filter((item) => item.patientId === 'BN001');
+  }
+
+  return success(filtered.map((item) => toLegacyAppointment(item, doctorMap, patientMap)));
+}
+
+async function legacyPatientAppointments(event) {
+  requireGroups(event, ['ADMIN', 'BACSI', 'NHANSU', 'BENHNHAN']);
+  const patientId = routeParameter(event, 'patientId');
+  event.queryStringParameters = {
+    ...(event.queryStringParameters || {}),
+    maBN: patientId,
+  };
+  return legacyListAppointments(event);
+}
+
+async function legacyDoctorAppointments(event) {
+  requireGroups(event, ['ADMIN', 'BACSI', 'NHANSU']);
+  const doctorId = routeParameter(event, 'doctorId');
+  event.queryStringParameters = {
+    ...(event.queryStringParameters || {}),
+    maBS: doctorId,
+  };
+  return legacyListAppointments(event);
+}
+
+async function legacyListMedicalRecords(event) {
+  requireGroups(event, ['ADMIN', 'BACSI', 'NHANSU']);
+  const records = uniqueBy(
+    await scanEntityTypes(['MEDICAL_RECORD']),
+    (item) => item.recordId,
+  );
+  return success(records.map(toLegacyMedicalRecord));
+}
+
+async function legacyPatientMedicalRecords(event) {
+  requireGroups(event, ['ADMIN', 'BACSI', 'NHANSU', 'BENHNHAN']);
+  const patientId = routeParameter(event, 'patientId');
+  const records = uniqueBy(
+    await scanEntityTypes(['MEDICAL_RECORD']),
+    (item) => item.recordId,
+  ).filter((item) => item.patientId === patientId);
+  return success(records.map(toLegacyMedicalRecord));
+}
+
+async function legacyListExaminations(event) {
+  requireGroups(event, ['ADMIN', 'BACSI', 'NHANSU']);
+  const items = uniqueBy(
+    await scanEntityTypes(['EXAMINATION']),
+    (item) => item.examinationId,
+  );
+  return success(items.map(toLegacyExamination));
+}
+
+async function legacyListPrescriptions(event) {
+  requireGroups(event, ['ADMIN', 'BACSI', 'NHANSU', 'BENHNHAN']);
+  const query = event.queryStringParameters || {};
+  let items = uniqueBy(
+    await scanEntityTypes(['PRESCRIPTION']),
+    (item) => item.prescriptionId,
+  );
+  if (query.maBS) items = items.filter((item) => (item.doctorId || item.createdBy) === query.maBS);
+  if (query.maBN) items = items.filter((item) => item.patientId === query.maBN);
+  return success(items.map(toLegacyPrescription));
+}
+
+async function legacyListMedicines(event) {
+  requireGroups(event, ['ADMIN', 'BACSI', 'NHANSU', 'BENHNHAN']);
+  const items = uniqueBy(
+    await scanEntityTypes(['MEDICINE']),
+    (item) => item.medicineId,
+  );
+  return success(items.map(toLegacyMedicine));
+}
+
+async function legacyListUnits(event) {
+  requireGroups(event, ['ADMIN', 'BACSI', 'NHANSU', 'BENHNHAN']);
+  const medicines = uniqueBy(
+    await scanEntityTypes(['MEDICINE']),
+    (item) => item.medicineId,
+  );
+  const units = [...new Set(medicines.map((item) => item.unit || 'VIEN'))];
+  return success(
+    units.map((unit, index) => ({
+      maDVT: `DVT${String(index + 1).padStart(3, '0')}`,
+      tenDVT: unit,
+      value: unit,
+      label: unit,
+    })),
+  );
+}
+
+async function legacyListMedicineGroups(event) {
+  requireGroups(event, ['ADMIN', 'BACSI', 'NHANSU', 'BENHNHAN']);
+  return success([
+    {
+      maNhomThuoc: 'NHOM_CHUNG',
+      tenNhomThuoc: 'Thuá»‘c thÃ´ng dá»¥ng',
+      description: 'NhÃ³m dá»¯ liá»‡u máº«u Tuáº§n 1',
+    },
+  ]);
+}
+
+async function legacyListSchedules(event) {
+  requireGroups(event, ['ADMIN', 'BACSI', 'NHANSU', 'BENHNHAN']);
+  const query = event.queryStringParameters || {};
+  let items = uniqueBy(
+    await scanEntityTypes(['WORK_SCHEDULE']),
+    (item) => item.scheduleId,
+  );
+  if (query.maBS) items = items.filter((item) => item.staffId === query.maBS);
+  if (query.maNS) items = items.filter((item) => item.staffId === query.maNS);
+  return success(items.map(toLegacySchedule));
+}
+
+async function legacyDoctorSchedules(event) {
+  const doctorId = routeParameter(event, 'doctorId');
+  event.queryStringParameters = {
+    ...(event.queryStringParameters || {}),
+    maBS: doctorId,
+  };
+  return legacyListSchedules(event);
+}
+
+async function legacyStaffSchedules(event) {
+  const staffId = routeParameter(event, 'staffId');
+  event.queryStringParameters = {
+    ...(event.queryStringParameters || {}),
+    maNS: staffId,
+  };
+  return legacyListSchedules(event);
+}
+
+async function legacyListShifts(event) {
+  requireGroups(event, ['ADMIN', 'BACSI', 'NHANSU', 'BENHNHAN']);
+  const schedules = uniqueBy(
+    await scanEntityTypes(['WORK_SCHEDULE']),
+    (item) => item.shiftId,
+  );
+  return success(
+    schedules.map((item) => ({
+      maCa: item.shiftId,
+      tenCa: item.shiftId === 'CA_SANG' ? 'Ca sÃ¡ng' : item.shiftId === 'CA_CHIEU' ? 'Ca chiá»u' : item.shiftId,
+      gioBatDau: item.startTime,
+      gioKetThuc: item.endTime,
+    })),
+  );
+}
+
+async function legacyListRooms(event) {
+  requireGroups(event, ['ADMIN', 'BACSI', 'NHANSU', 'BENHNHAN']);
+  const rooms = uniqueBy(await scanEntityTypes(['ROOM']), (item) => item.roomId);
+  return success(
+    rooms.map((item) => ({
+      maPhong: item.roomId,
+      roomId: item.roomId,
+      tenPhong: item.roomName,
+      roomName: item.roomName,
+      maKhoa: item.departmentId,
+      departmentId: item.departmentId,
+      trangThai: normalizeStatus(item.status),
+    })),
+  );
+}
+
+async function legacyEmptyList(event) {
+  requireGroups(event, ['ADMIN', 'BACSI', 'NHANSU', 'BENHNHAN']);
+  return success([]);
+}
+
+async function legacyInvoiceStatistics(event) {
+  requireGroups(event, ['ADMIN']);
+  const query = event.queryStringParameters || {};
+  return success({
+    tuNgay: query.from || query.tuNgay || null,
+    denNgay: query.to || query.denNgay || null,
+    tongSo: 0,
+    tongTien: 0,
+    daThanhToan: 0,
+    chuaThanhToan: 0,
+    message: 'Module hóa đơn chưa có dữ liệu trong phạm vi Tuần 1.',
+  });
+}
+
 const routeHandlers = Object.freeze({
+  'GET /api/benhnhan': legacyListPatients,
+  'GET /api/benhnhan/{patientId}': legacyReadPatient,
+  'PUT /api/benhnhan/{patientId}': updatePatient,
+  'GET /api/benhnhan/findByMaTK/{maTK}': legacyPatientByAccount,
+  'GET /api/bacsi': legacyListDoctors,
+  'GET /api/bacsi/maTK/{maTK}': legacyDoctorByAccount,
+  'GET /api/bacsi/tk/{maTK}': legacyDoctorByAccount,
+  'GET /api/nhansu': legacyListStaff,
+  'GET /api/nhansu/maTK/{maTK}': legacyStaffByAccount,
+  'GET /api/khoa': legacyListDepartments,
+  'GET /api/phongkham': legacyListRooms,
+  'GET /api/lichkham': legacyListAppointments,
+  'GET /api/lichkham/benhnhan/{patientId}': legacyPatientAppointments,
+  'GET /api/lichkham/bacsi/{doctorId}': legacyDoctorAppointments,
+  'GET /api/hsba': legacyListMedicalRecords,
+  'GET /api/hsba/benhnhan/{patientId}': legacyPatientMedicalRecords,
+  'GET /api/phieukham': legacyListExaminations,
+  'GET /api/phieukham/nurse/queue': legacyListExaminations,
+  'GET /api/donthuoc': legacyListPrescriptions,
+  'GET /api/thuoc': legacyListMedicines,
+  'GET /api/thuoc/donvitinh': legacyListUnits,
+  'GET /api/thuoc/nhomthuoc': legacyListMedicineGroups,
+  'GET /api/lichlamviec': legacyListSchedules,
+  'GET /api/lichlamviec/bacsi/{doctorId}': legacyDoctorSchedules,
+  'GET /api/lichlamviec/nhansu/{staffId}': legacyStaffSchedules,
+  'GET /api/catruc': legacyListShifts,
+  'GET /api/hoadon': legacyEmptyList,
+  'GET /api/hoadon/thongke': legacyInvoiceStatistics,
+  'GET /api/xetnghiem': legacyEmptyList,
+  'GET /api/yeucauxetnghiem': legacyEmptyList,
+  'GET /api/phieuxetnghiem': legacyEmptyList,
   'POST /api/patients': createPatient,
   'GET /api/patients/{patientId}': readPatient,
+  'PUT /api/patients/{patientId}': updatePatient,
   'POST /api/patients/{patientId}/records': createMedicalRecord,
   'GET /api/patients/{patientId}/records': listMedicalRecords,
   'POST /api/patients/{patientId}/examinations': createExamination,
