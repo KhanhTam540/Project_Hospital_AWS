@@ -1,0 +1,13 @@
+{
+  "stackName": "HospitalDevStack",
+  "region": "ap-southeast-1",
+  "CloudFrontUrl": "https://xxxxxxxx.cloudfront.net",
+  "CloudFrontDistributionId": "EXAMPLE",
+  "ApiEndpoint": "https://xxxxxxxx.execute-api.ap-southeast-1.amazonaws.com",
+  "FrontendBucketName": "example-frontend-bucket",
+  "MedicalBucketName": "example-medical-bucket",
+  "UserPoolId": "ap-southeast-1_xxxxxxxxx",
+  "WebClientId": "xxxxxxxxxxxxxxxxxxxxxxxxxx",
+  "MobileClientId": "xxxxxxxxxxxxxxxxxxxxxxxxxx",
+  "TableName": "example-table"
+}

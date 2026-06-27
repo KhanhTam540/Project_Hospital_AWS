@@ -1,0 +1,38 @@
+[
+  {
+    "pk": "DEPARTMENT#KHOA_NOI",
+    "sk": "META",
+    "entityType": "DEPARTMENT",
+    "departmentId": "KHOA_NOI",
+    "departmentName": "Khoa Nội",
+    "description": "Khám và điều trị bệnh lý nội khoa",
+    "status": "ACTIVE",
+    "dataSource": "P2TB_SAMPLE",
+    "createdAt": "2026-06-24T00:00:00.000Z",
+    "updatedAt": "2026-06-24T00:00:00.000Z"
+  },
+  {
+    "pk": "DEPARTMENT#KHOA_NGOAI",
+    "sk": "META",
+    "entityType": "DEPARTMENT",
+    "departmentId": "KHOA_NGOAI",
+    "departmentName": "Khoa Ngoại",
+    "description": "Khám và điều trị ngoại khoa",
+    "status": "ACTIVE",
+    "dataSource": "P2TB_SAMPLE",
+    "createdAt": "2026-06-24T00:00:00.000Z",
+    "updatedAt": "2026-06-24T00:00:00.000Z"
+  },
+  {
+    "pk": "DEPARTMENT#KHOA_XN",
+    "sk": "META",
+    "entityType": "DEPARTMENT",
+    "departmentId": "KHOA_XN",
+    "departmentName": "Khoa Xét nghiệm",
+    "description": "Tiếp nhận và xử lý xét nghiệm",
+    "status": "ACTIVE",
+    "dataSource": "P2TB_SAMPLE",
+    "createdAt": "2026-06-24T00:00:00.000Z",
+    "updatedAt": "2026-06-24T00:00:00.000Z"
+  }
+]

@@ -1,0 +1,40 @@
+# Dependencies
+node_modules/
+web/node_modules/
+
+# AWS CDK
+cdk.out/
+
+# Frontend build
+web/dist/
+
+# Environment files
+.env
+.env.*
+!.env.example
+web/.env
+web/.env.*
+!web/.env.example
+
+# Generated deployment output
+docs/aws-dev-outputs.json
+
+# Editors and operating systems
+.vscode/
+.idea/
+.DS_Store
+Thumbs.db
+
+# Secrets and credentials
+*.pem
+*.key
+credentials.json
+
+# Logs
+*.log
+npm-debug.log*
+
+# Temporary integration-test tokens and patch backups
+.medical-test-tokens.json
+_backup_dinhbao_week1_*/
+_backup_audit_fix_*/
