@@ -2,6 +2,7 @@
 
 const fs = require('fs');
 const path = require('path');
+
 const {
   CloudFormationClient,
   DescribeStacksCommand,
@@ -10,114 +11,112 @@ const {
 const projectRoot = path.resolve(__dirname, '..');
 const stackName = process.env.STACK_NAME || 'HospitalDevStack';
 const region =
+  process.env.APPLICATION_REGION ||
   process.env.AWS_REGION ||
   process.env.AWS_DEFAULT_REGION ||
   'ap-southeast-1';
 
-const client = new CloudFormationClient({ region });
-
-function normalizeBaseUrl(value = '') {
-  return String(value).replace(/\/$/, '');
-}
-
-function writeWebEnv(filePath, apiBaseUrl, outputs) {
-  fs.writeFileSync(
-    filePath,
-    [
-      `VITE_API_BASE_URL=${apiBaseUrl}`,
-      'VITE_COGNITO_ENABLED=true',
-      `VITE_COGNITO_REGION=${region}`,
-      `VITE_COGNITO_USER_POOL_ID=${outputs.UserPoolId}`,
-      `VITE_COGNITO_CLIENT_ID=${outputs.WebClientId}`,
-      'VITE_GOOGLE_CLIENT_ID=',
-      '',
-    ].join('\n'),
-  );
-}
-
 async function main() {
+  const client = new CloudFormationClient({ region });
   const response = await client.send(
-    new DescribeStacksCommand({ StackName: stackName }),
+    new DescribeStacksCommand({
+      StackName: stackName,
+    }),
   );
+
   const stack = response.Stacks?.[0];
+
   if (!stack) {
-    throw new Error(`Stack ${stackName} was not found in ${region}`);
+    throw new Error(`Không tìm thấy stack ${stackName} tại ${region}.`);
   }
 
   const outputs = Object.fromEntries(
-    (stack.Outputs || []).map((output) => [
-      output.OutputKey,
-      output.OutputValue,
+    (stack.Outputs || []).map((item) => [
+      item.OutputKey,
+      item.OutputValue,
     ]),
   );
 
-  const required = [
+  const requiredOutputs = [
     'ApiEndpoint',
-    'MedicalBucketName',
-    'MobileClientId',
-    'TableName',
     'UserPoolId',
     'WebClientId',
+    'TableName',
   ];
 
-  for (const key of required) {
-    if (!outputs[key]) {
-      throw new Error(`Missing CloudFormation output: ${key}`);
-    }
-  }
+  const missing = requiredOutputs.filter((name) => !outputs[name]);
 
-  const cloudFrontEnabled = Boolean(
-    outputs.CloudFrontDistributionId &&
-      outputs.CloudFrontUrl &&
-      outputs.FrontendBucketName,
-  );
-
-  const accountId = stack.StackId?.split(':')[4] || undefined;
-  const outputFile = path.join(
-    projectRoot,
-    'docs',
-    'aws-dev-outputs.json',
-  );
-
-  fs.writeFileSync(
-    outputFile,
-    `${JSON.stringify(
-      {
-        stackName,
-        region,
-        accountId,
-        ...outputs,
-      },
-      null,
-      2,
-    )}\n`,
-  );
-
-  const localApiBaseUrl = `${normalizeBaseUrl(outputs.ApiEndpoint)}/api`;
-  writeWebEnv(
-    path.join(projectRoot, 'web', '.env.local.generated'),
-    localApiBaseUrl,
-    outputs,
-  );
-
-  if (cloudFrontEnabled) {
-    writeWebEnv(
-      path.join(projectRoot, 'web', '.env.production.local'),
-      '/api',
-      outputs,
+  if (missing.length > 0) {
+    throw new Error(
+      `Thiếu CloudFormation outputs: ${missing.join(', ')}`,
     );
   }
 
-  console.log(`Saved outputs to ${outputFile}`);
-  console.log('Saved local frontend config to web/.env.local.generated');
-  if (cloudFrontEnabled) {
-    console.log('Saved production frontend config to web/.env.production.local');
-  } else {
-    console.log('CloudFront outputs were not found; production config was not written.');
+  const docsDirectory = path.join(projectRoot, 'docs');
+  const webDirectory = path.join(projectRoot, 'web');
+
+  fs.mkdirSync(docsDirectory, { recursive: true });
+  fs.mkdirSync(webDirectory, { recursive: true });
+
+  const outputFile = path.join(
+    docsDirectory,
+    'aws-dev-outputs.json',
+  );
+
+  const result = {
+  stackName,
+
+  stackStatus:
+    stack.StackStatus,
+
+  accountId:
+    stack.StackId?.split(':')[4] ||
+    undefined,
+
+  ...outputs,
+};
+
+  fs.writeFileSync(
+    outputFile,
+    `${JSON.stringify(result, null, 2)}\n`,
+    'utf8',
+  );
+
+  const frontendApiUrl = outputs.CloudFrontUrl || outputs.ApiEndpoint;
+
+  const envLines = [
+    `VITE_API_URL=${frontendApiUrl}`,
+    `VITE_AWS_REGION=${region}`,
+    `VITE_COGNITO_USER_POOL_ID=${outputs.UserPoolId}`,
+    `VITE_COGNITO_CLIENT_ID=${outputs.WebClientId}`,
+    `VITE_CLOUDFRONT_URL=${outputs.CloudFrontUrl || ''}`,
+  ];
+
+  const envFile = path.join(
+    webDirectory,
+    '.env.local.generated',
+  );
+
+  fs.writeFileSync(
+    envFile,
+    `${envLines.join('\n')}\n`,
+    'utf8',
+  );
+
+  console.log(`Đã lưu outputs: ${outputFile}`);
+  console.log(`Đã tạo frontend env: ${envFile}`);
+  console.log(`Stack status: ${stack.StackStatus}`);
+
+  if (outputs.CloudFrontUrl) {
+    console.log(`CloudFront URL: ${outputs.CloudFrontUrl}`);
+  }
+
+  if (outputs.AiFunctionName) {
+    console.log(`External AI Lambda: ${outputs.AiFunctionName}`);
   }
 }
 
 main().catch((error) => {
-  console.error(error.message || error);
+  console.error(error.stack || error.message || error);
   process.exitCode = 1;
 });

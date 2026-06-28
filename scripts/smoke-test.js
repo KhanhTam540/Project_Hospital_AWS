@@ -29,11 +29,15 @@ const main = async () => {
 
   await check(`${String(outputs.ApiEndpoint).replace(/\/$/, '')}/api/health`);
 
-  if (outputs.CloudFrontUrl) {
-    await check(`${String(outputs.CloudFrontUrl).replace(/\/$/, '')}/api/health`);
-  } else {
-    console.log('CloudFrontUrl is not present; skipped the CloudFront health check.');
+  if (!outputs.CloudFrontUrl) {
+    throw new Error(
+      'Missing CloudFrontUrl. Deploy HospitalDevStack with ENABLE_CLOUDFRONT=true.',
+    );
   }
+
+  await check(
+    `${String(outputs.CloudFrontUrl).replace(/\/$/, '')}/api/health`,
+  );
 };
 
 main().catch((error) => {
