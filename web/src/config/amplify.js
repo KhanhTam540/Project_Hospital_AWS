@@ -1,25 +1,43 @@
-import { Amplify } from 'aws-amplify';
+import { Amplify } from "aws-amplify";
+import { COGNITO_CONFIG, isCognitoEnabled } from "./cognito";
 
-const region = import.meta.env.VITE_AWS_REGION;
-const userPoolId = import.meta.env.VITE_COGNITO_USER_POOL_ID;
-const userPoolClientId = import.meta.env.VITE_COGNITO_WEB_CLIENT_ID;
+let configured = false;
 
-if (!region || !userPoolId || !userPoolClientId) {
-  console.warn(
-    'Thiếu cấu hình Cognito. Hãy tạo web/.env.local hoặc chạy npm run outputs sau khi deploy.',
-  );
-}
+export function configureAmplify() {
+  if (configured || !isCognitoEnabled()) return;
 
-Amplify.configure({
-  Auth: {
-    Cognito: {
-      userPoolId,
-      userPoolClientId,
-      loginWith: {
-        email: true,
+  const { userPoolId, userPoolClientId } = COGNITO_CONFIG;
+
+  if (!userPoolId || !userPoolClientId) {
+    throw new Error(
+      "Thiếu VITE_COGNITO_USER_POOL_ID hoặc VITE_COGNITO_USER_POOL_CLIENT_ID trong web/.env.local",
+    );
+  }
+
+  Amplify.configure({
+    Auth: {
+      Cognito: {
+        userPoolId,
+        userPoolClientId,
+        loginWith: {
+          email: true,
+        },
+        signUpVerificationMethod: "code",
+        userAttributes: {
+          email: {
+            required: true,
+          },
+        },
+        passwordFormat: {
+          minLength: 10,
+          requireLowercase: true,
+          requireUppercase: true,
+          requireNumbers: true,
+          requireSpecialCharacters: true,
+        },
       },
-      signUpVerificationMethod: 'code',
-      allowGuestAccess: false,
     },
-  },
-});
+  });
+
+  configured = true;
+}

@@ -14,7 +14,11 @@ const files = [];
 
 const walk = (directory) => {
   for (const entry of fs.readdirSync(directory, { withFileTypes: true })) {
-    if (ignoredDirectories.has(entry.name)) {
+    if (
+      ignoredDirectories.has(entry.name) ||
+      entry.name.startsWith('_backup_dinhbao_week1_') ||
+      entry.name.startsWith('_backup_audit_fix_')
+    ) {
       continue;
     }
 

@@ -23,8 +23,21 @@ const main = async () => {
   }
 
   const outputs = JSON.parse(fs.readFileSync(outputsFile, 'utf8'));
-  await check(`${outputs.ApiEndpoint}/api/health`);
-  await check(`${outputs.CloudFrontUrl}/api/health`);
+  if (!outputs.ApiEndpoint) {
+    throw new Error('Missing ApiEndpoint in aws-dev-outputs.json');
+  }
+
+  await check(`${String(outputs.ApiEndpoint).replace(/\/$/, '')}/api/health`);
+
+  if (!outputs.CloudFrontUrl) {
+    throw new Error(
+      'Missing CloudFrontUrl. Deploy HospitalDevStack with ENABLE_CLOUDFRONT=true.',
+    );
+  }
+
+  await check(
+    `${String(outputs.CloudFrontUrl).replace(/\/$/, '')}/api/health`,
+  );
 };
 
 main().catch((error) => {

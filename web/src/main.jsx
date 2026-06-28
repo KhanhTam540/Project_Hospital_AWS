@@ -1,19 +1,33 @@
-import React from 'react';
-import ReactDOM from 'react-dom/client';
-import { BrowserRouter } from 'react-router-dom';
-import App from './App';
-import './config/amplify';
-import './styles.css';
+import React from "react";
+import ReactDOM from "react-dom/client";
+import { BrowserRouter } from "react-router-dom";
+import { GoogleOAuthProvider } from "@react-oauth/google";
 
-const rootElement = document.getElementById('root');
-if (!rootElement) {
-  throw new Error('Root element was not found');
-}
+import App from "./App";
+import { AuthProvider } from "./auth/AuthContext";
+import { configureAmplify } from "./config/amplify";
+import "./styles/index.css";
 
-ReactDOM.createRoot(rootElement).render(
-  <React.StrictMode>
-    <BrowserRouter>
+configureAmplify();
+
+const googleClientId = import.meta.env.VITE_GOOGLE_CLIENT_ID?.trim();
+
+const application = (
+  <BrowserRouter>
+    <AuthProvider>
       <App />
-    </BrowserRouter>
+    </AuthProvider>
+  </BrowserRouter>
+);
+
+ReactDOM.createRoot(document.getElementById("root")).render(
+  <React.StrictMode>
+    {googleClientId ? (
+      <GoogleOAuthProvider clientId={googleClientId}>
+        {application}
+      </GoogleOAuthProvider>
+    ) : (
+      application
+    )}
   </React.StrictMode>,
 );
