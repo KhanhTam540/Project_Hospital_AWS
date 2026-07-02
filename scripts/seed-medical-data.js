@@ -53,7 +53,6 @@ async function main() {
     examinations: 0,
     prescriptions: 0,
     documents: 0,
-    labResults: 0,
   };
 
   for (const patient of dataset.patients || []) {
@@ -136,27 +135,6 @@ async function main() {
       },
     );
     summary.prescriptions += 1;
-  }
-
-  for (const [index, labResult] of (dataset.labResults || []).entries()) {
-    const createdAt = new Date(
-      Date.now() - (dataset.labResults.length - index) * 20_000,
-    ).toISOString();
-    await putProjection(
-      TableName,
-      'LAB_RESULT',
-      labResult.labResultId,
-      labResult.patientId,
-      'LAB_RESULT',
-      {
-        entityType: 'LAB_RESULT',
-        createdBy: 'SEED_SCRIPT',
-        createdAt,
-        updatedAt: createdAt,
-        ...labResult,
-      },
-    );
-    summary.labResults += 1;
   }
 
   for (const [index, document] of (dataset.documents || []).entries()) {

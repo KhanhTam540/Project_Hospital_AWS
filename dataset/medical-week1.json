@@ -165,55 +165,5 @@
       "contentType": "application/pdf",
       "status": "DEMO_METADATA"
     }
-  ],
-  "labResults": [
-    {
-      "labResultId": "PXN001",
-      "patientId": "BN001",
-      "recordId": "HS001",
-      "testId": "XN_CBC",
-      "testName": "Công thức máu toàn phần",
-      "categoryId": "HUYET_HOC",
-      "categoryName": "Huyết học",
-      "performedAt": "2026-06-28T08:30:00.000Z",
-      "resultText": "Các chỉ số chính trong giới hạn tham chiếu",
-      "referenceRange": "Theo phiếu xét nghiệm của bệnh viện",
-      "unit": "",
-      "staffId": "NS002",
-      "staffName": "Trần Minh Anh",
-      "status": "COMPLETED"
-    },
-    {
-      "labResultId": "PXN002",
-      "patientId": "BN001",
-      "recordId": "HS003",
-      "testId": "XN_CRP",
-      "testName": "CRP định lượng",
-      "categoryId": "HOA_SINH",
-      "categoryName": "Hóa sinh",
-      "performedAt": "2026-06-28T09:00:00.000Z",
-      "resultText": "4.2",
-      "referenceRange": "0 - 5",
-      "unit": "mg/L",
-      "staffId": "NS002",
-      "staffName": "Trần Minh Anh",
-      "status": "COMPLETED"
-    },
-    {
-      "labResultId": "PXN003",
-      "patientId": "BN002",
-      "recordId": "HS002",
-      "testId": "XN_GLUCOSE",
-      "testName": "Glucose máu",
-      "categoryId": "HOA_SINH",
-      "categoryName": "Hóa sinh",
-      "performedAt": "2026-06-28T09:30:00.000Z",
-      "resultText": "5.1",
-      "referenceRange": "3.9 - 6.4",
-      "unit": "mmol/L",
-      "staffId": "NS002",
-      "staffName": "Trần Minh Anh",
-      "status": "COMPLETED"
-    }
   ]
 }

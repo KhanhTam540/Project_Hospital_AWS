@@ -62,7 +62,6 @@ async function main() {
   let examinationCount = 0;
   let prescriptionCount = 0;
   let documentCount = 0;
-  let labResultCount = 0;
 
   for (const patientId of patientIds) {
     recordCount += (await queryPrefix(TableName, patientId, 'RECORD')).length;
@@ -75,16 +74,12 @@ async function main() {
     documentCount += (
       await queryPrefix(TableName, patientId, 'DOCUMENT')
     ).length;
-    labResultCount += (
-      await queryPrefix(TableName, patientId, 'LAB_RESULT')
-    ).length;
   }
 
   assert(recordCount >= 3, 'Expected at least 3 medical records');
   assert(examinationCount >= 2, 'Expected at least 2 examinations');
   assert(prescriptionCount >= 2, 'Expected at least 2 prescriptions');
   assert(documentCount >= 2, 'Expected at least 2 document metadata items');
-  assert(labResultCount >= 3, 'Expected at least 3 lab results');
 
   const [encryption, versioning, publicAccess] = await Promise.all([
     s3.send(new GetBucketEncryptionCommand({ Bucket })),
@@ -119,7 +114,6 @@ async function main() {
     examinations: examinationCount,
     prescriptions: prescriptionCount,
     documents: documentCount,
-    labResults: labResultCount,
   });
   console.log('S3 encryption: aws:kms');
   console.log('S3 versioning: Enabled');
