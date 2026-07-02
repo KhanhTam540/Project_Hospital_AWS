@@ -5,7 +5,6 @@ import AdminHome from "../pages/AdminHome";
 import AdminUserList from "../pages/admin/AdminUserList";
 import CreateUserForm from "../pages/admin/CreateUserForm";
 import AssignRole from "../pages/admin/AssignRole";
-import CognitoLinkPage from "../pages/admin/CognitoLinkPage";
 import ManageKhoaPhongPage from "../pages/admin/ManageKhoaPhongPage";
 import AccountApprovalPage from "../pages/admin/AccountApprovalPage";
 import ManageBacSi from "../pages/admin/ManageBacSi";
@@ -37,7 +36,6 @@ export const adminRouteDefinitions = [
   { path: "taikhoan/tao-moi", element: CreateUserForm },
   { path: "taikhoan/sua/:id", element: CreateUserForm, hidden: true },
   { path: "taikhoan/phan-quyen", element: AssignRole },
-  { path: "taikhoan/cognito", element: CognitoLinkPage },
   { path: "taikhoan/duyet-dang-ky", element: AccountApprovalPage },
   { path: "khoa", element: ManageKhoaPhongPage },
   { path: "khoa-phong", element: ManageKhoaPhongPage },

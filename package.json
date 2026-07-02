@@ -34,7 +34,12 @@
     "destroy:edge": "node scripts/cdk-target.js edge destroy HospitalEdgeStack",
     "destroy:app": "node scripts/cdk-target.js app destroy HospitalDevStack",
     "test:ai": "node scripts/test-external-ai.js",
-    "verify:no-bedrock": "node scripts/verify-no-bedrock.js"
+    "verify:no-bedrock": "node scripts/verify-no-bedrock.js",
+    "run:mobile": "powershell -ExecutionPolicy Bypass -File scripts/run-mobile.ps1",
+    "build:mobile": "powershell -ExecutionPolicy Bypass -File scripts/build-mobile.ps1 -Mode debug",
+    "build:mobile:release": "powershell -ExecutionPolicy Bypass -File scripts/build-mobile.ps1 -Mode release",
+    "test:mobile:backend": "powershell -ExecutionPolicy Bypass -File scripts/test-mobile-backend.ps1",
+    "test:mobile:contract": "node --test tests/caothien-mobile-contract.test.js"
   },
   "dependencies": {
     "@aws-sdk/client-cloudformation": "^3.1075.0",

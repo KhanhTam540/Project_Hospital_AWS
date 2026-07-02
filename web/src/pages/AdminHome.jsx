@@ -186,8 +186,8 @@ const SYSTEM_SERVICES = [
     tone: "bg-blue-50 text-blue-600",
   },
   {
-    title: "Amazon Cognito",
-    description: "Xác thực và phân quyền",
+    title: "Xác thực người dùng",
+    description: "Đăng nhập và phân quyền",
     icon: ShieldCheck,
     tone: "bg-violet-50 text-violet-600",
   },
@@ -499,10 +499,10 @@ const AdminHome = () => {
           </div>
 
           <Link
-            to="/admin/taikhoan/cognito"
+            to="/admin/taikhoan"
             className="inline-flex items-center justify-center gap-2 rounded-xl bg-slate-900 px-5 py-3 text-sm font-bold text-white shadow-lg shadow-slate-900/15 transition hover:-translate-y-0.5 hover:bg-blue-700"
           >
-            Quản lý Cognito
+            Quản lý tài khoản
             <ArrowUpRight size={17} />
           </Link>
         </section>

@@ -16,7 +16,6 @@ import {
   Activity,
   MessageSquare,
   Newspaper,
-  Link2,
   UserCheck,
 } from "lucide-react";
 
@@ -38,7 +37,6 @@ export const adminMenuSections = [
       { path: "taikhoan", label: "Danh sách tài khoản", icon: Users },
       { path: "taikhoan/tao-moi", label: "Tạo tài khoản", icon: UserPlus },
       { path: "taikhoan/phan-quyen", label: "Phân quyền", icon: Shield },
-      { path: "taikhoan/cognito", label: "Liên kết Cognito", icon: Link2 },
       { path: "taikhoan/duyet-dang-ky", label: "Duyệt đăng ký", icon: UserCheck },
     ],
   },
