@@ -225,8 +225,8 @@ async function createPatient(event) {
 }
 
 async function readPatient(event) {
-  requireGroups(event, ['ADMIN', 'BACSI', 'NHANSU']);
   const patientId = routeParameter(event, 'patientId');
+  await requirePatientScope(event, patientId);
   return success(await ensurePatient(patientId));
 }
 
@@ -421,8 +421,8 @@ async function createMedicalRecord(event) {
 }
 
 async function listMedicalRecords(event) {
-  requireGroups(event, ['ADMIN', 'BACSI', 'NHANSU']);
   const patientId = routeParameter(event, 'patientId');
+  await requirePatientScope(event, patientId);
   await ensurePatient(patientId);
   const items = await queryPatientItems(patientId, 'RECORD');
   return success({ patientId, items, count: items.length });
@@ -482,8 +482,8 @@ async function createExamination(event) {
 }
 
 async function listExaminations(event) {
-  requireGroups(event, ['ADMIN', 'BACSI', 'NHANSU']);
   const patientId = routeParameter(event, 'patientId');
+  await requirePatientScope(event, patientId);
   await ensurePatient(patientId);
   const items = await queryPatientItems(patientId, 'EXAM');
   return success({ patientId, items, count: items.length });
@@ -532,8 +532,8 @@ async function createPrescription(event) {
 }
 
 async function listPrescriptions(event) {
-  requireGroups(event, ['ADMIN', 'BACSI', 'NHANSU']);
   const patientId = routeParameter(event, 'patientId');
+  await requirePatientScope(event, patientId);
   await ensurePatient(patientId);
   const items = await queryPatientItems(patientId, 'PRESCRIPTION');
   return success({ patientId, items, count: items.length });
@@ -773,9 +773,9 @@ async function completeUpload(event) {
 }
 
 async function createDownloadUrl(event) {
-  requireGroups(event, ['ADMIN', 'BACSI', 'NHANSU']);
   const documentId = queryParameter(event, 'documentId');
   const document = await ensureDirectEntity('DOCUMENT', documentId);
+  await requirePatientScope(event, document.patientId);
 
   if (document.status !== 'AVAILABLE') {
     throw new ApiError(
@@ -808,8 +808,8 @@ async function createDownloadUrl(event) {
 }
 
 async function listDocuments(event) {
-  requireGroups(event, ['ADMIN', 'BACSI', 'NHANSU']);
   const patientId = routeParameter(event, 'patientId');
+  await requirePatientScope(event, patientId);
   await ensurePatient(patientId);
   const items = await queryPatientItems(patientId, 'DOCUMENT');
   return success({ patientId, items, count: items.length });
@@ -863,6 +863,72 @@ async function scanEntityTypes(entityTypes = []) {
   } while (exclusiveStartKey);
 
   return items;
+}
+
+function normalizeIdentity(value) {
+  return String(value || '').trim().toLowerCase();
+}
+
+async function applicationUserForEvent(event) {
+  const current = getCurrentUser(event);
+  const users = await scanEntityTypes(['USER']);
+  const email = normalizeIdentity(current.email);
+  const username = normalizeIdentity(current.username);
+
+  return users.find((item) =>
+    (current.sub && (
+      item.cognitoSub === current.sub ||
+      item.userId === current.sub
+    )) ||
+    (username && normalizeIdentity(item.cognitoUsername) === username) ||
+    (email && normalizeIdentity(item.email) === email),
+  ) || null;
+}
+
+async function patientIdForEvent(event) {
+  const current = getCurrentUser(event);
+  if (!hasGroup(current, 'BENHNHAN')) {
+    return null;
+  }
+
+  const appUser = await applicationUserForEvent(event);
+  if (appUser?.patientId) {
+    return appUser.patientId;
+  }
+
+  const patients = await scanEntityTypes(['PATIENT']);
+  const email = normalizeIdentity(current.email);
+  const username = normalizeIdentity(current.username);
+  const patient = patients.find((item) =>
+    item.cognitoSub === current.sub ||
+    normalizeIdentity(item.cognitoUsername) === username ||
+    (email && normalizeIdentity(item.email) === email) ||
+    item.accountUserId === appUser?.userId,
+  );
+
+  return patient?.patientId || null;
+}
+
+async function requirePatientScope(
+  event,
+  patientId,
+  allowedGroups = ['ADMIN', 'BACSI', 'NHANSU', 'BENHNHAN'],
+) {
+  const actor = requireGroups(event, allowedGroups);
+  if (!hasGroup(actor, 'BENHNHAN')) {
+    return actor;
+  }
+
+  const ownPatientId = await patientIdForEvent(event);
+  if (!ownPatientId || ownPatientId !== patientId) {
+    throw new ApiError(
+      403,
+      'PATIENT_SCOPE_FORBIDDEN',
+      'Bạn chỉ được truy cập dữ liệu bệnh nhân của chính mình',
+    );
+  }
+
+  return actor;
 }
 
 function uniqueBy(items, selector) {
@@ -980,6 +1046,10 @@ function toLegacyAppointment(item, doctorMap = new Map(), patientMap = new Map()
     appointmentDate: ngayKham,
     gioKham,
     appointmentTime: gioKham,
+    ghiChu: item.note || '',
+    note: item.note || '',
+    soThuTu: item.queueNumber || null,
+    queueNumber: item.queueNumber || null,
     trangThai: normalizeStatus(item.status),
     status: normalizeStatus(item.status),
     BacSi: doctor ? { maBS: doctor.doctorId || doctor.staffId, hoTen: doctor.fullName } : null,
@@ -1054,6 +1124,44 @@ function toLegacyPrescription(item) {
   };
 }
 
+function toLegacyLabResult(item) {
+  return {
+    maPhieuXN: item.labResultId,
+    labResultId: item.labResultId,
+    maBN: item.patientId,
+    patientId: item.patientId,
+    maHSBA: item.recordId || null,
+    recordId: item.recordId || null,
+    ngayThucHien: item.performedAt || item.createdAt || null,
+    performedAt: item.performedAt || item.createdAt || null,
+    ketQua: item.resultText || '',
+    resultText: item.resultText || '',
+    khoangThamChieu: item.referenceRange || '',
+    referenceRange: item.referenceRange || '',
+    donVi: item.unit || '',
+    unit: item.unit || '',
+    trangThai: normalizeStatus(item.status || 'COMPLETED'),
+    status: normalizeStatus(item.status || 'COMPLETED'),
+    XetNghiem: {
+      maXN: item.testId || item.labResultId,
+      tenXN: item.testName || 'Xét nghiệm',
+      LoaiXetNghiem: {
+        maLoaiXN: item.categoryId || null,
+        tenLoai: item.categoryName || 'Tổng quát',
+      },
+    },
+    NhanSuYTe: {
+      maNS: item.staffId || null,
+      hoTen: item.staffName || 'Kỹ thuật viên',
+    },
+    YeuCau: {
+      maBN: item.patientId,
+    },
+    createdAt: item.createdAt || null,
+    updatedAt: item.updatedAt || null,
+  };
+}
+
 function toLegacyMedicine(item) {
   return {
     maThuoc: item.medicineId,
@@ -1095,8 +1203,8 @@ async function legacyListPatients(event) {
 }
 
 async function legacyReadPatient(event) {
-  requireGroups(event, ['ADMIN', 'BACSI', 'NHANSU', 'BENHNHAN']);
   const patientId = routeParameter(event, 'patientId');
+  await requirePatientScope(event, patientId);
   const patient = await getPatient(patientId);
   if (!patient) throw new ApiError(404, 'PATIENT_NOT_FOUND', 'Patient not found');
   return success(toLegacyPatient(patient));
@@ -1206,6 +1314,217 @@ async function legacyStaffByAccount(event) {
   return success(toLegacyStaff(employee, departmentMap));
 }
 
+function appointmentTime(value) {
+  const result = requiredString(value, 'gioKham', { maxLength: 5 });
+  if (!/^([01]\d|2[0-3]):[0-5]\d$/.test(result)) {
+    throw new ApiError(
+      400,
+      'VALIDATION_ERROR',
+      'gioKham phải có định dạng HH:mm',
+    );
+  }
+  return result;
+}
+
+async function appointmentMaps() {
+  const [doctors, patients] = await Promise.all([
+    scanEntityTypes(['DOCTOR']),
+    scanEntityTypes(['PATIENT']),
+  ]);
+
+  return {
+    doctorMap: new Map(
+      uniqueBy(doctors, (item) => item.doctorId || item.staffId).map((item) => [
+        item.doctorId || item.staffId,
+        item,
+      ]),
+    ),
+    patientMap: new Map(
+      uniqueBy(patients, (item) => item.patientId).map((item) => [
+        item.patientId,
+        item,
+      ]),
+    ),
+  };
+}
+
+async function legacyCreateAppointment(event) {
+  const body = parseJsonBody(event);
+  const patientId = requiredString(
+    body.maBN ?? body.patientId,
+    'maBN',
+    { maxLength: 100 },
+  );
+  const actor = await requirePatientScope(event, patientId);
+  await ensurePatient(patientId);
+
+  const doctorId = requiredString(
+    body.maBS ?? body.doctorId,
+    'maBS',
+    { maxLength: 100 },
+  );
+  const appointmentDate = dateOnly(
+    body.ngayKham ?? body.appointmentDate,
+    'ngayKham',
+  );
+  const time = appointmentTime(body.gioKham ?? body.appointmentTime);
+  const departmentId = optionalString(
+    body.maKhoa ?? body.departmentId ?? body.tenKhoa,
+    'maKhoa',
+    { maxLength: 100 },
+  );
+  const note = optionalString(body.ghiChu ?? body.note, 'ghiChu', {
+    maxLength: 1000,
+  });
+  const roomId = optionalString(body.phong ?? body.roomId, 'phong', {
+    maxLength: 100,
+  });
+
+  const appointmentAt = new Date(`${appointmentDate}T${time}:00+07:00`);
+  if (Number.isNaN(appointmentAt.getTime())) {
+    throw new ApiError(400, 'VALIDATION_ERROR', 'Ngày hoặc giờ khám không hợp lệ');
+  }
+  if (appointmentAt.getTime() <= Date.now()) {
+    throw new ApiError(400, 'APPOINTMENT_IN_PAST', 'Lịch khám phải ở tương lai');
+  }
+
+  const [doctors, appointments] = await Promise.all([
+    scanEntityTypes(['DOCTOR']),
+    scanEntityTypes(['APPOINTMENT']),
+  ]);
+  const doctor = uniqueBy(
+    doctors,
+    (item) => item.doctorId || item.staffId,
+  ).find((item) => (item.doctorId || item.staffId) === doctorId);
+
+  if (!doctor) {
+    throw new ApiError(404, 'DOCTOR_NOT_FOUND', 'Không tìm thấy bác sĩ');
+  }
+
+  const uniqueAppointments = uniqueBy(
+    appointments,
+    (item) => item.appointmentId,
+  );
+  const duplicate = uniqueAppointments.find((item) =>
+    item.patientId === patientId &&
+    item.appointmentDate === appointmentDate &&
+    item.appointmentTime === time &&
+    !['CANCELLED', 'COMPLETED'].includes(normalizeStatus(item.status)),
+  );
+
+  if (duplicate) {
+    throw new ApiError(
+      409,
+      'APPOINTMENT_DUPLICATE',
+      'Bạn đã có lịch khám ở thời điểm này',
+    );
+  }
+
+  const sameSlot = uniqueAppointments.filter((item) =>
+    item.doctorId === doctorId &&
+    item.appointmentDate === appointmentDate &&
+    item.appointmentTime === time &&
+    normalizeStatus(item.status) !== 'CANCELLED',
+  );
+
+  const appointmentId = randomUUID();
+  const now = new Date().toISOString();
+  const item = {
+    entityType: 'APPOINTMENT',
+    appointmentId,
+    patientId,
+    doctorId,
+    departmentId: departmentId || doctor.departmentId || null,
+    roomId: roomId || null,
+    appointmentDate,
+    appointmentTime: time,
+    queueNumber: sameSlot.length + 1,
+    note: note || '',
+    status: 'PENDING',
+    createdBy: actor.sub,
+    createdAt: now,
+    updatedAt: now,
+  };
+
+  const created = await putPatientProjection({
+    entity: 'APPOINTMENT',
+    id: appointmentId,
+    patientId,
+    prefix: 'APPOINTMENT',
+    createdAt: now,
+    item,
+  });
+
+  const { doctorMap, patientMap } = await appointmentMaps();
+  return success(toLegacyAppointment(created, doctorMap, patientMap), 201);
+}
+
+async function legacyReadAppointment(event) {
+  const appointmentId = routeParameter(event, 'appointmentId');
+  const appointment = await ensureDirectEntity('APPOINTMENT', appointmentId);
+  await requirePatientScope(event, appointment.patientId);
+  const { doctorMap, patientMap } = await appointmentMaps();
+  return success(toLegacyAppointment(appointment, doctorMap, patientMap));
+}
+
+async function legacyCancelAppointment(event) {
+  const appointmentId = routeParameter(event, 'appointmentId');
+  const appointment = await ensureDirectEntity('APPOINTMENT', appointmentId);
+  const actor = await requirePatientScope(event, appointment.patientId);
+  const status = normalizeStatus(appointment.status);
+
+  if (status === 'COMPLETED') {
+    throw new ApiError(
+      409,
+      'APPOINTMENT_COMPLETED',
+      'Không thể hủy lịch đã hoàn thành',
+    );
+  }
+
+  if (status !== 'CANCELLED') {
+    const now = new Date().toISOString();
+    const update = {
+      TableName: tableName,
+      UpdateExpression:
+        'SET #status = :status, cancelledBy = :cancelledBy, updatedAt = :updatedAt',
+      ExpressionAttributeNames: {
+        '#status': 'status',
+      },
+      ExpressionAttributeValues: {
+        ':status': 'CANCELLED',
+        ':cancelledBy': actor.sub,
+        ':updatedAt': now,
+      },
+    };
+
+    await Promise.all([
+      documentClient.send(
+        new UpdateCommand({
+          ...update,
+          Key: directKey('APPOINTMENT', appointmentId),
+        }),
+      ),
+      appointment.patientSk
+        ? documentClient.send(
+            new UpdateCommand({
+              ...update,
+              Key: {
+                pk: patientPk(appointment.patientId),
+                sk: appointment.patientSk,
+              },
+            }),
+          )
+        : Promise.resolve(),
+    ]);
+
+    appointment.status = 'CANCELLED';
+    appointment.updatedAt = now;
+  }
+
+  const { doctorMap, patientMap } = await appointmentMaps();
+  return success(toLegacyAppointment(appointment, doctorMap, patientMap));
+}
+
 async function legacyListAppointments(event) {
   const actor = requireGroups(event, ['ADMIN', 'BACSI', 'NHANSU', 'BENHNHAN']);
   const [appointments, doctors, patients] = await Promise.all([
@@ -1228,18 +1547,31 @@ async function legacyListAppointments(event) {
   if (query.maBS) filtered = filtered.filter((item) => item.doctorId === query.maBS);
   if (query.maBN) filtered = filtered.filter((item) => item.patientId === query.maBN);
 
-  // A patient must use the patient-specific route in the UI. The general route
-  // returns only a demo patient's own records when the role is BENHNHAN.
-  if (hasGroup(actor, 'BENHNHAN') && !query.maBN) {
-    filtered = filtered.filter((item) => item.patientId === 'BN001');
+  if (hasGroup(actor, 'BENHNHAN')) {
+    const ownPatientId = await patientIdForEvent(event);
+    if (!ownPatientId) {
+      throw new ApiError(
+        403,
+        'PATIENT_PROFILE_NOT_LINKED',
+        'Tài khoản chưa được liên kết với hồ sơ bệnh nhân',
+      );
+    }
+    if (query.maBN && query.maBN !== ownPatientId) {
+      throw new ApiError(
+        403,
+        'PATIENT_SCOPE_FORBIDDEN',
+        'Bạn chỉ được xem lịch khám của chính mình',
+      );
+    }
+    filtered = filtered.filter((item) => item.patientId === ownPatientId);
   }
 
   return success(filtered.map((item) => toLegacyAppointment(item, doctorMap, patientMap)));
 }
 
 async function legacyPatientAppointments(event) {
-  requireGroups(event, ['ADMIN', 'BACSI', 'NHANSU', 'BENHNHAN']);
   const patientId = routeParameter(event, 'patientId');
+  await requirePatientScope(event, patientId);
   event.queryStringParameters = {
     ...(event.queryStringParameters || {}),
     maBN: patientId,
@@ -1257,6 +1589,58 @@ async function legacyDoctorAppointments(event) {
   return legacyListAppointments(event);
 }
 
+async function legacyListLabResults(event) {
+  const actor = requireGroups(event, [
+    'ADMIN',
+    'BACSI',
+    'NHANSU',
+    'BENHNHAN',
+  ]);
+  const query = event.queryStringParameters || {};
+  let items = uniqueBy(
+    await scanEntityTypes(['LAB_RESULT']),
+    (item) => item.labResultId,
+  );
+
+  if (query.maBN) {
+    items = items.filter((item) => item.patientId === query.maBN);
+  }
+
+  if (hasGroup(actor, 'BENHNHAN')) {
+    const ownPatientId = await patientIdForEvent(event);
+    if (!ownPatientId) {
+      throw new ApiError(
+        403,
+        'PATIENT_PROFILE_NOT_LINKED',
+        'Tài khoản chưa được liên kết với hồ sơ bệnh nhân',
+      );
+    }
+    if (query.maBN && query.maBN !== ownPatientId) {
+      throw new ApiError(
+        403,
+        'PATIENT_SCOPE_FORBIDDEN',
+        'Bạn chỉ được xem kết quả xét nghiệm của chính mình',
+      );
+    }
+    items = items.filter((item) => item.patientId === ownPatientId);
+  }
+
+  items.sort((left, right) =>
+    String(right.performedAt || right.createdAt || '').localeCompare(
+      String(left.performedAt || left.createdAt || ''),
+    ),
+  );
+
+  return success(items.map(toLegacyLabResult));
+}
+
+async function legacyReadLabResult(event) {
+  const labResultId = routeParameter(event, 'labResultId');
+  const item = await ensureDirectEntity('LAB_RESULT', labResultId);
+  await requirePatientScope(event, item.patientId);
+  return success(toLegacyLabResult(item));
+}
+
 async function legacyListMedicalRecords(event) {
   requireGroups(event, ['ADMIN', 'BACSI', 'NHANSU']);
   const records = uniqueBy(
@@ -1267,8 +1651,8 @@ async function legacyListMedicalRecords(event) {
 }
 
 async function legacyPatientMedicalRecords(event) {
-  requireGroups(event, ['ADMIN', 'BACSI', 'NHANSU', 'BENHNHAN']);
   const patientId = routeParameter(event, 'patientId');
+  await requirePatientScope(event, patientId);
   const records = uniqueBy(
     await scanEntityTypes(['MEDICAL_RECORD']),
     (item) => item.recordId,
@@ -1428,6 +1812,9 @@ const routeHandlers = Object.freeze({
   'GET /api/khoa': legacyListDepartments,
   'GET /api/phongkham': legacyListRooms,
   'GET /api/lichkham': legacyListAppointments,
+  'POST /api/lichkham': legacyCreateAppointment,
+  'GET /api/lichkham/{appointmentId}': legacyReadAppointment,
+  'DELETE /api/lichkham/{appointmentId}': legacyCancelAppointment,
   'GET /api/lichkham/benhnhan/{patientId}': legacyPatientAppointments,
   'GET /api/lichkham/bacsi/{doctorId}': legacyDoctorAppointments,
   'GET /api/hsba': legacyListMedicalRecords,
@@ -1446,7 +1833,8 @@ const routeHandlers = Object.freeze({
   'GET /api/hoadon/thongke': legacyInvoiceStatistics,
   'GET /api/xetnghiem': legacyEmptyList,
   'GET /api/yeucauxetnghiem': legacyEmptyList,
-  'GET /api/phieuxetnghiem': legacyEmptyList,
+  'GET /api/phieuxetnghiem': legacyListLabResults,
+  'GET /api/phieuxetnghiem/{labResultId}': legacyReadLabResult,
   'POST /api/patients': createPatient,
   'GET /api/patients/{patientId}': readPatient,
   'PUT /api/patients/{patientId}': updatePatient,
