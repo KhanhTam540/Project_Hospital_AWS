@@ -112,7 +112,16 @@ function LoginPage() {
     <>
       <AuthLayout
         title="Đăng nhập"
-        subtitle={cognitoMode ? "Xác thực qua AWS Cognito" : "Đăng nhập tài khoản hệ thống"}
+        subtitle="Đăng nhập để tiếp tục sử dụng các tiện ích của hệ thống"
+        panelEyebrow="CỔNG BỆNH NHÂN"
+        panelTitle="Theo dõi hành trình chăm sóc sức khỏe của bạn"
+        panelDescription="Truy cập lịch hẹn, hồ sơ, kết quả xét nghiệm và thông tin thanh toán trong một không gian thống nhất."
+        panelItems={[
+          "Xem và quản lý lịch khám cá nhân",
+          "Theo dõi hồ sơ và kết quả y tế",
+          "Nhận hỗ trợ nhanh từ đội ngũ bệnh viện",
+        ]}
+        panelNote="Thông tin tài khoản được bảo vệ trong suốt quá trình sử dụng."
         icon="🔑"
         footer={
           <div className="space-y-2">

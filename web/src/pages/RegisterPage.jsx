@@ -57,7 +57,7 @@ function RegisterPage() {
     event.preventDefault();
 
     if (!cognitoEnabled) {
-      toast.error("Cognito chưa được cấu hình trong web/.env.local.");
+      toast.error("Hệ thống xác thực chưa được cấu hình. Vui lòng liên hệ quản trị viên.");
       return;
     }
 
@@ -111,7 +111,16 @@ function RegisterPage() {
   return (
     <AuthLayout
       title="Đăng ký tài khoản"
-      subtitle="Amazon Cognito sẽ gửi mã xác nhận đến email của bạn"
+      subtitle="Tạo tài khoản bệnh nhân để đặt lịch và theo dõi hồ sơ trực tuyến"
+      panelEyebrow="BẮT ĐẦU CÙNG HOSPITAL P2TB"
+      panelTitle="Chủ động chăm sóc sức khỏe ngay từ hôm nay"
+      panelDescription="Đăng ký tài khoản để sử dụng các dịch vụ trực tuyến của bệnh viện nhanh chóng và thuận tiện hơn."
+      panelItems={[
+        "Đăng ký tài khoản chỉ trong vài phút",
+        "Đặt lịch khám trực tuyến thuận tiện",
+        "Theo dõi hồ sơ và hóa đơn tập trung",
+      ]}
+      panelNote="Mã xác nhận sẽ được gửi đến email bạn đăng ký."
       icon="📝"
       footer={
         <p>
