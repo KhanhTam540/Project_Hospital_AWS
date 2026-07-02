@@ -38,6 +38,7 @@ npm-debug.log*
 .medical-test-tokens.json
 _backup_dinhbao_week1_*/
 _backup_audit_fix_*/
+
 _backup_complete_fix_*/
 
 # Edge-stack output and local infrastructure settings
@@ -45,21 +46,3 @@ docs/aws-edge-outputs.json
 .env.infrastructure
 
 _backup_khanhtam_cloudfront_net_*/
-
-# Flutter Mobile
-mobile/.dart_tool/
-mobile/build/
-mobile/.flutter-plugins
-mobile/.flutter-plugins-dependencies
-mobile/.packages
-mobile/android/key.properties
-mobile/**/*.jks
-mobile/**/*.keystore
-mobile/.env
-mobile/.env.*
-!mobile/.env.example
-mobile/ios/Runner/GoogleService-Info.plist
-mobile/macos/Runner/GoogleService-Info.plist
-
-# Cao Thien patch backups
-_backup_caothien_week1_2_*/
