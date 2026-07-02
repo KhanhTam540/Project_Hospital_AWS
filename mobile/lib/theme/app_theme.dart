@@ -109,11 +109,7 @@ class AppTheme {
           fontSize: 16,
           height: 1.5,
         ),
-        bodyMedium: TextStyle(
-          color: mutedColor,
-          fontSize: 14,
-          height: 1.45,
-        ),
+        bodyMedium: TextStyle(color: mutedColor, fontSize: 14, height: 1.45),
         labelLarge: TextStyle(
           color: scheme.onSurface,
           fontSize: 14,
@@ -125,11 +121,11 @@ class AppTheme {
         elevation: 0,
         scrolledUnderElevation: 0,
         centerTitle: false,
-        backgroundColor: isDark ? const Color(0xFF0B1622) : Colors.white,
-        foregroundColor: scheme.onSurface,
+        backgroundColor: scheme.primary,
+        foregroundColor: scheme.onPrimary,
         surfaceTintColor: Colors.transparent,
         titleTextStyle: TextStyle(
-          color: scheme.onSurface,
+          color: scheme.onPrimary,
           fontSize: 19,
           fontWeight: FontWeight.w800,
         ),
@@ -187,7 +183,10 @@ class AppTheme {
       inputDecorationTheme: InputDecorationTheme(
         filled: true,
         fillColor: isDark ? const Color(0xFF0B1622) : const Color(0xFFF8FAFC),
-        contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 16),
+        contentPadding: const EdgeInsets.symmetric(
+          horizontal: 16,
+          vertical: 16,
+        ),
         labelStyle: TextStyle(color: mutedColor),
         hintStyle: TextStyle(color: mutedColor.withValues(alpha: 0.82)),
         prefixIconColor: mutedColor,
@@ -271,10 +270,8 @@ extension ThemeX on BuildContext {
   bool get isDark => Theme.of(this).brightness == Brightness.dark;
   Color get appSurface => Theme.of(this).colorScheme.surface;
   Color get appText => Theme.of(this).colorScheme.onSurface;
-  Color get appMuted =>
-      isDark ? const Color(0xFFB2C0CF) : AppTheme.muted;
+  Color get appMuted => isDark ? const Color(0xFFB2C0CF) : AppTheme.muted;
   Color get appBorder =>
       isDark ? const Color(0xFF2A3A4A) : const Color(0xFFDCE5EE);
-  Color get appCanvas =>
-      isDark ? const Color(0xFF07111C) : AppTheme.canvas;
+  Color get appCanvas => isDark ? const Color(0xFF07111C) : AppTheme.canvas;
 }

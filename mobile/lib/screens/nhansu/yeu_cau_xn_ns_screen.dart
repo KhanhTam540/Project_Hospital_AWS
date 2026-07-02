@@ -58,7 +58,8 @@ class _YeuCauXNTruocScreenState extends State<YeuCauXNTruocScreen> {
   final ApiClient _api = ApiClient();
   List<YeuCauXN> _list = [];
   bool _isLoading = true;
-  String _selectedFilter = 'CHO_THUC_HIEN'; // Mặc định là 'Chưa thực hiện'
+  String _selectedFilter =
+      'CHO_THUC_HIEN'; // Máº·c Ä‘á»‹nh lÃ  'ChÆ°a thá»±c hiá»‡n'
 
   @override
   void initState() {
@@ -69,7 +70,7 @@ class _YeuCauXNTruocScreenState extends State<YeuCauXNTruocScreen> {
   Future<void> _fetchData() async {
     setState(() => _isLoading = true);
     try {
-      // API: GET /api/yeucauxetnghiem (Lấy tất cả yêu cầu)
+      // API: GET /api/yeucauxetnghiem (Láº¥y táº¥t cáº£ yÃªu cáº§u)
       final response = await _api.get('/yeucauxetnghiem');
       if (response.statusCode == 200) {
         final data = jsonDecode(response.body)['data'] as List;
@@ -78,7 +79,7 @@ class _YeuCauXNTruocScreenState extends State<YeuCauXNTruocScreen> {
         });
       }
     } catch (e) {
-      _showError('Lỗi tải dữ liệu: $e');
+      _showError('Lá»—i táº£i dá»¯ liá»‡u: $e');
     } finally {
       setState(() => _isLoading = false);
     }
@@ -91,29 +92,29 @@ class _YeuCauXNTruocScreenState extends State<YeuCauXNTruocScreen> {
     );
   }
 
-  // Chuyển đổi trạng thái hiển thị
+  // Chuyá»ƒn Ä‘á»•i tráº¡ng thÃ¡i hiá»ƒn thá»‹
   String _displayTrangThai(String trangThai) {
     switch (trangThai) {
       case 'CHO_THUC_HIEN':
-        return 'Chờ thực hiện';
+        return 'Chá» thá»±c hiá»‡n';
       case 'DA_LAY_MAU':
-        return 'Đã lấy mẫu';
+        return 'ÄÃ£ láº¥y máº«u';
       case 'DA_HOAN_THANH':
-        return 'Đã hoàn thành';
+        return 'ÄÃ£ hoÃ n thÃ nh';
       default:
         return trangThai;
     }
   }
 
-  // Chuyển đổi trạng thái yêu cầu
+  // Chuyá»ƒn Ä‘á»•i tráº¡ng thÃ¡i yÃªu cáº§u
   String _displayLoai(String loai) {
     switch (loai) {
       case 'THONG_THUONG':
-        return 'Thông thường';
+        return 'ThÃ´ng thÆ°á»ng';
       case 'KHAN_CAP':
-        return 'Khẩn cấp';
+        return 'Kháº©n cáº¥p';
       case 'THEO_DOI':
-        return 'Theo dõi';
+        return 'Theo dÃµi';
       default:
         return loai;
     }
@@ -121,12 +122,12 @@ class _YeuCauXNTruocScreenState extends State<YeuCauXNTruocScreen> {
 
   Future<void> _handleXacNhanLayMau(String maYeuCau) async {
     try {
-      // API: PUT /api/yeucauxetnghiem/:id (Chỉ cập nhật trạng thái)
+      // API: PUT /api/yeucauxetnghiem/:id (Chá»‰ cáº­p nháº­t tráº¡ng thÃ¡i)
       await _api.put('/yeucauxetnghiem/$maYeuCau', {'trangThai': 'DA_LAY_MAU'});
-      _showSnackbar('✅ Đã xác nhận lấy mẫu!', isError: false);
+      _showSnackbar('âœ… ÄÃ£ xÃ¡c nháº­n láº¥y máº«u!', isError: false);
       _fetchData();
     } catch (e) {
-      _showError('Lỗi xác nhận: $e');
+      _showError('Lá»—i xÃ¡c nháº­n: $e');
     }
   }
 
@@ -147,14 +148,14 @@ class _YeuCauXNTruocScreenState extends State<YeuCauXNTruocScreen> {
         .toList();
 
     return Scaffold(
-      backgroundColor: Colors.grey[100],
+      backgroundColor: Theme.of(context).scaffoldBackgroundColor,
       appBar: AppBar(
-        title: Text('Xử lý Yêu cầu Xét nghiệm'),
-        backgroundColor: Colors.indigo[700], // Màu XN
+        title: Text('Xá»­ lÃ½ YÃªu cáº§u XÃ©t nghiá»‡m'),
+        backgroundColor: Colors.indigo[700], // MÃ u XN
         actions: [
           IconButton(
             icon: FaIcon(FontAwesomeIcons.house, color: Colors.white, size: 20),
-            tooltip: 'Trang chủ',
+            tooltip: 'Trang chá»§',
             onPressed: () => context.go('/xetnghiem'),
           ),
           IconButton(
@@ -163,7 +164,7 @@ class _YeuCauXNTruocScreenState extends State<YeuCauXNTruocScreen> {
               color: Colors.white,
               size: 20,
             ),
-            tooltip: 'Đăng xuất',
+            tooltip: 'ÄÄƒng xuáº¥t',
             onPressed: () async {
               await Provider.of<AuthProvider>(context, listen: false).logout();
               if (!context.mounted) return;
@@ -174,12 +175,12 @@ class _YeuCauXNTruocScreenState extends State<YeuCauXNTruocScreen> {
       ),
       body: Column(
         children: [
-          // Bộ lọc
+          // Bá»™ lá»c
           Padding(
             padding: const EdgeInsets.all(16.0),
             child: DropdownButtonFormField<String>(
               decoration: InputDecoration(
-                labelText: 'Trạng thái',
+                labelText: 'Tráº¡ng thÃ¡i',
                 border: OutlineInputBorder(
                   borderRadius: BorderRadius.circular(8),
                 ),
@@ -197,12 +198,12 @@ class _YeuCauXNTruocScreenState extends State<YeuCauXNTruocScreen> {
             ),
           ),
 
-          // Danh sách
+          // Danh sÃ¡ch
           Expanded(
             child: _isLoading
                 ? Center(child: CircularProgressIndicator())
                 : filteredList.isEmpty
-                ? Center(child: Text('Không có yêu cầu nào.'))
+                ? Center(child: Text('KhÃ´ng cÃ³ yÃªu cáº§u nÃ o.'))
                 : ListView.builder(
                     padding: EdgeInsets.symmetric(horizontal: 16),
                     itemCount: filteredList.length,
@@ -221,7 +222,7 @@ class _YeuCauXNTruocScreenState extends State<YeuCauXNTruocScreen> {
                             'YC: ${item.maYeuCau} - BN: ${item.tenBN}',
                           ),
                           subtitle: Text(
-                            'BS: ${item.tenBS} - Loại: ${_displayLoai(item.loaiYeuCau)}',
+                            'BS: ${item.tenBS} - Loáº¡i: ${_displayLoai(item.loaiYeuCau)}',
                           ),
                           trailing: item.trangThai == 'CHO_THUC_HIEN'
                               ? ElevatedButton(
@@ -230,7 +231,7 @@ class _YeuCauXNTruocScreenState extends State<YeuCauXNTruocScreen> {
                                   style: ElevatedButton.styleFrom(
                                     backgroundColor: Colors.blue,
                                   ),
-                                  child: Text('Đã lấy mẫu'),
+                                  child: Text('ÄÃ£ láº¥y máº«u'),
                                 )
                               : Text(
                                   _displayTrangThai(item.trangThai),

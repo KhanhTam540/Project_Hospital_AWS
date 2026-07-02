@@ -4,10 +4,10 @@ import 'package:font_awesome_flutter/font_awesome_flutter.dart';
 import 'package:go_router/go_router.dart';
 import 'dart:convert';
 import 'package:intl/intl.dart';
-import 'package:provider/provider.dart'; // Thêm import
-import '../../auth/auth_provider.dart'; // Thêm import
+import 'package:provider/provider.dart'; // ThÃªm import
+import '../../auth/auth_provider.dart'; // ThÃªm import
 import '../../services/api_client.dart';
-import '../../models/user_model.dart'; // Dùng UserModel để lấy DS Bệnh nhân
+import '../../models/user_model.dart'; // DÃ¹ng UserModel Ä‘á»ƒ láº¥y DS Bá»‡nh nhÃ¢n
 
 // Model
 class HoSoBenhAnModel {
@@ -85,7 +85,7 @@ class _QuanLyHoSoBenhAnScreenState extends State<QuanLyHoSoBenhAnScreen> {
         });
       }
     } catch (e) {
-      _showError('Lỗi tải dữ liệu: $e');
+      _showError('Lá»—i táº£i dá»¯ liá»‡u: $e');
     } finally {
       setState(() => _isLoading = false);
     }
@@ -100,8 +100,8 @@ class _QuanLyHoSoBenhAnScreenState extends State<QuanLyHoSoBenhAnScreen> {
 
   Future<void> _handleDelete(String maHSBA) async {
     final confirm = await _showConfirmDialog(
-      'Xác nhận xoá',
-      'Bạn có chắc muốn xoá HSBA $maHSBA?',
+      'XÃ¡c nháº­n xoÃ¡',
+      'Báº¡n cÃ³ cháº¯c muá»‘n xoÃ¡ HSBA $maHSBA?',
     );
     if (confirm != true) return;
     try {
@@ -109,10 +109,10 @@ class _QuanLyHoSoBenhAnScreenState extends State<QuanLyHoSoBenhAnScreen> {
       if (response.statusCode == 200) {
         _fetchData();
       } else {
-        _showError('Lỗi: ${jsonDecode(response.body)['message']}');
+        _showError('Lá»—i: ${jsonDecode(response.body)['message']}');
       }
     } catch (e) {
-      _showError('Lỗi kết nối: $e');
+      _showError('Lá»—i káº¿t ná»‘i: $e');
     }
   }
 
@@ -128,7 +128,7 @@ class _QuanLyHoSoBenhAnScreenState extends State<QuanLyHoSoBenhAnScreen> {
       context: context,
       builder: (ctx) {
         return AlertDialog(
-          title: Text('Thêm Hồ sơ Bệnh án'),
+          title: Text('ThÃªm Há»“ sÆ¡ Bá»‡nh Ã¡n'),
           content: Form(
             key: formKey,
             child: SingleChildScrollView(
@@ -137,7 +137,7 @@ class _QuanLyHoSoBenhAnScreenState extends State<QuanLyHoSoBenhAnScreen> {
                 children: [
                   DropdownButtonFormField<String>(
                     decoration: InputDecoration(
-                      labelText: 'Chọn Bệnh nhân',
+                      labelText: 'Chá»n Bá»‡nh nhÃ¢n',
                       border: OutlineInputBorder(),
                     ),
                     initialValue: selectedBN,
@@ -150,22 +150,23 @@ class _QuanLyHoSoBenhAnScreenState extends State<QuanLyHoSoBenhAnScreen> {
                         )
                         .toList(),
                     onChanged: (v) => selectedBN = v,
-                    validator: (v) => v == null ? 'Vui lòng chọn' : null,
+                    validator: (v) => v == null ? 'Vui lÃ²ng chá»n' : null,
                   ),
                   SizedBox(height: 16),
                   TextFormField(
                     controller: dotKhamController,
                     decoration: InputDecoration(
-                      labelText: 'Đợt khám (YYYY-MM-DDTHH:mm)',
+                      labelText: 'Äá»£t khÃ¡m (YYYY-MM-DDTHH:mm)',
                       border: OutlineInputBorder(),
                     ),
-                    validator: (v) => v!.isEmpty ? 'Không được bỏ trống' : null,
+                    validator: (v) =>
+                        v!.isEmpty ? 'KhÃ´ng Ä‘Æ°á»£c bá» trá»‘ng' : null,
                   ),
                   SizedBox(height: 16),
                   TextFormField(
                     controller: lichSuController,
                     decoration: InputDecoration(
-                      labelText: 'Lịch sử bệnh',
+                      labelText: 'Lá»‹ch sá»­ bá»‡nh',
                       border: OutlineInputBorder(),
                     ),
                   ),
@@ -176,7 +177,7 @@ class _QuanLyHoSoBenhAnScreenState extends State<QuanLyHoSoBenhAnScreen> {
           actions: [
             TextButton(
               onPressed: () => Navigator.of(ctx).pop(),
-              child: Text('Huỷ'),
+              child: Text('Huá»·'),
             ),
             ElevatedButton(
               onPressed: () async {
@@ -195,13 +196,15 @@ class _QuanLyHoSoBenhAnScreenState extends State<QuanLyHoSoBenhAnScreen> {
                     Navigator.of(ctx).pop();
                     _fetchData();
                   } else {
-                    _showError('Lỗi: ${jsonDecode(response.body)['message']}');
+                    _showError(
+                      'Lá»—i: ${jsonDecode(response.body)['message']}',
+                    );
                   }
                 } catch (e) {
-                  _showError('Lỗi kết nối: $e');
+                  _showError('Lá»—i káº¿t ná»‘i: $e');
                 }
               },
-              child: Text('Thêm'),
+              child: Text('ThÃªm'),
             ),
           ],
         );
@@ -218,11 +221,11 @@ class _QuanLyHoSoBenhAnScreenState extends State<QuanLyHoSoBenhAnScreen> {
         actions: [
           TextButton(
             onPressed: () => Navigator.of(ctx).pop(false),
-            child: Text('Huỷ'),
+            child: Text('Huá»·'),
           ),
           TextButton(
             onPressed: () => Navigator.of(ctx).pop(true),
-            child: Text('Xác nhận', style: TextStyle(color: Colors.red)),
+            child: Text('XÃ¡c nháº­n', style: TextStyle(color: Colors.red)),
           ),
         ],
       ),
@@ -232,15 +235,15 @@ class _QuanLyHoSoBenhAnScreenState extends State<QuanLyHoSoBenhAnScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: Colors.grey[100],
+      backgroundColor: Theme.of(context).scaffoldBackgroundColor,
       appBar: AppBar(
-        title: Text('Quản lý Hồ sơ Bệnh án'),
-        backgroundColor: Color(0xFF2C3E50),
-        // SỬA: Bỏ 'leading' và thêm 'actions'
+        title: Text('Quáº£n lÃ½ Há»“ sÆ¡ Bá»‡nh Ã¡n'),
+        backgroundColor: Theme.of(context).colorScheme.primary,
+        // Sá»¬A: Bá» 'leading' vÃ  thÃªm 'actions'
         actions: [
           IconButton(
             icon: FaIcon(FontAwesomeIcons.house, color: Colors.white, size: 20),
-            tooltip: 'Trang chủ',
+            tooltip: 'Trang chá»§',
             onPressed: () => context.go('/admin'),
           ),
           IconButton(
@@ -249,7 +252,7 @@ class _QuanLyHoSoBenhAnScreenState extends State<QuanLyHoSoBenhAnScreen> {
               color: Colors.white,
               size: 20,
             ),
-            tooltip: 'Đăng xuất',
+            tooltip: 'ÄÄƒng xuáº¥t',
             onPressed: () async {
               await Provider.of<AuthProvider>(context, listen: false).logout();
               if (!context.mounted) return;
@@ -260,7 +263,7 @@ class _QuanLyHoSoBenhAnScreenState extends State<QuanLyHoSoBenhAnScreen> {
       ),
       floatingActionButton: FloatingActionButton(
         onPressed: () => _showAddDialog(),
-        tooltip: 'Thêm hồ sơ',
+        tooltip: 'ThÃªm há»“ sÆ¡',
         child: Icon(Icons.add),
       ),
       body: _isLoading
@@ -286,7 +289,7 @@ class _QuanLyHoSoBenhAnScreenState extends State<QuanLyHoSoBenhAnScreen> {
                       style: TextStyle(fontWeight: FontWeight.bold),
                     ),
                     subtitle: Text(
-                      'Mã HSBA: ${item.maHSBA}\nĐợt khám: ${item.dotKhamBenh}',
+                      'MÃ£ HSBA: ${item.maHSBA}\nÄá»£t khÃ¡m: ${item.dotKhamBenh}',
                     ),
                     trailing: IconButton(
                       icon: Icon(

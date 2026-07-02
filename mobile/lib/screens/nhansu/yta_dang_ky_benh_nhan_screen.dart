@@ -3,9 +3,9 @@ import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 import 'package:intl/intl.dart';
 import 'dart:convert';
-import 'package:font_awesome_flutter/font_awesome_flutter.dart'; // Thêm import
-import 'package:provider/provider.dart'; // Thêm import
-import '../../auth/auth_provider.dart'; // Thêm import
+import 'package:font_awesome_flutter/font_awesome_flutter.dart'; // ThÃªm import
+import 'package:provider/provider.dart'; // ThÃªm import
+import '../../auth/auth_provider.dart'; // ThÃªm import
 import '../../services/api_client.dart';
 
 class DangKyBenhNhanYtaScreen extends StatefulWidget {
@@ -17,7 +17,7 @@ class DangKyBenhNhanYtaScreen extends StatefulWidget {
 }
 
 class _DangKyBenhNhanYtaScreenState extends State<DangKyBenhNhanYtaScreen> {
-  // (Giữ nguyên toàn bộ logic state, controllers, dispose, _handleSubmit, _showError)
+  // (Giá»¯ nguyÃªn toÃ n bá»™ logic state, controllers, dispose, _handleSubmit, _showError)
   final _formKey = GlobalKey<FormState>();
   final ApiClient _api = ApiClient();
   bool _isLoading = false;
@@ -68,7 +68,7 @@ class _DangKyBenhNhanYtaScreenState extends State<DangKyBenhNhanYtaScreen> {
       if (response.statusCode == 201) {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
-            content: Text('✅ Đăng ký bệnh nhân thành công!'),
+            content: Text('âœ… ÄÄƒng kÃ½ bá»‡nh nhÃ¢n thÃ nh cÃ´ng!'),
             backgroundColor: Colors.green,
           ),
         );
@@ -86,11 +86,13 @@ class _DangKyBenhNhanYtaScreenState extends State<DangKyBenhNhanYtaScreen> {
         });
       } else {
         final errorBody = jsonDecode(response.body);
-        _showError('Lỗi: ${errorBody['message'] ?? 'Không thể tạo bệnh nhân'}');
+        _showError(
+          'Lá»—i: ${errorBody['message'] ?? 'KhÃ´ng thá»ƒ táº¡o bá»‡nh nhÃ¢n'}',
+        );
       }
     } catch (e) {
       if (!mounted) return;
-      _showError('Lỗi kết nối: $e');
+      _showError('Lá»—i káº¿t ná»‘i: $e');
     } finally {
       if (mounted) {
         setState(() => _isLoading = false);
@@ -107,16 +109,16 @@ class _DangKyBenhNhanYtaScreenState extends State<DangKyBenhNhanYtaScreen> {
 
   @override
   Widget build(BuildContext context) {
-    // SỬA: Thêm Scaffold và AppBar
+    // Sá»¬A: ThÃªm Scaffold vÃ  AppBar
     return Scaffold(
-      backgroundColor: Colors.grey[100],
+      backgroundColor: Theme.of(context).scaffoldBackgroundColor,
       appBar: AppBar(
-        title: Text('Đăng ký Bệnh nhân'),
-        backgroundColor: Color(0xFF166534), // Màu Y tá
+        title: Text('ÄÄƒng kÃ½ Bá»‡nh nhÃ¢n'),
+        backgroundColor: Color(0xFF166534), // MÃ u Y tÃ¡
         actions: [
           IconButton(
             icon: FaIcon(FontAwesomeIcons.house, color: Colors.white, size: 20),
-            tooltip: 'Trang chủ',
+            tooltip: 'Trang chá»§',
             onPressed: () => context.go('/yta'),
           ),
           IconButton(
@@ -125,7 +127,7 @@ class _DangKyBenhNhanYtaScreenState extends State<DangKyBenhNhanYtaScreen> {
               color: Colors.white,
               size: 20,
             ),
-            tooltip: 'Đăng xuất',
+            tooltip: 'ÄÄƒng xuáº¥t',
             onPressed: () async {
               await Provider.of<AuthProvider>(context, listen: false).logout();
               if (!context.mounted) return;
@@ -141,21 +143,21 @@ class _DangKyBenhNhanYtaScreenState extends State<DangKyBenhNhanYtaScreen> {
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.stretch,
             children: [
-              // (Giữ nguyên toàn bộ nội dung Form)
+              // (Giá»¯ nguyÃªn toÃ n bá»™ ná»™i dung Form)
               Text(
-                '👥 Thông tin tài khoản',
+                'ðŸ‘¥ ThÃ´ng tin tÃ i khoáº£n',
                 style: Theme.of(
                   context,
                 ).textTheme.titleLarge?.copyWith(fontWeight: FontWeight.bold),
               ),
               SizedBox(height: 16),
-              _buildTextField('Tên đăng nhập', controller: _tenDangNhap),
+              _buildTextField('TÃªn Ä‘Äƒng nháº­p', controller: _tenDangNhap),
               _buildTextField(
-                'Mật khẩu',
+                'Máº­t kháº©u',
                 controller: _matKhau,
                 isPassword: true,
                 validator: (v) => v != null && v.length < 6
-                    ? 'Mật khẩu tối thiểu 6 ký tự'
+                    ? 'Máº­t kháº©u tá»‘i thiá»ƒu 6 kÃ½ tá»±'
                     : null,
               ),
               _buildTextField(
@@ -167,33 +169,33 @@ class _DangKyBenhNhanYtaScreenState extends State<DangKyBenhNhanYtaScreen> {
 
               SizedBox(height: 24),
               Text(
-                '🩺 Thông tin cá nhân',
+                'ðŸ©º ThÃ´ng tin cÃ¡ nhÃ¢n',
                 style: Theme.of(
                   context,
                 ).textTheme.titleLarge?.copyWith(fontWeight: FontWeight.bold),
               ),
               SizedBox(height: 16),
-              _buildTextField('Họ tên', controller: _hoTen),
+              _buildTextField('Há» tÃªn', controller: _hoTen),
               _buildDateField(
                 context,
-                'Ngày sinh',
+                'NgÃ y sinh',
                 _ngaySinh,
                 (v) => setState(() => _ngaySinh = v),
               ),
               _buildDropdown(
-                'Giới tính',
-                ['Nam', 'Nữ', 'Khác'],
+                'Giá»›i tÃ­nh',
+                ['Nam', 'Ná»¯', 'KhÃ¡c'],
                 _gioiTinh,
                 (v) => setState(() => _gioiTinh = v),
               ),
               _buildTextField(
-                'Số điện thoại',
+                'Sá»‘ Ä‘iá»‡n thoáº¡i',
                 controller: _soDienThoai,
                 keyboardType: TextInputType.phone,
               ),
-              _buildTextField('Địa chỉ', controller: _diaChi),
+              _buildTextField('Äá»‹a chá»‰', controller: _diaChi),
               _buildTextField(
-                'Số thẻ BHYT (nếu có)',
+                'Sá»‘ tháº» BHYT (náº¿u cÃ³)',
                 controller: _bhyt,
                 isRequired: false,
               ),
@@ -208,7 +210,7 @@ class _DangKyBenhNhanYtaScreenState extends State<DangKyBenhNhanYtaScreen> {
                         child: CircularProgressIndicator(strokeWidth: 3),
                       )
                     : Icon(Icons.person_add),
-                label: Text('Tạo hồ sơ bệnh nhân'),
+                label: Text('Táº¡o há»“ sÆ¡ bá»‡nh nhÃ¢n'),
                 style: ElevatedButton.styleFrom(
                   backgroundColor: Colors.green,
                   foregroundColor: Colors.white,
@@ -226,7 +228,7 @@ class _DangKyBenhNhanYtaScreenState extends State<DangKyBenhNhanYtaScreen> {
     );
   }
 
-  // (Giữ nguyên 3 hàm helper: _buildTextField, _buildDropdown, _buildDateField)
+  // (Giá»¯ nguyÃªn 3 hÃ m helper: _buildTextField, _buildDropdown, _buildDateField)
   Widget _buildTextField(
     String label, {
     TextEditingController? controller,
@@ -254,7 +256,7 @@ class _DangKyBenhNhanYtaScreenState extends State<DangKyBenhNhanYtaScreen> {
             validator ??
             (value) {
               if (isRequired && (value == null || value.isEmpty)) {
-                return '$label là bắt buộc';
+                return '$label lÃ  báº¯t buá»™c';
               }
               return null;
             },
@@ -277,11 +279,14 @@ class _DangKyBenhNhanYtaScreenState extends State<DangKyBenhNhanYtaScreen> {
         ),
         initialValue: currentValue,
         items: items
-            .map((item) => DropdownMenuItem<String>(value: item, child: Text(item)))
+            .map(
+              (item) =>
+                  DropdownMenuItem<String>(value: item, child: Text(item)),
+            )
             .toList(),
         onChanged: onChanged,
         validator: (v) =>
-            v == null || v.isEmpty ? 'Vui lòng chọn $label' : null,
+            v == null || v.isEmpty ? 'Vui lÃ²ng chá»n $label' : null,
       ),
     );
   }
@@ -313,9 +318,9 @@ class _DangKyBenhNhanYtaScreenState extends State<DangKyBenhNhanYtaScreen> {
           );
           if (picked != null) onChanged(picked);
         },
-        validator: (v) => (v == null || v.isEmpty) && label == 'Ngày sinh'
-            ? '$label là bắt buộc'
-            : null, // Sửa: Chỉ validate nếu là 'Ngày sinh'
+        validator: (v) => (v == null || v.isEmpty) && label == 'NgÃ y sinh'
+            ? '$label lÃ  báº¯t buá»™c'
+            : null, // Sá»­a: Chá»‰ validate náº¿u lÃ  'NgÃ y sinh'
       ),
     );
   }

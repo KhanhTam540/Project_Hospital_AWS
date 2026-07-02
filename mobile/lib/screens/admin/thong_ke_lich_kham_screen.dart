@@ -4,8 +4,8 @@ import 'package:font_awesome_flutter/font_awesome_flutter.dart';
 import 'package:go_router/go_router.dart';
 import 'dart:convert';
 import 'package:intl/intl.dart';
-import 'package:provider/provider.dart'; // Thêm import
-import '../../auth/auth_provider.dart'; // Thêm import
+import 'package:provider/provider.dart'; // ThÃªm import
+import '../../auth/auth_provider.dart'; // ThÃªm import
 import '../../services/api_client.dart';
 
 class ThongKeLichKhamScreen extends StatefulWidget {
@@ -39,11 +39,11 @@ class _ThongKeLichKhamScreenState extends State<ThongKeLichKhamScreen> {
         final data = jsonDecode(response.body)['data'] as List;
         setState(() {
           _allSchedules = data.cast<Map<String, dynamic>>();
-          _filterByDay(); // Lọc theo ngày hôm nay
+          _filterByDay(); // Lá»c theo ngÃ y hÃ´m nay
         });
       }
     } catch (e) {
-      _showError('Lỗi tải dữ liệu: $e');
+      _showError('Lá»—i táº£i dá»¯ liá»‡u: $e');
     } finally {
       setState(() => _isLoading = false);
     }
@@ -77,15 +77,15 @@ class _ThongKeLichKhamScreenState extends State<ThongKeLichKhamScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: Colors.grey[100],
+      backgroundColor: Theme.of(context).scaffoldBackgroundColor,
       appBar: AppBar(
-        title: Text('Thống kê Lịch khám'),
-        backgroundColor: Color(0xFF2C3E50),
-        // SỬA: Bỏ 'leading' và thêm 'actions'
+        title: Text('Thá»‘ng kÃª Lá»‹ch khÃ¡m'),
+        backgroundColor: Theme.of(context).colorScheme.primary,
+        // Sá»¬A: Bá» 'leading' vÃ  thÃªm 'actions'
         actions: [
           IconButton(
             icon: FaIcon(FontAwesomeIcons.house, color: Colors.white, size: 20),
-            tooltip: 'Trang chủ',
+            tooltip: 'Trang chá»§',
             onPressed: () => context.go('/admin'),
           ),
           IconButton(
@@ -94,7 +94,7 @@ class _ThongKeLichKhamScreenState extends State<ThongKeLichKhamScreen> {
               color: Colors.white,
               size: 20,
             ),
-            tooltip: 'Đăng xuất',
+            tooltip: 'ÄÄƒng xuáº¥t',
             onPressed: () async {
               await Provider.of<AuthProvider>(context, listen: false).logout();
               if (!context.mounted) return;
@@ -127,7 +127,10 @@ class _ThongKeLichKhamScreenState extends State<ThongKeLichKhamScreen> {
               Row(
                 mainAxisAlignment: MainAxisAlignment.spaceBetween,
                 children: [
-                  Text('Chọn ngày thống kê:', style: TextStyle(fontSize: 16)),
+                  Text(
+                    'Chá»n ngÃ y thá»‘ng kÃª:',
+                    style: TextStyle(fontSize: 16),
+                  ),
                   ElevatedButton(
                     style: ElevatedButton.styleFrom(
                       backgroundColor: Colors.white,
@@ -152,7 +155,7 @@ class _ThongKeLichKhamScreenState extends State<ThongKeLichKhamScreen> {
               ElevatedButton.icon(
                 onPressed: _filterByDay,
                 icon: Icon(Icons.filter_list),
-                label: Text('Thống kê'),
+                label: Text('Thá»‘ng kÃª'),
                 style: ElevatedButton.styleFrom(
                   minimumSize: Size(double.infinity, 44),
                 ),
@@ -174,7 +177,7 @@ class _ThongKeLichKhamScreenState extends State<ThongKeLichKhamScreen> {
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             Text(
-              'Kết quả ngày: ${DateFormat('dd/MM/yyyy').format(_selectedDate)}',
+              'Káº¿t quáº£ ngÃ y: ${DateFormat('dd/MM/yyyy').format(_selectedDate)}',
               style: TextStyle(
                 fontSize: 18,
                 fontWeight: FontWeight.bold,
@@ -185,21 +188,21 @@ class _ThongKeLichKhamScreenState extends State<ThongKeLichKhamScreen> {
             _StatItem(
               icon: FontAwesomeIcons.calendarCheck,
               count: _tongLich,
-              label: 'Tổng số lịch khám',
+              label: 'Tá»•ng sá»‘ lá»‹ch khÃ¡m',
               color: Colors.blue,
             ),
             Divider(height: 24),
             _StatItem(
               icon: FontAwesomeIcons.userDoctor,
               count: _soBacSi,
-              label: 'Số bác sĩ tham gia',
+              label: 'Sá»‘ bÃ¡c sÄ© tham gia',
               color: Colors.green,
             ),
             Divider(height: 24),
             _StatItem(
               icon: FontAwesomeIcons.userInjured,
               count: _soBenhNhan,
-              label: 'Số bệnh nhân',
+              label: 'Sá»‘ bá»‡nh nhÃ¢n',
               color: Colors.red,
             ),
           ],

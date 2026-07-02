@@ -8,7 +8,7 @@ import '../../services/api_client.dart';
 import '../../auth/auth_provider.dart';
 import 'doctor_bottom_nav_bar.dart';
 
-// SỬA: Model cho Khoa
+// Sá»¬A: Model cho Khoa
 class Khoa {
   final String maKhoa;
   final String tenKhoa;
@@ -31,7 +31,7 @@ class _ThongTinCaNhanBSScreenState extends State<ThongTinCaNhanBSScreen> {
   String? _maTK;
   String? _maBS;
 
-  // SỬA: Controllers cho Bác sĩ (theo model BacSi.js)
+  // Sá»¬A: Controllers cho BÃ¡c sÄ© (theo model BacSi.js)
   final _hoTen = TextEditingController();
   final _chuyenMon = TextEditingController();
   final _chucVu = TextEditingController();
@@ -41,7 +41,7 @@ class _ThongTinCaNhanBSScreenState extends State<ThongTinCaNhanBSScreen> {
   List<Khoa> _khoaList = [];
   String? _selectedKhoa;
 
-  // Thông tin tài khoản
+  // ThÃ´ng tin tÃ i khoáº£n
   String _tenDangNhap = '';
   String _email = '';
 
@@ -57,10 +57,10 @@ class _ThongTinCaNhanBSScreenState extends State<ThongTinCaNhanBSScreen> {
     if (_maTK == null) return;
     setState(() => _isLoading = true);
     try {
-      // SỬA: Gọi API song song
+      // Sá»¬A: Gá»i API song song
       final responses = await Future.wait([
-        _api.get('/bacsi/tk/$_maTK'), // SỬA: API đúng
-        _api.get('/khoa'), // API lấy danh sách khoa
+        _api.get('/bacsi/tk/$_maTK'), // Sá»¬A: API Ä‘Ãºng
+        _api.get('/khoa'), // API láº¥y danh sÃ¡ch khoa
       ]);
 
       if (responses[0].statusCode == 200 && responses[1].statusCode == 200) {
@@ -68,28 +68,28 @@ class _ThongTinCaNhanBSScreenState extends State<ThongTinCaNhanBSScreen> {
         final dataKhoa = jsonDecode(responses[1].body)['data'] as List;
 
         setState(() {
-          // Gán danh sách khoa
+          // GÃ¡n danh sÃ¡ch khoa
           _khoaList = dataKhoa.map((j) => Khoa.fromJson(j)).toList();
 
-          // Gán thông tin Bác sĩ
+          // GÃ¡n thÃ´ng tin BÃ¡c sÄ©
           _maBS = dataBS['maBS'];
           _hoTen.text = dataBS['hoTen'] ?? '';
           _chuyenMon.text = dataBS['chuyenMon'] ?? '';
           _chucVu.text = dataBS['chucVu'] ?? '';
           _trinhDo.text = dataBS['trinhDo'] ?? '';
-          _selectedKhoa = dataBS['maKhoa']; // Gán khoa hiện tại
+          _selectedKhoa = dataBS['maKhoa']; // GÃ¡n khoa hiá»‡n táº¡i
 
-          // Gán thông tin tài khoản (từ backend đã join)
+          // GÃ¡n thÃ´ng tin tÃ i khoáº£n (tá»« backend Ä‘Ã£ join)
           _tenDangNhap = dataBS['TaiKhoan']?['tenDangNhap'] ?? '';
           _email = dataBS['TaiKhoan']?['email'] ?? '';
 
           _isLoading = false;
         });
       } else {
-        _showError('Lỗi tải dữ liệu từ máy chủ');
+        _showError('Lá»—i táº£i dá»¯ liá»‡u tá»« mÃ¡y chá»§');
       }
     } catch (e) {
-      _showError('Lỗi tải thông tin cá nhân: $e');
+      _showError('Lá»—i táº£i thÃ´ng tin cÃ¡ nhÃ¢n: $e');
       setState(() => _isLoading = false);
     }
   }
@@ -104,11 +104,11 @@ class _ThongTinCaNhanBSScreenState extends State<ThongTinCaNhanBSScreen> {
   Future<void> _handleSubmit() async {
     if (!_formKey.currentState!.validate()) return;
     if (_maBS == null) {
-      _showError('Lỗi: Không tìm thấy mã bác sĩ để cập nhật.');
+      _showError('Lá»—i: KhÃ´ng tÃ¬m tháº¥y mÃ£ bÃ¡c sÄ© Ä‘á»ƒ cáº­p nháº­t.');
       return;
     }
 
-    // SỬA: Gửi payload đúng theo model BacSi.js
+    // Sá»¬A: Gá»­i payload Ä‘Ãºng theo model BacSi.js
     final payload = {
       'hoTen': _hoTen.text,
       'chuyenMon': _chuyenMon.text,
@@ -118,36 +118,36 @@ class _ThongTinCaNhanBSScreenState extends State<ThongTinCaNhanBSScreen> {
     };
 
     try {
-      // API cập nhật Bác sĩ /bacsi/:id
+      // API cáº­p nháº­t BÃ¡c sÄ© /bacsi/:id
       final res = await _api.put('/bacsi/$_maBS', payload);
       if (!mounted) return;
       if (res.statusCode == 200) {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
-            content: Text('✅ Cập nhật thành công!'),
+            content: Text('âœ… Cáº­p nháº­t thÃ nh cÃ´ng!'),
             backgroundColor: Colors.green,
           ),
         );
       } else {
-        _showError('Lỗi: ${jsonDecode(res.body)['message']}');
+        _showError('Lá»—i: ${jsonDecode(res.body)['message']}');
       }
     } catch (e) {
-      _showError('Lỗi kết nối');
+      _showError('Lá»—i káº¿t ná»‘i');
     }
   }
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: Colors.grey[100],
+      backgroundColor: Theme.of(context).scaffoldBackgroundColor,
       appBar: AppBar(
-        title: Text('Thông tin cá nhân Bác sĩ'),
-        backgroundColor: Color(0xFF004D40), // Màu Bác sĩ
+        title: Text('ThÃ´ng tin cÃ¡ nhÃ¢n BÃ¡c sÄ©'),
+        backgroundColor: Color(0xFF004D40), // MÃ u BÃ¡c sÄ©
         actions: [
           IconButton(
             icon: FaIcon(FontAwesomeIcons.house, color: Colors.white, size: 20),
-            tooltip: 'Trang chủ',
-            onPressed: () => context.go('/doctor'), // Về trang chủ BS
+            tooltip: 'Trang chá»§',
+            onPressed: () => context.go('/doctor'), // Vá» trang chá»§ BS
           ),
           IconButton(
             icon: FaIcon(
@@ -155,7 +155,7 @@ class _ThongTinCaNhanBSScreenState extends State<ThongTinCaNhanBSScreen> {
               color: Colors.white,
               size: 20,
             ),
-            tooltip: 'Đăng xuất',
+            tooltip: 'ÄÄƒng xuáº¥t',
             onPressed: () async {
               await Provider.of<AuthProvider>(context, listen: false).logout();
               if (!context.mounted) return;
@@ -170,7 +170,7 @@ class _ThongTinCaNhanBSScreenState extends State<ThongTinCaNhanBSScreen> {
               padding: EdgeInsets.all(16),
               child: Column(
                 children: [
-                  // Card thông tin tài khoản
+                  // Card thÃ´ng tin tÃ i khoáº£n
                   Card(
                     elevation: 2,
                     child: Padding(
@@ -179,7 +179,7 @@ class _ThongTinCaNhanBSScreenState extends State<ThongTinCaNhanBSScreen> {
                         crossAxisAlignment: CrossAxisAlignment.stretch,
                         children: [
                           Text(
-                            'Thông tin đăng nhập',
+                            'ThÃ´ng tin Ä‘Äƒng nháº­p',
                             style: Theme.of(context).textTheme.titleLarge
                                 ?.copyWith(fontWeight: FontWeight.bold),
                           ),
@@ -190,7 +190,7 @@ class _ThongTinCaNhanBSScreenState extends State<ThongTinCaNhanBSScreen> {
                               size: 20,
                               color: Colors.grey[700],
                             ),
-                            title: Text('Tên đăng nhập: $_tenDangNhap'),
+                            title: Text('TÃªn Ä‘Äƒng nháº­p: $_tenDangNhap'),
                           ),
                           ListTile(
                             leading: FaIcon(
@@ -205,7 +205,7 @@ class _ThongTinCaNhanBSScreenState extends State<ThongTinCaNhanBSScreen> {
                     ),
                   ),
                   SizedBox(height: 20),
-                  // Card thông tin cá nhân
+                  // Card thÃ´ng tin cÃ¡ nhÃ¢n
                   Card(
                     elevation: 2,
                     child: Padding(
@@ -216,16 +216,16 @@ class _ThongTinCaNhanBSScreenState extends State<ThongTinCaNhanBSScreen> {
                           crossAxisAlignment: CrossAxisAlignment.stretch,
                           children: [
                             Text(
-                              'Thông tin chuyên môn',
+                              'ThÃ´ng tin chuyÃªn mÃ´n',
                               style: Theme.of(context).textTheme.titleLarge
                                   ?.copyWith(fontWeight: FontWeight.bold),
                             ),
                             SizedBox(height: 16),
 
-                            // SỬA: Thay thế bằng các trường của Bác sĩ
-                            _buildTextField('Họ tên', controller: _hoTen),
+                            // Sá»¬A: Thay tháº¿ báº±ng cÃ¡c trÆ°á»ng cá»§a BÃ¡c sÄ©
+                            _buildTextField('Há» tÃªn', controller: _hoTen),
 
-                            // SỬA: Dropdown cho Khoa
+                            // Sá»¬A: Dropdown cho Khoa
                             _buildDropdown(
                               'Khoa',
                               _khoaList.map((k) => k.tenKhoa).toList(),
@@ -253,17 +253,20 @@ class _ThongTinCaNhanBSScreenState extends State<ThongTinCaNhanBSScreen> {
                             ),
 
                             _buildTextField(
-                              'Chuyên môn',
+                              'ChuyÃªn mÃ´n',
                               controller: _chuyenMon,
                             ),
-                            _buildTextField('Chức vụ', controller: _chucVu),
-                            _buildTextField('Trình độ', controller: _trinhDo),
+                            _buildTextField('Chá»©c vá»¥', controller: _chucVu),
+                            _buildTextField(
+                              'TrÃ¬nh Ä‘á»™',
+                              controller: _trinhDo,
+                            ),
 
                             SizedBox(height: 20),
                             ElevatedButton.icon(
                               onPressed: _handleSubmit,
                               icon: Icon(Icons.save),
-                              label: Text('Cập nhật thông tin'),
+                              label: Text('Cáº­p nháº­t thÃ´ng tin'),
                               style: ElevatedButton.styleFrom(
                                 minimumSize: Size(double.infinity, 44),
                                 backgroundColor: Colors.teal[700],
@@ -278,7 +281,7 @@ class _ThongTinCaNhanBSScreenState extends State<ThongTinCaNhanBSScreen> {
                 ],
               ),
             ),
-      // SỬA: Cập nhật currentIndex (giả định là 4)
+      // Sá»¬A: Cáº­p nháº­t currentIndex (giáº£ Ä‘á»‹nh lÃ  4)
       bottomNavigationBar: DoctorBottomNavBar(currentIndex: 4),
     );
   }
@@ -305,14 +308,16 @@ class _ThongTinCaNhanBSScreenState extends State<ThongTinCaNhanBSScreen> {
           hintText: hint,
           border: OutlineInputBorder(borderRadius: BorderRadius.circular(8)),
           filled: readOnly,
-          fillColor: readOnly ? Colors.grey[100] : Colors.white,
+          fillColor: readOnly
+              ? Theme.of(context).disabledColor.withValues(alpha: 0.08)
+              : Theme.of(context).colorScheme.surface,
         ),
         obscureText: isPassword,
         validator:
             validator ??
             (value) {
               if (isRequired && (value == null || value.isEmpty)) {
-                return '$label là bắt buộc';
+                return '$label lÃ  báº¯t buá»™c';
               }
               return null;
             },
@@ -320,7 +325,7 @@ class _ThongTinCaNhanBSScreenState extends State<ThongTinCaNhanBSScreen> {
     );
   }
 
-  // SỬA: Cập nhật hàm Dropdown (linh hoạt hơn)
+  // Sá»¬A: Cáº­p nháº­t hÃ m Dropdown (linh hoáº¡t hÆ¡n)
   Widget _buildDropdown(
     String label,
     List<String> items,
@@ -339,11 +344,14 @@ class _ThongTinCaNhanBSScreenState extends State<ThongTinCaNhanBSScreen> {
         items:
             itemsList ??
             items
-                .map((item) => DropdownMenuItem<String>(value: item, child: Text(item)))
+                .map(
+                  (item) =>
+                      DropdownMenuItem<String>(value: item, child: Text(item)),
+                )
                 .toList(),
         onChanged: onChanged,
         validator: (v) =>
-            v == null || v.isEmpty ? 'Vui lòng chọn $label' : null,
+            v == null || v.isEmpty ? 'Vui lÃ²ng chá»n $label' : null,
       ),
     );
   }

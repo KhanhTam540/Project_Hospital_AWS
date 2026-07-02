@@ -5,18 +5,18 @@ import 'package:provider/provider.dart';
 import '../../auth/auth_provider.dart';
 
 class XetNghiemHome extends StatelessWidget {
-  // Định nghĩa các nút chức năng
+  // Äá»‹nh nghÄ©a cÃ¡c nÃºt chá»©c nÄƒng
   final List<Map<String, dynamic>> _menuItems = const [
     {
-      'label': 'Xử lý Yêu cầu Xét nghiệm',
+      'label': 'Xá»­ lÃ½ YÃªu cáº§u XÃ©t nghiá»‡m',
       'icon': FontAwesomeIcons.vialCircleCheck,
-      'color': Color(0xFF6366F1), // Màu xanh tím
+      'color': Color(0xFF6366F1), // MÃ u xanh tÃ­m
       'route': '/xetnghiem/xetnghiem/yeucau',
     },
     {
-      'label': 'Lập Phiếu Xét nghiệm',
+      'label': 'Láº­p Phiáº¿u XÃ©t nghiá»‡m',
       'icon': FontAwesomeIcons.fileSignature,
-      'color': Color(0xFF0D9488), // Màu xanh ngọc
+      'color': Color(0xFF0D9488), // MÃ u xanh ngá»c
       'route': '/xetnghiem/xetnghiem/phieu',
     },
   ];
@@ -25,18 +25,19 @@ class XetNghiemHome extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final Color appBarColor = Colors.indigo[700]!; // Màu Xét Nghiệm (đã đổi)
+    final Color appBarColor =
+        Colors.indigo[700]!; // MÃ u XÃ©t Nghiá»‡m (Ä‘Ã£ Ä‘á»•i)
 
     return Scaffold(
-      backgroundColor: Colors.grey[100],
+      backgroundColor: Theme.of(context).scaffoldBackgroundColor,
       appBar: AppBar(
-        title: Text("Trang Xét Nghiệm"),
+        title: Text("Trang XÃ©t Nghiá»‡m"),
         backgroundColor: appBarColor,
         elevation: 0,
         actions: [
           IconButton(
             icon: FaIcon(FontAwesomeIcons.house, color: Colors.white, size: 20),
-            tooltip: 'Trang chủ',
+            tooltip: 'Trang chá»§',
             onPressed: () => context.go('/xetnghiem'),
           ),
           IconButton(
@@ -45,7 +46,7 @@ class XetNghiemHome extends StatelessWidget {
               color: Colors.white,
               size: 20,
             ),
-            tooltip: 'Đăng xuất',
+            tooltip: 'ÄÄƒng xuáº¥t',
             onPressed: () async {
               await Provider.of<AuthProvider>(context, listen: false).logout();
               if (!context.mounted) return;
@@ -59,13 +60,13 @@ class XetNghiemHome extends StatelessWidget {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            // Thẻ chào mừng (Header)
+            // Tháº» chÃ o má»«ng (Header)
             _buildWelcomeCard(context, appBarColor),
             SizedBox(height: 24),
 
-            // Lưới chức năng
+            // LÆ°á»›i chá»©c nÄƒng
             Text(
-              "QUẢN LÝ XÉT NGHIỆM",
+              "QUáº¢N LÃ XÃ‰T NGHIá»†M",
               style: TextStyle(
                 fontSize: 18,
                 fontWeight: FontWeight.bold,
@@ -80,7 +81,7 @@ class XetNghiemHome extends StatelessWidget {
                 crossAxisCount: 2,
                 crossAxisSpacing: 16,
                 mainAxisSpacing: 16,
-                childAspectRatio: 1.2, // Tăng chiều cao thẻ
+                childAspectRatio: 1.2, // TÄƒng chiá»u cao tháº»
               ),
               itemCount: _menuItems.length,
               itemBuilder: (context, index) {
@@ -104,7 +105,7 @@ class XetNghiemHome extends StatelessWidget {
 
   Widget _buildWelcomeCard(BuildContext context, Color color) {
     final auth = Provider.of<AuthProvider>(context, listen: false);
-    final String hoTen = auth.tenDangNhap ?? "Nhân viên";
+    final String hoTen = auth.tenDangNhap ?? "NhÃ¢n viÃªn";
 
     return Container(
       padding: EdgeInsets.all(20.0),
@@ -129,7 +130,7 @@ class XetNghiemHome extends StatelessWidget {
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 Text(
-                  "Xin chào, $hoTen!",
+                  "Xin chÃ o, $hoTen!",
                   style: TextStyle(
                     fontSize: 20,
                     fontWeight: FontWeight.bold,
@@ -138,7 +139,7 @@ class XetNghiemHome extends StatelessWidget {
                 ),
                 SizedBox(height: 5),
                 Text(
-                  "Sẵn sàng xử lý mẫu xét nghiệm.",
+                  "Sáºµn sÃ ng xá»­ lÃ½ máº«u xÃ©t nghiá»‡m.",
                   style: TextStyle(fontSize: 14, color: Colors.white70),
                 ),
               ],
@@ -166,7 +167,7 @@ class XetNghiemHome extends StatelessWidget {
         child: Container(
           padding: EdgeInsets.all(16),
           decoration: BoxDecoration(
-            color: color.withAlpha(20), // Nền màu nhạt
+            color: color.withAlpha(20), // Ná»n mÃ u nháº¡t
             borderRadius: BorderRadius.circular(15.0),
           ),
           child: Column(

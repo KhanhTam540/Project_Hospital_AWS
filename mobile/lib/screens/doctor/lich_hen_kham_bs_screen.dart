@@ -9,7 +9,7 @@ import '../../services/api_client.dart';
 import '../../auth/auth_provider.dart';
 import 'doctor_bottom_nav_bar.dart';
 
-// (Model từ file quan_ly_lich_kham_screen.dart)
+// (Model tá»« file quan_ly_lich_kham_screen.dart)
 class LichKhamModel {
   final String maLich;
   final String? tenBN;
@@ -66,8 +66,10 @@ class _LichHenKhamBSScreenState extends State<LichHenKhamBSScreen> {
   Future<void> _fetchData() async {
     setState(() => _isLoading = true);
     try {
-      // Bác sĩ chỉ xem lịch của mình
-      final response = await _api.get('/lichkham'); // API gốc lấy tất cả
+      // BÃ¡c sÄ© chá»‰ xem lá»‹ch cá»§a mÃ¬nh
+      final response = await _api.get(
+        '/lichkham',
+      ); // API gá»‘c láº¥y táº¥t cáº£
       if (response.statusCode == 200) {
         final data = jsonDecode(response.body)['data'] as List;
         setState(() {
@@ -79,12 +81,12 @@ class _LichHenKhamBSScreenState extends State<LichHenKhamBSScreen> {
                       (j) => j['maLich'] == item.maLich,
                     )['maBS'] ==
                     _maBS,
-              ) // Lọc thủ công
+              ) // Lá»c thá»§ cÃ´ng
               .toList();
         });
       }
     } catch (e) {
-      _showError('Lỗi tải dữ liệu: $e');
+      _showError('Lá»—i táº£i dá»¯ liá»‡u: $e');
     } finally {
       setState(() => _isLoading = false);
     }
@@ -100,15 +102,15 @@ class _LichHenKhamBSScreenState extends State<LichHenKhamBSScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: Colors.grey[100],
+      backgroundColor: Theme.of(context).scaffoldBackgroundColor,
       appBar: AppBar(
-        title: Text('Lịch hẹn của Bác sĩ'),
-        backgroundColor: Color(0xFF004D40), // SỬA: Màu Bác sĩ
-        // SỬA: Bỏ leading, thêm actions
+        title: Text('Lá»‹ch háº¹n cá»§a BÃ¡c sÄ©'),
+        backgroundColor: Color(0xFF004D40), // Sá»¬A: MÃ u BÃ¡c sÄ©
+        // Sá»¬A: Bá» leading, thÃªm actions
         actions: [
           IconButton(
             icon: FaIcon(FontAwesomeIcons.house, color: Colors.white, size: 20),
-            tooltip: 'Trang chủ',
+            tooltip: 'Trang chá»§',
             onPressed: () => context.go('/doctor'),
           ),
           IconButton(
@@ -117,7 +119,7 @@ class _LichHenKhamBSScreenState extends State<LichHenKhamBSScreen> {
               color: Colors.white,
               size: 20,
             ),
-            tooltip: 'Đăng xuất',
+            tooltip: 'ÄÄƒng xuáº¥t',
             onPressed: () async {
               await Provider.of<AuthProvider>(context, listen: false).logout();
               if (!context.mounted) return;
@@ -149,7 +151,7 @@ class _LichHenKhamBSScreenState extends State<LichHenKhamBSScreen> {
                       style: TextStyle(fontWeight: FontWeight.bold),
                     ),
                     subtitle: Text(
-                      'Thời gian: ${item.gioKham} - ${item.ngayKham}',
+                      'Thá»i gian: ${item.gioKham} - ${item.ngayKham}',
                     ),
                   ),
                 );

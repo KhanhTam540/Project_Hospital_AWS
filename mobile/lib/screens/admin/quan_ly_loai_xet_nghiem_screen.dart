@@ -3,8 +3,8 @@ import 'package:flutter/material.dart';
 import 'package:font_awesome_flutter/font_awesome_flutter.dart';
 import 'package:go_router/go_router.dart';
 import 'dart:convert';
-import 'package:provider/provider.dart'; // Thêm import
-import '../../auth/auth_provider.dart'; // Thêm import
+import 'package:provider/provider.dart'; // ThÃªm import
+import '../../auth/auth_provider.dart'; // ThÃªm import
 import '../../services/api_client.dart';
 
 // Model
@@ -59,7 +59,7 @@ class _QuanLyLoaiXNScreenState extends State<QuanLyLoaiXNScreen> {
         });
       }
     } catch (e) {
-      _showError('Lỗi tải dữ liệu: $e');
+      _showError('Lá»—i táº£i dá»¯ liá»‡u: $e');
     } finally {
       setState(() => _isLoading = false);
     }
@@ -74,8 +74,8 @@ class _QuanLyLoaiXNScreenState extends State<QuanLyLoaiXNScreen> {
 
   Future<void> _handleDelete(String maLoaiXN) async {
     final confirm = await _showConfirmDialog(
-      'Xác nhận xoá',
-      'Bạn có chắc muốn xoá $maLoaiXN?',
+      'XÃ¡c nháº­n xoÃ¡',
+      'Báº¡n cÃ³ cháº¯c muá»‘n xoÃ¡ $maLoaiXN?',
     );
     if (confirm != true) return;
     try {
@@ -83,10 +83,10 @@ class _QuanLyLoaiXNScreenState extends State<QuanLyLoaiXNScreen> {
       if (response.statusCode == 200) {
         _fetchData();
       } else {
-        _showError('Lỗi: ${jsonDecode(response.body)['message']}');
+        _showError('Lá»—i: ${jsonDecode(response.body)['message']}');
       }
     } catch (e) {
-      _showError('Lỗi kết nối: $e');
+      _showError('Lá»—i káº¿t ná»‘i: $e');
     }
   }
 
@@ -100,7 +100,7 @@ class _QuanLyLoaiXNScreenState extends State<QuanLyLoaiXNScreen> {
       context: context,
       builder: (ctx) {
         return AlertDialog(
-          title: Text(isEdit ? 'Sửa Loại XN' : 'Thêm Loại XN'),
+          title: Text(isEdit ? 'Sá»­a Loáº¡i XN' : 'ThÃªm Loáº¡i XN'),
           content: Form(
             key: formKey,
             child: Column(
@@ -109,16 +109,17 @@ class _QuanLyLoaiXNScreenState extends State<QuanLyLoaiXNScreen> {
                 TextFormField(
                   controller: tenController,
                   decoration: InputDecoration(
-                    labelText: 'Tên loại',
+                    labelText: 'TÃªn loáº¡i',
                     border: OutlineInputBorder(),
                   ),
-                  validator: (v) => v!.isEmpty ? 'Không được bỏ trống' : null,
+                  validator: (v) =>
+                      v!.isEmpty ? 'KhÃ´ng Ä‘Æ°á»£c bá» trá»‘ng' : null,
                 ),
                 SizedBox(height: 16),
                 TextFormField(
                   controller: moTaController,
                   decoration: InputDecoration(
-                    labelText: 'Mô tả',
+                    labelText: 'MÃ´ táº£',
                     border: OutlineInputBorder(),
                   ),
                 ),
@@ -128,7 +129,7 @@ class _QuanLyLoaiXNScreenState extends State<QuanLyLoaiXNScreen> {
           actions: [
             TextButton(
               onPressed: () => Navigator.of(ctx).pop(),
-              child: Text('Huỷ'),
+              child: Text('Huá»·'),
             ),
             ElevatedButton(
               onPressed: () async {
@@ -157,13 +158,15 @@ class _QuanLyLoaiXNScreenState extends State<QuanLyLoaiXNScreen> {
                     Navigator.of(ctx).pop();
                     _fetchData();
                   } else {
-                    _showError('Lỗi: ${jsonDecode(response.body)['message']}');
+                    _showError(
+                      'Lá»—i: ${jsonDecode(response.body)['message']}',
+                    );
                   }
                 } catch (e) {
-                  _showError('Lỗi kết nối: $e');
+                  _showError('Lá»—i káº¿t ná»‘i: $e');
                 }
               },
-              child: Text(isEdit ? 'Cập nhật' : 'Thêm'),
+              child: Text(isEdit ? 'Cáº­p nháº­t' : 'ThÃªm'),
             ),
           ],
         );
@@ -180,11 +183,11 @@ class _QuanLyLoaiXNScreenState extends State<QuanLyLoaiXNScreen> {
         actions: [
           TextButton(
             onPressed: () => Navigator.of(ctx).pop(false),
-            child: Text('Huỷ'),
+            child: Text('Huá»·'),
           ),
           TextButton(
             onPressed: () => Navigator.of(ctx).pop(true),
-            child: Text('Xác nhận', style: TextStyle(color: Colors.red)),
+            child: Text('XÃ¡c nháº­n', style: TextStyle(color: Colors.red)),
           ),
         ],
       ),
@@ -194,15 +197,15 @@ class _QuanLyLoaiXNScreenState extends State<QuanLyLoaiXNScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: Colors.grey[100],
+      backgroundColor: Theme.of(context).scaffoldBackgroundColor,
       appBar: AppBar(
-        title: Text('Quản lý Loại Xét nghiệm'),
-        backgroundColor: Color(0xFF2C3E50),
-        // SỬA: Bỏ 'leading' và thêm 'actions'
+        title: Text('Quáº£n lÃ½ Loáº¡i XÃ©t nghiá»‡m'),
+        backgroundColor: Theme.of(context).colorScheme.primary,
+        // Sá»¬A: Bá» 'leading' vÃ  thÃªm 'actions'
         actions: [
           IconButton(
             icon: FaIcon(FontAwesomeIcons.house, color: Colors.white, size: 20),
-            tooltip: 'Trang chủ',
+            tooltip: 'Trang chá»§',
             onPressed: () => context.go('/admin'),
           ),
           IconButton(
@@ -211,7 +214,7 @@ class _QuanLyLoaiXNScreenState extends State<QuanLyLoaiXNScreen> {
               color: Colors.white,
               size: 20,
             ),
-            tooltip: 'Đăng xuất',
+            tooltip: 'ÄÄƒng xuáº¥t',
             onPressed: () async {
               await Provider.of<AuthProvider>(context, listen: false).logout();
               if (!context.mounted) return;
@@ -222,7 +225,7 @@ class _QuanLyLoaiXNScreenState extends State<QuanLyLoaiXNScreen> {
       ),
       floatingActionButton: FloatingActionButton(
         onPressed: () => _showAddEditDialog(),
-        tooltip: 'Thêm loại xét nghiệm',
+        tooltip: 'ThÃªm loáº¡i xÃ©t nghiá»‡m',
         child: Icon(Icons.add),
       ),
       body: _isLoading
@@ -247,7 +250,7 @@ class _QuanLyLoaiXNScreenState extends State<QuanLyLoaiXNScreen> {
                       item.tenLoai,
                       style: TextStyle(fontWeight: FontWeight.bold),
                     ),
-                    subtitle: Text(item.moTa ?? 'Mã: ${item.maLoaiXN}'),
+                    subtitle: Text(item.moTa ?? 'MÃ£: ${item.maLoaiXN}'),
                     trailing: Row(
                       mainAxisSize: MainAxisSize.min,
                       children: [

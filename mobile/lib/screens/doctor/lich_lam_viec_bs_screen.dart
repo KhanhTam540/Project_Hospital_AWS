@@ -18,7 +18,7 @@ class CaTruc {
       CaTruc(maCa: json['maCa'], tenCa: json['tenCa']);
 }
 
-// THÊM: Model cho Nhân Sự Y Tế
+// THÃŠM: Model cho NhÃ¢n Sá»± Y Táº¿
 class NhanSuYTe {
   final String maNS;
   final String hoTen;
@@ -31,7 +31,7 @@ class LichLamViec {
   final String maLichLV;
   final String maCa;
   final String ngayLamViec;
-  // THÊM: Thêm maNS để hiển thị
+  // THÃŠM: ThÃªm maNS Ä‘á»ƒ hiá»ƒn thá»‹
   final String? maNS;
 
   LichLamViec({
@@ -52,7 +52,7 @@ class LichLamViec {
       maLichLV: json['maLichLV'],
       maCa: json['maCa'],
       ngayLamViec: fNgay,
-      maNS: json['maNS'], // THÊM
+      maNS: json['maNS'], // THÃŠM
     );
   }
 }
@@ -70,14 +70,14 @@ class _LichLamViecBSScreenState extends State<LichLamViecBSScreen> {
 
   List<LichLamViec> _list = [];
   List<CaTruc> _caList = [];
-  // THÊM: State cho danh sách và mục đã chọn của Nhân Sự
+  // THÃŠM: State cho danh sÃ¡ch vÃ  má»¥c Ä‘Ã£ chá»n cá»§a NhÃ¢n Sá»±
   List<NhanSuYTe> _nhanSuList = [];
   bool _isLoading = true;
   String? _maBS;
 
   // Form
   String? _selectedCa;
-  // THÊM: State cho Nhân sự đã chọn
+  // THÃŠM: State cho NhÃ¢n sá»± Ä‘Ã£ chá»n
   String? _selectedNS;
   DateTime? _selectedDate;
 
@@ -96,10 +96,10 @@ class _LichLamViecBSScreenState extends State<LichLamViecBSScreen> {
     }
     setState(() => _isLoading = true);
     try {
-      // THÊM: Gọi thêm API /nhansu
+      // THÃŠM: Gá»i thÃªm API /nhansu
       final resLich = await _api.get('/lichlamviec/bacsi/$_maBS');
       final resCa = await _api.get('/catruc');
-      final resNS = await _api.get('/nhansu'); // THÊM
+      final resNS = await _api.get('/nhansu'); // THÃŠM
 
       setState(() {
         _list = (jsonDecode(resLich.body)['data'] as List)
@@ -108,13 +108,13 @@ class _LichLamViecBSScreenState extends State<LichLamViecBSScreen> {
         _caList = (jsonDecode(resCa.body)['data'] as List)
             .map((j) => CaTruc.fromJson(j))
             .toList();
-        // THÊM: Gán dữ liệu cho _nhanSuList
+        // THÃŠM: GÃ¡n dá»¯ liá»‡u cho _nhanSuList
         _nhanSuList = (jsonDecode(resNS.body)['data'] as List)
             .map((j) => NhanSuYTe.fromJson(j))
             .toList();
       });
     } catch (e) {
-      _showError('Lỗi tải dữ liệu: $e');
+      _showError('Lá»—i táº£i dá»¯ liá»‡u: $e');
     } finally {
       setState(() => _isLoading = false);
     }
@@ -130,48 +130,48 @@ class _LichLamViecBSScreenState extends State<LichLamViecBSScreen> {
   Future<void> _handleCreate() async {
     if (!_formKey.currentState!.validate()) return;
     try {
-      // SỬA: Bổ sung 'maNS' vào body
+      // Sá»¬A: Bá»• sung 'maNS' vÃ o body
       await _api.post('/lichlamviec', {
         'maBS': _maBS,
         'maCa': _selectedCa,
         'ngayLamViec': DateFormat('yyyy-MM-dd').format(_selectedDate!),
-        'maNS': _selectedNS, // THÊM
+        'maNS': _selectedNS, // THÃŠM
       });
       if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
-          content: Text('✅ Đã thêm lịch'),
+          content: Text('âœ… ÄÃ£ thÃªm lá»‹ch'),
           backgroundColor: Colors.green,
         ),
       );
-      _fetchInitialData(); // Tải lại
+      _fetchInitialData(); // Táº£i láº¡i
     } catch (e) {
-      _showError('Lỗi: Không thể thêm lịch');
+      _showError('Lá»—i: KhÃ´ng thá»ƒ thÃªm lá»‹ch');
     }
   }
 
   Future<void> _handleDelete(String maLichLV) async {
-    // Thêm dialog xác nhận
+    // ThÃªm dialog xÃ¡c nháº­n
     try {
       await _api.delete('/lichlamviec/$maLichLV');
       _fetchInitialData();
     } catch (e) {
-      _showError('Lỗi: Không thể xoá');
+      _showError('Lá»—i: KhÃ´ng thá»ƒ xoÃ¡');
     }
   }
 
   @override
   Widget build(BuildContext context) {
-    // SỬA: Thêm Scaffold và AppBar
+    // Sá»¬A: ThÃªm Scaffold vÃ  AppBar
     return Scaffold(
-      backgroundColor: Colors.grey[100],
+      backgroundColor: Theme.of(context).scaffoldBackgroundColor,
       appBar: AppBar(
-        title: Text('Lịch làm việc'),
-        backgroundColor: Color(0xFF004D40), // Màu Bác sĩ
+        title: Text('Lá»‹ch lÃ m viá»‡c'),
+        backgroundColor: Color(0xFF004D40), // MÃ u BÃ¡c sÄ©
         actions: [
           IconButton(
             icon: FaIcon(FontAwesomeIcons.house, color: Colors.white, size: 20),
-            tooltip: 'Trang chủ',
+            tooltip: 'Trang chá»§',
             onPressed: () => context.go('/doctor'),
           ),
           IconButton(
@@ -180,7 +180,7 @@ class _LichLamViecBSScreenState extends State<LichLamViecBSScreen> {
               color: Colors.white,
               size: 20,
             ),
-            tooltip: 'Đăng xuất',
+            tooltip: 'ÄÄƒng xuáº¥t',
             onPressed: () async {
               await Provider.of<AuthProvider>(context, listen: false).logout();
               if (!context.mounted) return;
@@ -195,7 +195,7 @@ class _LichLamViecBSScreenState extends State<LichLamViecBSScreen> {
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             Text(
-              'Đăng ký Lịch làm việc',
+              'ÄÄƒng kÃ½ Lá»‹ch lÃ m viá»‡c',
               style: Theme.of(
                 context,
               ).textTheme.headlineSmall?.copyWith(fontWeight: FontWeight.bold),
@@ -212,14 +212,14 @@ class _LichLamViecBSScreenState extends State<LichLamViecBSScreen> {
                     children: [
                       _buildDateField(
                         context,
-                        'Chọn ngày',
+                        'Chá»n ngÃ y',
                         _selectedDate,
                         (v) => setState(() => _selectedDate = v),
                       ),
                       SizedBox(height: 16),
                       DropdownButtonFormField<String>(
                         decoration: InputDecoration(
-                          labelText: 'Chọn ca',
+                          labelText: 'Chá»n ca',
                           border: OutlineInputBorder(),
                         ),
                         initialValue: _selectedCa,
@@ -232,13 +232,14 @@ class _LichLamViecBSScreenState extends State<LichLamViecBSScreen> {
                             )
                             .toList(),
                         onChanged: (v) => setState(() => _selectedCa = v),
-                        validator: (v) => v == null ? 'Vui lòng chọn ca' : null,
+                        validator: (v) =>
+                            v == null ? 'Vui lÃ²ng chá»n ca' : null,
                       ),
-                      SizedBox(height: 16), // THÊM
-                      // THÊM: Dropdown chọn Nhân Sự
+                      SizedBox(height: 16), // THÃŠM
+                      // THÃŠM: Dropdown chá»n NhÃ¢n Sá»±
                       DropdownButtonFormField<String>(
                         decoration: InputDecoration(
-                          labelText: 'Chọn nhân sự phụ trách',
+                          labelText: 'Chá»n nhÃ¢n sá»± phá»¥ trÃ¡ch',
                           border: OutlineInputBorder(),
                         ),
                         initialValue: _selectedNS,
@@ -252,13 +253,13 @@ class _LichLamViecBSScreenState extends State<LichLamViecBSScreen> {
                             .toList(),
                         onChanged: (v) => setState(() => _selectedNS = v),
                         validator: (v) =>
-                            v == null ? 'Vui lòng chọn nhân sự' : null,
+                            v == null ? 'Vui lÃ²ng chá»n nhÃ¢n sá»±' : null,
                       ),
                       SizedBox(height: 16),
                       ElevatedButton.icon(
                         onPressed: _handleCreate,
                         icon: Icon(Icons.add),
-                        label: Text('Đăng ký ca'),
+                        label: Text('ÄÄƒng kÃ½ ca'),
                         style: ElevatedButton.styleFrom(
                           minimumSize: Size(double.infinity, 44),
                         ),
@@ -270,13 +271,13 @@ class _LichLamViecBSScreenState extends State<LichLamViecBSScreen> {
             ),
             SizedBox(height: 24),
             Text(
-              'Lịch đã đăng ký',
+              'Lá»‹ch Ä‘Ã£ Ä‘Äƒng kÃ½',
               style: Theme.of(
                 context,
               ).textTheme.headlineSmall?.copyWith(fontWeight: FontWeight.bold),
             ),
             SizedBox(height: 16),
-            // Danh sách
+            // Danh sÃ¡ch
             _isLoading
                 ? Center(child: CircularProgressIndicator())
                 : ListView.builder(
@@ -292,10 +293,10 @@ class _LichLamViecBSScreenState extends State<LichLamViecBSScreen> {
                             FontAwesomeIcons.calendarDay,
                             color: Colors.blue,
                           ),
-                          title: Text('Ngày: ${item.ngayLamViec}'),
-                          // SỬA: Hiển thị cả Ca và Nhân sự
+                          title: Text('NgÃ y: ${item.ngayLamViec}'),
+                          // Sá»¬A: Hiá»ƒn thá»‹ cáº£ Ca vÃ  NhÃ¢n sá»±
                           subtitle: Text(
-                            'Ca: ${item.maCa} - Nhân sự: ${item.maNS ?? 'N/A'}',
+                            'Ca: ${item.maCa} - NhÃ¢n sá»±: ${item.maNS ?? 'N/A'}',
                           ),
                           trailing: IconButton(
                             icon: Icon(Icons.delete_outline, color: Colors.red),
@@ -338,7 +339,8 @@ class _LichLamViecBSScreenState extends State<LichLamViecBSScreen> {
         );
         if (picked != null) onChanged(picked);
       },
-      validator: (v) => v == null || v.isEmpty ? '$label là bắt buộc' : null,
+      validator: (v) =>
+          v == null || v.isEmpty ? '$label lÃ  báº¯t buá»™c' : null,
     );
   }
 }

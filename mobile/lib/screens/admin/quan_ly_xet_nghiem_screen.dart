@@ -3,8 +3,8 @@ import 'package:flutter/material.dart';
 import 'package:font_awesome_flutter/font_awesome_flutter.dart';
 import 'package:go_router/go_router.dart';
 import 'dart:convert';
-import 'package:provider/provider.dart'; // Thêm import
-import '../../auth/auth_provider.dart'; // Thêm import
+import 'package:provider/provider.dart'; // ThÃªm import
+import '../../auth/auth_provider.dart'; // ThÃªm import
 import '../../services/api_client.dart';
 
 // Model
@@ -81,7 +81,7 @@ class _QuanLyXetNghiemScreenState extends State<QuanLyXetNghiemScreen> {
         });
       }
     } catch (e) {
-      _showError('Lỗi tải dữ liệu: $e');
+      _showError('Lá»—i táº£i dá»¯ liá»‡u: $e');
     } finally {
       setState(() => _isLoading = false);
     }
@@ -96,8 +96,8 @@ class _QuanLyXetNghiemScreenState extends State<QuanLyXetNghiemScreen> {
 
   Future<void> _handleDelete(String maXN) async {
     final confirm = await _showConfirmDialog(
-      'Xác nhận xoá',
-      'Bạn có chắc muốn xoá $maXN?',
+      'XÃ¡c nháº­n xoÃ¡',
+      'Báº¡n cÃ³ cháº¯c muá»‘n xoÃ¡ $maXN?',
     );
     if (confirm != true) return;
     try {
@@ -105,10 +105,10 @@ class _QuanLyXetNghiemScreenState extends State<QuanLyXetNghiemScreen> {
       if (response.statusCode == 200) {
         _fetchData();
       } else {
-        _showError('Lỗi: ${jsonDecode(response.body)['message']}');
+        _showError('Lá»—i: ${jsonDecode(response.body)['message']}');
       }
     } catch (e) {
-      _showError('Lỗi kết nối: $e');
+      _showError('Lá»—i káº¿t ná»‘i: $e');
     }
   }
 
@@ -129,7 +129,7 @@ class _QuanLyXetNghiemScreenState extends State<QuanLyXetNghiemScreen> {
       context: context,
       builder: (ctx) {
         return AlertDialog(
-          title: Text(isEdit ? 'Sửa Xét nghiệm' : 'Thêm Xét nghiệm'),
+          title: Text(isEdit ? 'Sá»­a XÃ©t nghiá»‡m' : 'ThÃªm XÃ©t nghiá»‡m'),
           content: Form(
             key: formKey,
             child: SingleChildScrollView(
@@ -138,7 +138,7 @@ class _QuanLyXetNghiemScreenState extends State<QuanLyXetNghiemScreen> {
                 children: [
                   DropdownButtonFormField<String>(
                     decoration: InputDecoration(
-                      labelText: 'Loại xét nghiệm',
+                      labelText: 'Loáº¡i xÃ©t nghiá»‡m',
                       border: OutlineInputBorder(),
                     ),
                     initialValue: selectedLoai,
@@ -151,32 +151,34 @@ class _QuanLyXetNghiemScreenState extends State<QuanLyXetNghiemScreen> {
                         )
                         .toList(),
                     onChanged: (v) => selectedLoai = v,
-                    validator: (v) => v == null ? 'Vui lòng chọn' : null,
+                    validator: (v) => v == null ? 'Vui lÃ²ng chá»n' : null,
                   ),
                   SizedBox(height: 16),
                   TextFormField(
                     controller: tenController,
                     decoration: InputDecoration(
-                      labelText: 'Tên xét nghiệm',
+                      labelText: 'TÃªn xÃ©t nghiá»‡m',
                       border: OutlineInputBorder(),
                     ),
-                    validator: (v) => v!.isEmpty ? 'Không được bỏ trống' : null,
+                    validator: (v) =>
+                        v!.isEmpty ? 'KhÃ´ng Ä‘Æ°á»£c bá» trá»‘ng' : null,
                   ),
                   SizedBox(height: 16),
                   TextFormField(
                     controller: chiPhiController,
                     decoration: InputDecoration(
-                      labelText: 'Chi phí',
+                      labelText: 'Chi phÃ­',
                       border: OutlineInputBorder(),
                     ),
                     keyboardType: TextInputType.number,
-                    validator: (v) => v!.isEmpty ? 'Không được bỏ trống' : null,
+                    validator: (v) =>
+                        v!.isEmpty ? 'KhÃ´ng Ä‘Æ°á»£c bá» trá»‘ng' : null,
                   ),
                   SizedBox(height: 16),
                   TextFormField(
                     controller: thoiGianController,
                     decoration: InputDecoration(
-                      labelText: 'Thời gian trả KQ',
+                      labelText: 'Thá»i gian tráº£ KQ',
                       border: OutlineInputBorder(),
                     ),
                   ),
@@ -187,7 +189,7 @@ class _QuanLyXetNghiemScreenState extends State<QuanLyXetNghiemScreen> {
           actions: [
             TextButton(
               onPressed: () => Navigator.of(ctx).pop(),
-              child: Text('Huỷ'),
+              child: Text('Huá»·'),
             ),
             ElevatedButton(
               onPressed: () async {
@@ -218,13 +220,15 @@ class _QuanLyXetNghiemScreenState extends State<QuanLyXetNghiemScreen> {
                     Navigator.of(ctx).pop();
                     _fetchData();
                   } else {
-                    _showError('Lỗi: ${jsonDecode(response.body)['message']}');
+                    _showError(
+                      'Lá»—i: ${jsonDecode(response.body)['message']}',
+                    );
                   }
                 } catch (e) {
-                  _showError('Lỗi kết nối: $e');
+                  _showError('Lá»—i káº¿t ná»‘i: $e');
                 }
               },
-              child: Text(isEdit ? 'Cập nhật' : 'Thêm'),
+              child: Text(isEdit ? 'Cáº­p nháº­t' : 'ThÃªm'),
             ),
           ],
         );
@@ -241,11 +245,11 @@ class _QuanLyXetNghiemScreenState extends State<QuanLyXetNghiemScreen> {
         actions: [
           TextButton(
             onPressed: () => Navigator.of(ctx).pop(false),
-            child: Text('Huỷ'),
+            child: Text('Huá»·'),
           ),
           TextButton(
             onPressed: () => Navigator.of(ctx).pop(true),
-            child: Text('Xác nhận', style: TextStyle(color: Colors.red)),
+            child: Text('XÃ¡c nháº­n', style: TextStyle(color: Colors.red)),
           ),
         ],
       ),
@@ -255,15 +259,15 @@ class _QuanLyXetNghiemScreenState extends State<QuanLyXetNghiemScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: Colors.grey[100],
+      backgroundColor: Theme.of(context).scaffoldBackgroundColor,
       appBar: AppBar(
-        title: Text('Quản lý Xét nghiệm'),
-        backgroundColor: Color(0xFF2C3E50),
-        // SỬA: Bỏ 'leading' và thêm 'actions'
+        title: Text('Quáº£n lÃ½ XÃ©t nghiá»‡m'),
+        backgroundColor: Theme.of(context).colorScheme.primary,
+        // Sá»¬A: Bá» 'leading' vÃ  thÃªm 'actions'
         actions: [
           IconButton(
             icon: FaIcon(FontAwesomeIcons.house, color: Colors.white, size: 20),
-            tooltip: 'Trang chủ',
+            tooltip: 'Trang chá»§',
             onPressed: () => context.go('/admin'),
           ),
           IconButton(
@@ -272,7 +276,7 @@ class _QuanLyXetNghiemScreenState extends State<QuanLyXetNghiemScreen> {
               color: Colors.white,
               size: 20,
             ),
-            tooltip: 'Đăng xuất',
+            tooltip: 'ÄÄƒng xuáº¥t',
             onPressed: () async {
               await Provider.of<AuthProvider>(context, listen: false).logout();
               if (!context.mounted) return;
@@ -283,7 +287,7 @@ class _QuanLyXetNghiemScreenState extends State<QuanLyXetNghiemScreen> {
       ),
       floatingActionButton: FloatingActionButton(
         onPressed: () => _showAddEditDialog(),
-        tooltip: 'Thêm xét nghiệm',
+        tooltip: 'ThÃªm xÃ©t nghiá»‡m',
         child: Icon(Icons.add),
       ),
       body: _isLoading
@@ -309,7 +313,7 @@ class _QuanLyXetNghiemScreenState extends State<QuanLyXetNghiemScreen> {
                       style: TextStyle(fontWeight: FontWeight.bold),
                     ),
                     subtitle: Text(
-                      'Loại: ${item.tenLoai} - Giá: ${item.chiPhi}',
+                      'Loáº¡i: ${item.tenLoai} - GiÃ¡: ${item.chiPhi}',
                     ),
                     trailing: Row(
                       mainAxisSize: MainAxisSize.min,

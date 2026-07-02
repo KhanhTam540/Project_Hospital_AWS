@@ -23,7 +23,7 @@ class _ChatListScreenState extends State<ChatListScreen> {
     _contactsFuture = ChatService().getContacts();
   }
 
-  // (Giữ nguyên các hàm helper _getRoleColor, _getRoleIcon)
+  // (Giá»¯ nguyÃªn cÃ¡c hÃ m helper _getRoleColor, _getRoleIcon)
   Color _getRoleColor(String role) {
     switch (role) {
       case 'ADMIN':
@@ -57,21 +57,21 @@ class _ChatListScreenState extends State<ChatListScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: Colors.grey[100],
+      backgroundColor: Theme.of(context).scaffoldBackgroundColor,
       appBar: AppBar(
-        title: Text('Chat nội bộ'),
-        backgroundColor: Color(0xFF2C3E50),
+        title: Text('Chat ná»™i bá»™'),
+        backgroundColor: Theme.of(context).colorScheme.primary,
         actions: [
           IconButton(
             icon: FaIcon(FontAwesomeIcons.house, color: Colors.white, size: 20),
-            tooltip: 'Trang chủ',
-            // --- SỬA Ở ĐÂY ---
-            // Nút Home động dựa trên vai trò
+            tooltip: 'Trang chá»§',
+            // --- Sá»¬A á»ž ÄÃ‚Y ---
+            // NÃºt Home Ä‘á»™ng dá»±a trÃªn vai trÃ²
             onPressed: () {
               final auth = Provider.of<AuthProvider>(context, listen: false);
               final role = auth.role;
               final loaiNS = auth.loaiNS;
-              String homeRoute = '/login'; // Mặc định
+              String homeRoute = '/login'; // Máº·c Ä‘á»‹nh
 
               switch (role) {
                 case 'ADMIN':
@@ -99,7 +99,7 @@ class _ChatListScreenState extends State<ChatListScreen> {
               }
               context.go(homeRoute);
             },
-            // --- KẾT THÚC SỬA ---
+            // --- Káº¾T THÃšC Sá»¬A ---
           ),
           IconButton(
             icon: FaIcon(
@@ -107,7 +107,7 @@ class _ChatListScreenState extends State<ChatListScreen> {
               color: Colors.white,
               size: 20,
             ),
-            tooltip: 'Đăng xuất',
+            tooltip: 'ÄÄƒng xuáº¥t',
             onPressed: () async {
               await Provider.of<AuthProvider>(context, listen: false).logout();
               if (!context.mounted) return;
@@ -116,7 +116,7 @@ class _ChatListScreenState extends State<ChatListScreen> {
           ),
         ],
       ),
-      // (Giữ nguyên phần body)
+      // (Giá»¯ nguyÃªn pháº§n body)
       body: FutureBuilder<List<UserModel>>(
         future: _contactsFuture,
         builder: (context, snapshot) {
@@ -124,10 +124,14 @@ class _ChatListScreenState extends State<ChatListScreen> {
             return Center(child: CircularProgressIndicator());
           }
           if (snapshot.hasError) {
-            return Center(child: Text('Lỗi tải danh bạ: ${snapshot.error}'));
+            return Center(
+              child: Text('Lá»—i táº£i danh báº¡: ${snapshot.error}'),
+            );
           }
           if (!snapshot.hasData || snapshot.data!.isEmpty) {
-            return Center(child: Text('Không tìm thấy ai trong danh bạ.'));
+            return Center(
+              child: Text('KhÃ´ng tÃ¬m tháº¥y ai trong danh báº¡.'),
+            );
           }
 
           final contacts = snapshot.data!;
@@ -161,17 +165,19 @@ class _ChatListScreenState extends State<ChatListScreen> {
                     style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16),
                   ),
                   subtitle: Text(
-                    'Vai trò: ${contact.maNhom}',
+                    'Vai trÃ²: ${contact.maNhom}',
                     style: TextStyle(color: Colors.grey[600]),
                   ),
                   trailing: Icon(Icons.chevron_right, color: Colors.grey[400]),
                   onTap: () {
                     ScaffoldMessenger.of(context).showSnackBar(
                       SnackBar(
-                        content: Text('Sẽ mở chat với ${contact.tenDangNhap}'),
+                        content: Text(
+                          'Sáº½ má»Ÿ chat vá»›i ${contact.tenDangNhap}',
+                        ),
                       ),
                     );
-                    // TODO: Khi có socket
+                    // TODO: Khi cÃ³ socket
                     // context.push('/chat/window', extra: contact);
                   },
                 ),

@@ -1,11 +1,11 @@
-// lib/screens/admin/quan_ly_lich_kham_screen.dart
+﻿// lib/screens/admin/quan_ly_lich_kham_screen.dart
 import 'package:flutter/material.dart';
 import 'package:font_awesome_flutter/font_awesome_flutter.dart';
 import 'package:go_router/go_router.dart';
 import 'dart:convert';
 import 'package:intl/intl.dart';
-import 'package:provider/provider.dart'; // Thêm import
-import '../../auth/auth_provider.dart'; // Thêm import
+import 'package:provider/provider.dart'; // ThÃªm import
+import '../../auth/auth_provider.dart'; // ThÃªm import
 import '../../services/api_client.dart';
 
 class LichKhamModel {
@@ -70,7 +70,7 @@ class _QuanLyLichKhamScreenState extends State<QuanLyLichKhamScreen> {
         });
       }
     } catch (e) {
-      _showError('Lỗi tải dữ liệu: $e');
+      _showError('Lá»—i táº£i dá»¯ liá»‡u: $e');
     } finally {
       setState(() => _isLoading = false);
     }
@@ -85,8 +85,8 @@ class _QuanLyLichKhamScreenState extends State<QuanLyLichKhamScreen> {
 
   Future<void> _handleDelete(String maLich) async {
     final confirm = await _showConfirmDialog(
-      'Xác nhận xoá',
-      'Bạn có chắc muốn xoá lịch $maLich?',
+      'XÃ¡c nháº­n xoÃ¡',
+      'Báº¡n cÃ³ cháº¯c muá»‘n xoÃ¡ lá»‹ch $maLich?',
     );
     if (confirm != true) return;
     try {
@@ -94,14 +94,14 @@ class _QuanLyLichKhamScreenState extends State<QuanLyLichKhamScreen> {
       if (response.statusCode == 200) {
         _fetchData();
       } else {
-        _showError('Lỗi: ${jsonDecode(response.body)['message']}');
+        _showError('Lá»—i: ${jsonDecode(response.body)['message']}');
       }
     } catch (e) {
-      _showError('Lỗi kết nối: $e');
+      _showError('Lá»—i káº¿t ná»‘i: $e');
     }
   }
 
-  // Dialog xác nhận
+  // Dialog xÃ¡c nháº­n
   Future<bool?> _showConfirmDialog(String title, String content) {
     return showDialog<bool>(
       context: context,
@@ -111,11 +111,11 @@ class _QuanLyLichKhamScreenState extends State<QuanLyLichKhamScreen> {
         actions: [
           TextButton(
             onPressed: () => Navigator.of(ctx).pop(false),
-            child: Text('Huỷ'),
+            child: Text('Huá»·'),
           ),
           TextButton(
             onPressed: () => Navigator.of(ctx).pop(true),
-            child: Text('Xác nhận', style: TextStyle(color: Colors.red)),
+            child: Text('XÃ¡c nháº­n', style: TextStyle(color: Colors.red)),
           ),
         ],
       ),
@@ -125,15 +125,15 @@ class _QuanLyLichKhamScreenState extends State<QuanLyLichKhamScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: Colors.grey[100],
+      backgroundColor: Theme.of(context).scaffoldBackgroundColor,
       appBar: AppBar(
-        title: Text('Quản lý Lịch khám'),
-        backgroundColor: Color(0xFF2C3E50),
-        // SỬA: Bỏ 'leading' và thêm 'actions'
+        title: Text('Quáº£n lÃ½ Lá»‹ch khÃ¡m'),
+        backgroundColor: Theme.of(context).colorScheme.primary,
+        // Sá»¬A: Bá» 'leading' vÃ  thÃªm 'actions'
         actions: [
           IconButton(
             icon: FaIcon(FontAwesomeIcons.house, color: Colors.white, size: 20),
-            tooltip: 'Trang chủ',
+            tooltip: 'Trang chá»§',
             onPressed: () => context.go('/admin'),
           ),
           IconButton(
@@ -142,7 +142,7 @@ class _QuanLyLichKhamScreenState extends State<QuanLyLichKhamScreen> {
               color: Colors.white,
               size: 20,
             ),
-            tooltip: 'Đăng xuất',
+            tooltip: 'ÄÄƒng xuáº¥t',
             onPressed: () async {
               await Provider.of<AuthProvider>(context, listen: false).logout();
               if (!context.mounted) return;
@@ -153,10 +153,10 @@ class _QuanLyLichKhamScreenState extends State<QuanLyLichKhamScreen> {
       ),
       floatingActionButton: FloatingActionButton(
         onPressed: () {
-          // TODO: Mở dialog/trang tạo lịch khám mới
-          // Sẽ cần tải DS Bác sĩ và Bệnh nhân
+          // TODO: Má»Ÿ dialog/trang táº¡o lá»‹ch khÃ¡m má»›i
+          // Sáº½ cáº§n táº£i DS BÃ¡c sÄ© vÃ  Bá»‡nh nhÃ¢n
         },
-        tooltip: 'Thêm lịch khám',
+        tooltip: 'ThÃªm lá»‹ch khÃ¡m',
         child: Icon(Icons.add),
       ),
       body: _isLoading
@@ -182,7 +182,7 @@ class _QuanLyLichKhamScreenState extends State<QuanLyLichKhamScreen> {
                       style: TextStyle(fontWeight: FontWeight.bold),
                     ),
                     subtitle: Text(
-                      'Thời gian: ${item.gioKham} - ${item.ngayKham}',
+                      'Thá»i gian: ${item.gioKham} - ${item.ngayKham}',
                     ),
                     trailing: IconButton(
                       icon: Icon(

@@ -3,10 +3,10 @@ import 'package:flutter/material.dart';
 import 'package:font_awesome_flutter/font_awesome_flutter.dart';
 import 'package:go_router/go_router.dart';
 import 'dart:convert';
-import 'package:provider/provider.dart'; // Thêm import
-import '../../auth/auth_provider.dart'; // Thêm import
+import 'package:provider/provider.dart'; // ThÃªm import
+import '../../auth/auth_provider.dart'; // ThÃªm import
 import '../../services/api_client.dart';
-import '../../models/user_model.dart'; // Dùng UserModel
+import '../../models/user_model.dart'; // DÃ¹ng UserModel
 
 class QuanLyNhanSuScreen extends StatefulWidget {
   const QuanLyNhanSuScreen({super.key});
@@ -34,14 +34,14 @@ class _QuanLyNhanSuScreenState extends State<QuanLyNhanSuScreen> {
       if (response.statusCode == 200) {
         final data = jsonDecode(response.body)['data'] as List;
         setState(() {
-          // API /api/nhansu trả về model NhanSuYTe, ta cần parse nó
-          // Tạm thời dùng UserModel vì nó gần giống
+          // API /api/nhansu tráº£ vá» model NhanSuYTe, ta cáº§n parse nÃ³
+          // Táº¡m thá»i dÃ¹ng UserModel vÃ¬ nÃ³ gáº§n giá»‘ng
           _list = data.map((json) => UserModel.fromJson(json)).toList();
           _isLoading = false;
         });
       }
     } catch (e) {
-      _showError('Lỗi tải dữ liệu: $e');
+      _showError('Lá»—i táº£i dá»¯ liá»‡u: $e');
     }
   }
 
@@ -54,23 +54,23 @@ class _QuanLyNhanSuScreenState extends State<QuanLyNhanSuScreen> {
   }
 
   void _handleEdit(UserModel user) {
-    // Chuyển đến trang Sửa (dùng lại trang Create)
-    // Cần đảm bảo UserModel đã được fetch đầy đủ
+    // Chuyá»ƒn Ä‘áº¿n trang Sá»­a (dÃ¹ng láº¡i trang Create)
+    // Cáº§n Ä‘áº£m báº£o UserModel Ä‘Ã£ Ä‘Æ°á»£c fetch Ä‘áº§y Ä‘á»§
     context.go('/admin/account/create', extra: user);
   }
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: Colors.grey[100],
+      backgroundColor: Theme.of(context).scaffoldBackgroundColor,
       appBar: AppBar(
-        title: Text('Quản lý Nhân viên Y tế'),
-        backgroundColor: Color(0xFF2C3E50),
-        // THÊM NÚT
+        title: Text('Quáº£n lÃ½ NhÃ¢n viÃªn Y táº¿'),
+        backgroundColor: Theme.of(context).colorScheme.primary,
+        // THÃŠM NÃšT
         actions: [
           IconButton(
             icon: FaIcon(FontAwesomeIcons.house, color: Colors.white, size: 20),
-            tooltip: 'Trang chủ',
+            tooltip: 'Trang chá»§',
             onPressed: () => context.go('/admin'),
           ),
           IconButton(
@@ -79,7 +79,7 @@ class _QuanLyNhanSuScreenState extends State<QuanLyNhanSuScreen> {
               color: Colors.white,
               size: 20,
             ),
-            tooltip: 'Đăng xuất',
+            tooltip: 'ÄÄƒng xuáº¥t',
             onPressed: () async {
               await Provider.of<AuthProvider>(context, listen: false).logout();
               if (!context.mounted) return;
@@ -89,9 +89,8 @@ class _QuanLyNhanSuScreenState extends State<QuanLyNhanSuScreen> {
         ],
       ),
       floatingActionButton: FloatingActionButton(
-        onPressed: () =>
-            context.go('/admin/account/create'),
-        tooltip: 'Thêm nhân viên', // Đi đến trang tạo mới
+        onPressed: () => context.go('/admin/account/create'),
+        tooltip: 'ThÃªm nhÃ¢n viÃªn', // Äi Ä‘áº¿n trang táº¡o má»›i
         child: Icon(Icons.add),
       ),
       body: _isLoading
@@ -108,13 +107,13 @@ class _QuanLyNhanSuScreenState extends State<QuanLyNhanSuScreen> {
                     leading: FaIcon(
                       FontAwesomeIcons.userNurse,
                       color: Colors.cyan[700],
-                    ), // Sửa icon
+                    ), // Sá»­a icon
                     title: Text(
                       user.hoTen ?? user.tenDangNhap,
                       style: TextStyle(fontWeight: FontWeight.bold),
                     ),
                     subtitle: Text(
-                      'Loại: ${user.loaiNS ?? 'N/A'} - Khoa: ${user.tenKhoa ?? 'N/A'}',
+                      'Loáº¡i: ${user.loaiNS ?? 'N/A'} - Khoa: ${user.tenKhoa ?? 'N/A'}',
                     ),
                     trailing: Row(
                       mainAxisSize: MainAxisSize.min,
@@ -123,7 +122,7 @@ class _QuanLyNhanSuScreenState extends State<QuanLyNhanSuScreen> {
                           icon: Icon(Icons.edit, color: Colors.orange),
                           onPressed: () => _handleEdit(user),
                         ),
-                        // Nút Xóa (thường nằm ở user_management_screen)
+                        // NÃºt XÃ³a (thÆ°á»ng náº±m á»Ÿ user_management_screen)
                       ],
                     ),
                   ),

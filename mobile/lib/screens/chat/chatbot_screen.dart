@@ -14,7 +14,7 @@ class ChatbotScreen extends StatefulWidget {
 }
 
 class _ChatbotScreenState extends State<ChatbotScreen> {
-  // (Giữ nguyên toàn bộ logic state, initState, _scrollToBottom, _loadHistory, _handleSend)
+  // (Giá»¯ nguyÃªn toÃ n bá»™ logic state, initState, _scrollToBottom, _loadHistory, _handleSend)
   final _service = ChatbotService();
   final _controller = TextEditingController();
   final _scrollController = ScrollController();
@@ -45,7 +45,8 @@ class _ChatbotScreenState extends State<ChatbotScreen> {
       _messages = [
         {
           'sender': 'bot',
-          'text': 'Xin chào! Tôi là trợ lý AI. Tôi có thể giúp gì cho bạn?',
+          'text':
+              'Xin chÃ o! TÃ´i lÃ  trá»£ lÃ½ AI. TÃ´i cÃ³ thá»ƒ giÃºp gÃ¬ cho báº¡n?',
         },
       ];
     });
@@ -83,21 +84,21 @@ class _ChatbotScreenState extends State<ChatbotScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: Colors.grey[100],
+      backgroundColor: Theme.of(context).scaffoldBackgroundColor,
       appBar: AppBar(
-        title: Text('Trợ lý AI'),
-        backgroundColor: Color(0xFF2C3E50),
+        title: Text('Trá»£ lÃ½ AI'),
+        backgroundColor: Theme.of(context).colorScheme.primary,
         actions: [
           IconButton(
             icon: FaIcon(FontAwesomeIcons.house, color: Colors.white, size: 20),
-            tooltip: 'Trang chủ',
-            // --- SỬA Ở ĐÂY ---
-            // Nút Home động dựa trên vai trò
+            tooltip: 'Trang chá»§',
+            // --- Sá»¬A á»ž ÄÃ‚Y ---
+            // NÃºt Home Ä‘á»™ng dá»±a trÃªn vai trÃ²
             onPressed: () {
               final auth = Provider.of<AuthProvider>(context, listen: false);
               final role = auth.role;
               final loaiNS = auth.loaiNS;
-              String homeRoute = '/login'; // Mặc định
+              String homeRoute = '/login'; // Máº·c Ä‘á»‹nh
 
               switch (role) {
                 case 'ADMIN':
@@ -125,7 +126,7 @@ class _ChatbotScreenState extends State<ChatbotScreen> {
               }
               context.go(homeRoute);
             },
-            // --- KẾT THÚC SỬA ---
+            // --- Káº¾T THÃšC Sá»¬A ---
           ),
           IconButton(
             icon: FaIcon(
@@ -133,7 +134,7 @@ class _ChatbotScreenState extends State<ChatbotScreen> {
               color: Colors.white,
               size: 20,
             ),
-            tooltip: 'Đăng xuất',
+            tooltip: 'ÄÄƒng xuáº¥t',
             onPressed: () async {
               await Provider.of<AuthProvider>(context, listen: false).logout();
               if (!context.mounted) return;
@@ -142,7 +143,7 @@ class _ChatbotScreenState extends State<ChatbotScreen> {
           ),
         ],
       ),
-      // (Giữ nguyên phần body, _buildMessageBubble, _buildInputArea)
+      // (Giá»¯ nguyÃªn pháº§n body, _buildMessageBubble, _buildInputArea)
       body: Column(
         children: [
           Expanded(
@@ -156,7 +157,7 @@ class _ChatbotScreenState extends State<ChatbotScreen> {
                       if (_isTyping && index == _messages.length) {
                         return _buildMessageBubble(
                           'bot',
-                          'Bot đang gõ...',
+                          'Bot Ä‘ang gÃµ...',
                           true,
                         );
                       }
@@ -270,8 +271,10 @@ class _ChatbotScreenState extends State<ChatbotScreen> {
                 controller: _controller,
                 textCapitalization: TextCapitalization.sentences,
                 decoration: InputDecoration(
-                  hintText: 'Nhập tin nhắn...',
-                  fillColor: Colors.grey[100],
+                  hintText: 'Nháº­p tin nháº¯n...',
+                  fillColor: Theme.of(
+                    context,
+                  ).colorScheme.surfaceContainerHighest,
                   filled: true,
                   border: OutlineInputBorder(
                     borderRadius: BorderRadius.circular(30),

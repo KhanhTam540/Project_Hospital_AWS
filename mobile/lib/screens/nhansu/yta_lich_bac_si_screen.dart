@@ -1,18 +1,18 @@
-// lib/screens/nhansu/yta_lich_bac_si_screen.dart
+﻿// lib/screens/nhansu/yta_lich_bac_si_screen.dart
 import 'package:flutter/material.dart';
 import 'package:font_awesome_flutter/font_awesome_flutter.dart';
 import 'dart:convert';
 import 'package:intl/intl.dart';
-import 'package:go_router/go_router.dart'; // Thêm import
-import 'package:provider/provider.dart'; // Thêm import
-import '../../auth/auth_provider.dart'; // Thêm import
+import 'package:go_router/go_router.dart'; // ThÃªm import
+import 'package:provider/provider.dart'; // ThÃªm import
+import '../../auth/auth_provider.dart'; // ThÃªm import
 import '../../services/api_client.dart';
 
 // Model
 class LichLamViec {
   final String maLichLV;
   final String? maBS;
-  final String? tenBS; // Sẽ cần join
+  final String? tenBS; // Sáº½ cáº§n join
   final String maCa;
   final String ngayLamViec;
 
@@ -35,7 +35,7 @@ class LichLamViec {
     return LichLamViec(
       maLichLV: json['maLichLV'],
       maBS: json['maBS'],
-      tenBS: json['BacSi']?['hoTen'] ?? 'N/A', // Cần backend join
+      tenBS: json['BacSi']?['hoTen'] ?? 'N/A', // Cáº§n backend join
       maCa: json['maCa'],
       ngayLamViec: fNgay,
     );
@@ -71,7 +71,7 @@ class _LichBacSiYtaScreenState extends State<LichBacSiYtaScreen> {
         setState(() {
           _list = data
               .map((json) => LichLamViec.fromJson(json))
-              .where((item) => item.maBS != null) // Chỉ lọc lịch của BS
+              .where((item) => item.maBS != null) // Chá»‰ lá»c lá»‹ch cá»§a BS
               .toList();
         });
       }
@@ -79,7 +79,7 @@ class _LichBacSiYtaScreenState extends State<LichBacSiYtaScreen> {
       if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
-          content: Text('Lỗi tải dữ liệu: $e'),
+          content: Text('Lá»—i táº£i dá»¯ liá»‡u: $e'),
           backgroundColor: Colors.red,
         ),
       );
@@ -92,16 +92,16 @@ class _LichBacSiYtaScreenState extends State<LichBacSiYtaScreen> {
 
   @override
   Widget build(BuildContext context) {
-    // SỬA: Thêm Scaffold và AppBar
+    // Sá»¬A: ThÃªm Scaffold vÃ  AppBar
     return Scaffold(
-      backgroundColor: Colors.grey[100],
+      backgroundColor: Theme.of(context).scaffoldBackgroundColor,
       appBar: AppBar(
-        title: Text('Lịch Bác sĩ'),
-        backgroundColor: Color(0xFF166534), // Màu Y tá
+        title: Text('Lá»‹ch BÃ¡c sÄ©'),
+        backgroundColor: Color(0xFF166534), // MÃ u Y tÃ¡
         actions: [
           IconButton(
             icon: FaIcon(FontAwesomeIcons.house, color: Colors.white, size: 20),
-            tooltip: 'Trang chủ',
+            tooltip: 'Trang chá»§',
             onPressed: () => context.go('/yta'),
           ),
           IconButton(
@@ -110,7 +110,7 @@ class _LichBacSiYtaScreenState extends State<LichBacSiYtaScreen> {
               color: Colors.white,
               size: 20,
             ),
-            tooltip: 'Đăng xuất',
+            tooltip: 'ÄÄƒng xuáº¥t',
             onPressed: () async {
               await Provider.of<AuthProvider>(context, listen: false).logout();
               if (!context.mounted) return;
@@ -139,11 +139,11 @@ class _LichBacSiYtaScreenState extends State<LichBacSiYtaScreen> {
                       ),
                     ),
                     title: Text(
-                      'BS: ${item.tenBS} (Mã: ${item.maBS})',
+                      'BS: ${item.tenBS} (MÃ£: ${item.maBS})',
                       style: TextStyle(fontWeight: FontWeight.bold),
                     ),
                     subtitle: Text(
-                      'Ngày: ${item.ngayLamViec} - Ca: ${item.maCa}',
+                      'NgÃ y: ${item.ngayLamViec} - Ca: ${item.maCa}',
                     ),
                   ),
                 );

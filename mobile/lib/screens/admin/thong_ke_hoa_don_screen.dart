@@ -1,11 +1,11 @@
-// lib/screens/admin/thong_ke_hoa_don_screen.dart
+﻿// lib/screens/admin/thong_ke_hoa_don_screen.dart
 import 'package:flutter/material.dart';
 import 'package:font_awesome_flutter/font_awesome_flutter.dart';
 import 'package:go_router/go_router.dart';
 import 'dart:convert';
 import 'package:intl/intl.dart';
-import 'package:provider/provider.dart'; // Thêm import
-import '../../auth/auth_provider.dart'; // Thêm import
+import 'package:provider/provider.dart'; // ThÃªm import
+import '../../auth/auth_provider.dart'; // ThÃªm import
 import '../../services/api_client.dart';
 
 class ThongKeHoaDonScreen extends StatefulWidget {
@@ -25,7 +25,7 @@ class _ThongKeHoaDonScreenState extends State<ThongKeHoaDonScreen> {
   @override
   void initState() {
     super.initState();
-    _fetchStats(); // Tải thống kê cho ngày hôm nay
+    _fetchStats(); // Táº£i thá»‘ng kÃª cho ngÃ y hÃ´m nay
   }
 
   Future<void> _fetchStats() async {
@@ -42,7 +42,7 @@ class _ThongKeHoaDonScreenState extends State<ThongKeHoaDonScreen> {
         });
       }
     } catch (e) {
-      _showError('Lỗi tải dữ liệu: $e');
+      _showError('Lá»—i táº£i dá»¯ liá»‡u: $e');
     } finally {
       setState(() => _isLoading = false);
     }
@@ -58,15 +58,15 @@ class _ThongKeHoaDonScreenState extends State<ThongKeHoaDonScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: Colors.grey[100],
+      backgroundColor: Theme.of(context).scaffoldBackgroundColor,
       appBar: AppBar(
-        title: Text('Thống kê Hóa đơn'),
-        backgroundColor: Color(0xFF2C3E50),
-        // SỬA: Bỏ 'leading' và thêm 'actions'
+        title: Text('Thá»‘ng kÃª HÃ³a Ä‘Æ¡n'),
+        backgroundColor: Theme.of(context).colorScheme.primary,
+        // Sá»¬A: Bá» 'leading' vÃ  thÃªm 'actions'
         actions: [
           IconButton(
             icon: FaIcon(FontAwesomeIcons.house, color: Colors.white, size: 20),
-            tooltip: 'Trang chủ',
+            tooltip: 'Trang chá»§',
             onPressed: () => context.go('/admin'),
           ),
           IconButton(
@@ -75,7 +75,7 @@ class _ThongKeHoaDonScreenState extends State<ThongKeHoaDonScreen> {
               color: Colors.white,
               size: 20,
             ),
-            tooltip: 'Đăng xuất',
+            tooltip: 'ÄÄƒng xuáº¥t',
             onPressed: () async {
               await Provider.of<AuthProvider>(context, listen: false).logout();
               if (!context.mounted) return;
@@ -93,7 +93,7 @@ class _ThongKeHoaDonScreenState extends State<ThongKeHoaDonScreen> {
             _isLoading
                 ? Center(child: CircularProgressIndicator())
                 : _stats == null
-                ? Center(child: Text('Không có dữ liệu.'))
+                ? Center(child: Text('KhÃ´ng cÃ³ dá»¯ liá»‡u.'))
                 : _buildStatsGrid(),
           ],
         ),
@@ -113,13 +113,13 @@ class _ThongKeHoaDonScreenState extends State<ThongKeHoaDonScreen> {
               children: [
                 _buildDateField(
                   context,
-                  'Từ ngày',
+                  'Tá»« ngÃ y',
                   _fromDate,
                   (date) => setState(() => _fromDate = date),
                 ),
                 _buildDateField(
                   context,
-                  'Đến ngày',
+                  'Äáº¿n ngÃ y',
                   _toDate,
                   (date) => setState(() => _toDate = date),
                 ),
@@ -129,7 +129,7 @@ class _ThongKeHoaDonScreenState extends State<ThongKeHoaDonScreen> {
             ElevatedButton.icon(
               onPressed: _fetchStats,
               icon: Icon(Icons.filter_list),
-              label: Text('Lọc'),
+              label: Text('Lá»c'),
               style: ElevatedButton.styleFrom(
                 minimumSize: Size(double.infinity, 44),
               ),
@@ -175,7 +175,7 @@ class _ThongKeHoaDonScreenState extends State<ThongKeHoaDonScreen> {
   }
 
   Widget _buildStatsGrid() {
-    final formatCurrency = NumberFormat.currency(locale: 'vi_VN', symbol: 'đ');
+    final formatCurrency = NumberFormat.currency(locale: 'vi_VN', symbol: 'Ä‘');
 
     return GridView.count(
       crossAxisCount: 2,
@@ -185,25 +185,25 @@ class _ThongKeHoaDonScreenState extends State<ThongKeHoaDonScreen> {
       mainAxisSpacing: 16,
       children: [
         _buildStatCard(
-          'Tổng Doanh thu',
+          'Tá»•ng Doanh thu',
           formatCurrency.format(_stats!['tongTien'] ?? 0),
           FontAwesomeIcons.fileInvoiceDollar,
           Colors.brown,
         ),
         _buildStatCard(
-          'Tổng số HĐ',
+          'Tá»•ng sá»‘ HÄ',
           (_stats!['tongSo'] ?? 0).toString(),
           FontAwesomeIcons.fileLines,
           Colors.blueGrey,
         ),
         _buildStatCard(
-          'Đã thanh toán',
+          'ÄÃ£ thanh toÃ¡n',
           (_stats!['daThanhToan'] ?? 0).toString(),
           FontAwesomeIcons.circleCheck,
           Colors.green,
         ),
         _buildStatCard(
-          'Chưa thanh toán',
+          'ChÆ°a thanh toÃ¡n',
           (_stats!['chuaThanhToan'] ?? 0).toString(),
           FontAwesomeIcons.circleXmark,
           Colors.red,

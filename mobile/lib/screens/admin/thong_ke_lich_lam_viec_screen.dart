@@ -1,11 +1,11 @@
-// lib/screens/admin/thong_ke_lich_lam_viec_screen.dart
+﻿// lib/screens/admin/thong_ke_lich_lam_viec_screen.dart
 import 'package:flutter/material.dart';
 import 'package:font_awesome_flutter/font_awesome_flutter.dart';
 import 'package:go_router/go_router.dart';
 import 'dart:convert';
 import 'package:intl/intl.dart';
-import 'package:provider/provider.dart'; // Thêm import
-import '../../auth/auth_provider.dart'; // Thêm import
+import 'package:provider/provider.dart'; // ThÃªm import
+import '../../auth/auth_provider.dart'; // ThÃªm import
 import '../../services/api_client.dart';
 
 // Model
@@ -69,11 +69,11 @@ class _ThongKeLichLamViecScreenState extends State<ThongKeLichLamViecScreen> {
           _allSchedules = data
               .map((json) => LichLamViec.fromJson(json))
               .toList();
-          _filterByWeek(); // Lọc theo tuần hiện tại
+          _filterByWeek(); // Lá»c theo tuáº§n hiá»‡n táº¡i
         });
       }
     } catch (e) {
-      _showError('Lỗi tải dữ liệu: $e');
+      _showError('Lá»—i táº£i dá»¯ liá»‡u: $e');
     } finally {
       setState(() => _isLoading = false);
     }
@@ -115,15 +115,15 @@ class _ThongKeLichLamViecScreenState extends State<ThongKeLichLamViecScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: Colors.grey[100],
+      backgroundColor: Theme.of(context).scaffoldBackgroundColor,
       appBar: AppBar(
-        title: Text('Thống kê Lịch làm việc'),
-        backgroundColor: Color(0xFF2C3E50),
-        // SỬA: Bỏ 'leading' và thêm 'actions'
+        title: Text('Thá»‘ng kÃª Lá»‹ch lÃ m viá»‡c'),
+        backgroundColor: Theme.of(context).colorScheme.primary,
+        // Sá»¬A: Bá» 'leading' vÃ  thÃªm 'actions'
         actions: [
           IconButton(
             icon: FaIcon(FontAwesomeIcons.house, color: Colors.white, size: 20),
-            tooltip: 'Trang chủ',
+            tooltip: 'Trang chá»§',
             onPressed: () => context.go('/admin'),
           ),
           IconButton(
@@ -132,7 +132,7 @@ class _ThongKeLichLamViecScreenState extends State<ThongKeLichLamViecScreen> {
               color: Colors.white,
               size: 20,
             ),
-            tooltip: 'Đăng xuất',
+            tooltip: 'ÄÄƒng xuáº¥t',
             onPressed: () async {
               await Provider.of<AuthProvider>(context, listen: false).logout();
               if (!context.mounted) return;
@@ -161,7 +161,7 @@ class _ThongKeLichLamViecScreenState extends State<ThongKeLichLamViecScreen> {
       child: Row(
         mainAxisAlignment: MainAxisAlignment.spaceBetween,
         children: [
-          Text('Chọn ngày trong tuần:', style: TextStyle(fontSize: 16)),
+          Text('Chá»n ngÃ y trong tuáº§n:', style: TextStyle(fontSize: 16)),
           ElevatedButton(
             style: ElevatedButton.styleFrom(
               backgroundColor: Colors.white,
@@ -201,7 +201,7 @@ class _ThongKeLichLamViecScreenState extends State<ThongKeLichLamViecScreen> {
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             Text(
-              'Thống kê tuần (${DateFormat('dd/MM').format(startOfWeek)} - ${DateFormat('dd/MM').format(endOfWeek)})',
+              'Thá»‘ng kÃª tuáº§n (${DateFormat('dd/MM').format(startOfWeek)} - ${DateFormat('dd/MM').format(endOfWeek)})',
               style: TextStyle(
                 fontSize: 18,
                 fontWeight: FontWeight.bold,
@@ -214,12 +214,12 @@ class _ThongKeLichLamViecScreenState extends State<ThongKeLichLamViecScreen> {
               children: [
                 _StatItem(
                   count: _soBacSi,
-                  label: 'Bác sĩ',
+                  label: 'BÃ¡c sÄ©',
                   color: Colors.blueAccent,
                 ),
                 _StatItem(
                   count: _soNhanSu,
-                  label: 'Nhân sự',
+                  label: 'NhÃ¢n sá»±',
                   color: Colors.green,
                 ),
               ],
@@ -268,7 +268,7 @@ class _ThongKeLichLamViecScreenState extends State<ThongKeLichLamViecScreen> {
                 if (items.isEmpty)
                   Center(
                     child: Text(
-                      'Không có lịch',
+                      'KhÃ´ng cÃ³ lá»‹ch',
                       style: TextStyle(
                         fontStyle: FontStyle.italic,
                         color: Colors.grey,

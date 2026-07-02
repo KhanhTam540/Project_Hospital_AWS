@@ -1,4 +1,4 @@
-// lib/screens/doctor/ke_don_thuoc_screen.dart
+﻿// lib/screens/doctor/ke_don_thuoc_screen.dart
 import 'package:flutter/material.dart';
 import 'package:font_awesome_flutter/font_awesome_flutter.dart';
 import 'package:go_router/go_router.dart';
@@ -7,14 +7,14 @@ import 'package:provider/provider.dart';
 import '../../services/api_client.dart';
 import '../../auth/auth_provider.dart';
 import 'package:intl/intl.dart';
-// THÊM: Import cho upload
+// THÃŠM: Import cho upload
 import 'package:image_picker/image_picker.dart';
 
-// === SỬA 1: Model cho Phiếu Khám (thay vì HSBA) ===
+// === Sá»¬A 1: Model cho Phiáº¿u KhÃ¡m (thay vÃ¬ HSBA) ===
 class PhieuKham {
   final String maPK;
   final String maBN;
-  final String ngayKham; // Giữ String để hiển thị
+  final String ngayKham; // Giá»¯ String Ä‘á»ƒ hiá»ƒn thá»‹
   PhieuKham({required this.maPK, required this.maBN, required this.ngayKham});
   factory PhieuKham.fromJson(Map<String, dynamic> json) {
     String fNgay = json['ngayKham'] ?? '';
@@ -24,7 +24,7 @@ class PhieuKham {
     return PhieuKham(maPK: json['maPK'], maBN: json['maBN'], ngayKham: fNgay);
   }
 }
-// === KẾT THÚC SỬA 1 ===
+// === Káº¾T THÃšC Sá»¬A 1 ===
 
 class Thuoc {
   final String maThuoc;
@@ -50,19 +50,19 @@ class _KeDonThuocScreenState extends State<KeDonThuocScreen> {
   List<PhieuKham> _phieuKhamList = [];
   List<Thuoc> _thuocList = [];
 
-  // === SỬA 2: State cho logic mới ===
+  // === Sá»¬A 2: State cho logic má»›i ===
   List<Map<String, dynamic>> _thuocDaThem = [];
   String? _selectedMaPK;
-  // === KẾT THÚC SỬA 2 ===
-  // Form chi tiết
+  // === Káº¾T THÃšC Sá»¬A 2 ===
+  // Form chi tiáº¿t
   String? _selectedThuoc;
   final _soLuongController = TextEditingController();
   final _lieuDungController = TextEditingController();
 
-  // THÊM: State và Controller cho chức năng Upload
+  // THÃŠM: State vÃ  Controller cho chá»©c nÄƒng Upload
   final ImagePicker _picker = ImagePicker();
   XFile? _selectedImage;
-  // KẾT THÚC THÊM
+  // Káº¾T THÃšC THÃŠM
 
   @override
   void initState() {
@@ -73,11 +73,11 @@ class _KeDonThuocScreenState extends State<KeDonThuocScreen> {
 
   Future<void> _fetchInitialData() async {
     if (_maBS == null) {
-      _showError("Lỗi: Không tìm thấy Mã Bác Sĩ.");
+      _showError("Lá»—i: KhÃ´ng tÃ¬m tháº¥y MÃ£ BÃ¡c SÄ©.");
       return;
     }
     try {
-      // Sửa: Lấy phiếu khám theo Bác Sĩ
+      // Sá»­a: Láº¥y phiáº¿u khÃ¡m theo BÃ¡c SÄ©
       final resPK = await _api.get('/phieukham/bacsi/$_maBS');
       final resThuoc = await _api.get('/thuoc');
 
@@ -90,7 +90,7 @@ class _KeDonThuocScreenState extends State<KeDonThuocScreen> {
             .toList();
       });
     } catch (e) {
-      _showError('Lỗi tải dữ liệu: $e');
+      _showError('Lá»—i táº£i dá»¯ liá»‡u: $e');
     }
   }
 
@@ -101,7 +101,7 @@ class _KeDonThuocScreenState extends State<KeDonThuocScreen> {
     );
   }
 
-  // THÊM: Hàm chọn ảnh
+  // THÃŠM: HÃ m chá»n áº£nh
   Future<void> _pickImage() async {
     final XFile? pickedFile = await _picker.pickImage(
       source: ImageSource.gallery,
@@ -112,13 +112,13 @@ class _KeDonThuocScreenState extends State<KeDonThuocScreen> {
       });
     }
   }
-  // KẾT THÚC THÊM
+  // Káº¾T THÃšC THÃŠM
 
-  // SỬA: Sửa hàm _handleAddThuoc thành _stageThuoc
+  // Sá»¬A: Sá»­a hÃ m _handleAddThuoc thÃ nh _stageThuoc
   void _stageThuoc() {
     if (!_formKeyChiTiet.currentState!.validate()) return;
     if (_selectedThuoc == null) {
-      _showError("Vui lòng chọn thuốc");
+      _showError("Vui lÃ²ng chá»n thuá»‘c");
       return;
     }
 
@@ -129,7 +129,7 @@ class _KeDonThuocScreenState extends State<KeDonThuocScreen> {
     setState(() {
       _thuocDaThem.add({
         'maThuoc': _selectedThuoc,
-        'tenThuoc': selectedThuoc.tenThuoc, // Lấy cả tên thuốc
+        'tenThuoc': selectedThuoc.tenThuoc, // Láº¥y cáº£ tÃªn thuá»‘c
         'soLuong': int.parse(_soLuongController.text),
         'lieuDung': _lieuDungController.text,
       });
@@ -141,68 +141,68 @@ class _KeDonThuocScreenState extends State<KeDonThuocScreen> {
     setState(() => _selectedThuoc = null);
   }
 
-  // SỬA: Hàm mới để xóa thuốc khỏi danh sách tạm
+  // Sá»¬A: HÃ m má»›i Ä‘á»ƒ xÃ³a thuá»‘c khá»i danh sÃ¡ch táº¡m
   void _removeThuoc(int index) {
     setState(() {
       _thuocDaThem.removeAt(index);
     });
   }
 
-  // SỬA: Hàm _handleSaveAll để hỗ trợ upload hình ảnh
+  // Sá»¬A: HÃ m _handleSaveAll Ä‘á»ƒ há»— trá»£ upload hÃ¬nh áº£nh
   Future<void> _handleSaveAll() async {
     if (_selectedMaPK == null) {
-      _showError("Vui lòng chọn một phiếu khám");
+      _showError("Vui lÃ²ng chá»n má»™t phiáº¿u khÃ¡m");
       return;
     }
     if (_thuocDaThem.isEmpty) {
-      _showError("Vui lòng thêm ít nhất 1 loại thuốc");
+      _showError("Vui lÃ²ng thÃªm Ã­t nháº¥t 1 loáº¡i thuá»‘c");
       return;
     }
 
     final chiTietJson = jsonEncode(_thuocDaThem);
-    final endpoint = '/donthuoc'; // Endpoint chính
+    final endpoint = '/donthuoc'; // Endpoint chÃ­nh
 
-    // Payload cho request JSON (nếu không có file)
+    // Payload cho request JSON (náº¿u khÃ´ng cÃ³ file)
     final jsonPayload = {
       'maPK': _selectedMaPK,
       'maBS': _maBS,
       'chiTietList': _thuocDaThem,
     };
 
-    // Chuẩn bị fields cho Multipart (khi có file)
+    // Chuáº©n bá»‹ fields cho Multipart (khi cÃ³ file)
     final Map<String, String> multipartFields = {
       'maPK': _selectedMaPK!,
       'maBS': _maBS!,
       'chiTietList':
-          chiTietJson, // Gửi chi tiết thuốc dưới dạng JSON string
+          chiTietJson, // Gá»­i chi tiáº¿t thuá»‘c dÆ°á»›i dáº¡ng JSON string
     };
 
     try {
       dynamic res;
       if (_selectedImage != null) {
-        // Dùng MULTIPART
+        // DÃ¹ng MULTIPART
         res = await _api.postMultipart(
           endpoint,
           multipartFields,
           file: _selectedImage,
-          fileFieldName: 'file', // <--- SỬA THÀNH 'file'
+          fileFieldName: 'file', // <--- Sá»¬A THÃ€NH 'file'
         );
       } else {
-        // Dùng JSON POST
+        // DÃ¹ng JSON POST
         res = await _api.post(endpoint, jsonPayload);
       }
 
       if (res.statusCode == 201) {
-        _showError("✅ Đã lưu đơn thuốc thành công!");
-        // Reset toàn bộ
+        _showError("âœ… ÄÃ£ lÆ°u Ä‘Æ¡n thuá»‘c thÃ nh cÃ´ng!");
+        // Reset toÃ n bá»™
         setState(() {
           _thuocDaThem = [];
           _selectedMaPK = null;
           _selectedThuoc = null;
-          _selectedImage = null; // Reset ảnh
+          _selectedImage = null; // Reset áº£nh
         });
       } else {
-        String errorMessage = 'Lỗi từ server: ${res.statusCode}';
+        String errorMessage = 'Lá»—i tá»« server: ${res.statusCode}';
         try {
           final errorBody = jsonDecode(res.body);
           errorMessage = errorBody['message'] ?? errorMessage;
@@ -210,21 +210,21 @@ class _KeDonThuocScreenState extends State<KeDonThuocScreen> {
         _showError(errorMessage);
       }
     } catch (e) {
-      _showError('Lỗi khi lưu đơn thuốc: $e');
+      _showError('Lá»—i khi lÆ°u Ä‘Æ¡n thuá»‘c: $e');
     }
   }
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: Colors.grey[100],
+      backgroundColor: Theme.of(context).scaffoldBackgroundColor,
       appBar: AppBar(
-        title: Text('Kê đơn thuốc'),
+        title: Text('KÃª Ä‘Æ¡n thuá»‘c'),
         backgroundColor: Color(0xFF004D40),
         actions: [
           IconButton(
             icon: FaIcon(FontAwesomeIcons.house, color: Colors.white, size: 20),
-            tooltip: 'Trang chủ',
+            tooltip: 'Trang chá»§',
             onPressed: () => context.go('/doctor'),
           ),
           IconButton(
@@ -233,7 +233,7 @@ class _KeDonThuocScreenState extends State<KeDonThuocScreen> {
               color: Colors.white,
               size: 20,
             ),
-            tooltip: 'Đăng xuất',
+            tooltip: 'ÄÄƒng xuáº¥t',
             onPressed: () async {
               await Provider.of<AuthProvider>(context, listen: false).logout();
               if (!context.mounted) return;
@@ -248,21 +248,21 @@ class _KeDonThuocScreenState extends State<KeDonThuocScreen> {
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             Text(
-              'Kê đơn thuốc',
+              'KÃª Ä‘Æ¡n thuá»‘c',
               style: Theme.of(
                 context,
               ).textTheme.headlineSmall?.copyWith(fontWeight: FontWeight.bold),
             ),
             SizedBox(height: 16),
 
-            // Form chọn Phiếu Khám
+            // Form chá»n Phiáº¿u KhÃ¡m
             Card(
               elevation: 2,
               child: Padding(
                 padding: const EdgeInsets.all(16.0),
                 child: DropdownButtonFormField<String>(
                   decoration: InputDecoration(
-                    labelText: 'Chọn Phiếu Khám cần kê đơn',
+                    labelText: 'Chá»n Phiáº¿u KhÃ¡m cáº§n kÃª Ä‘Æ¡n',
                     border: OutlineInputBorder(),
                   ),
                   initialValue: _selectedMaPK,
@@ -276,10 +276,10 @@ class _KeDonThuocScreenState extends State<KeDonThuocScreen> {
                       .toList(),
                   onChanged: (v) => setState(() {
                     _selectedMaPK = v;
-                    _thuocDaThem = []; // Reset khi đổi phiếu
-                    _selectedImage = null; // Reset ảnh
+                    _thuocDaThem = []; // Reset khi Ä‘á»•i phiáº¿u
+                    _selectedImage = null; // Reset áº£nh
                   }),
-                  validator: (v) => v == null ? 'Vui lòng chọn' : null,
+                  validator: (v) => v == null ? 'Vui lÃ²ng chá»n' : null,
                 ),
               ),
             ),
@@ -287,14 +287,14 @@ class _KeDonThuocScreenState extends State<KeDonThuocScreen> {
             if (_selectedMaPK != null) ...[
               SizedBox(height: 24),
               Text(
-                'Đang kê đơn cho: $_selectedMaPK',
+                'Äang kÃª Ä‘Æ¡n cho: $_selectedMaPK',
                 style: Theme.of(
                   context,
                 ).textTheme.titleMedium?.copyWith(color: Colors.green[700]),
               ),
               SizedBox(height: 16),
 
-              // 2. Thêm thuốc
+              // 2. ThÃªm thuá»‘c
               Card(
                 elevation: 2,
                 child: Padding(
@@ -305,7 +305,7 @@ class _KeDonThuocScreenState extends State<KeDonThuocScreen> {
                       children: [
                         DropdownButtonFormField<String>(
                           decoration: InputDecoration(
-                            labelText: 'Chọn Thuốc',
+                            labelText: 'Chá»n Thuá»‘c',
                             border: OutlineInputBorder(),
                           ),
                           initialValue: _selectedThuoc,
@@ -319,35 +319,35 @@ class _KeDonThuocScreenState extends State<KeDonThuocScreen> {
                               .toList(),
                           onChanged: (v) => setState(() => _selectedThuoc = v),
                           validator: (v) =>
-                              v == null ? 'Vui lòng chọn' : null,
+                              v == null ? 'Vui lÃ²ng chá»n' : null,
                         ),
                         SizedBox(height: 16),
                         TextFormField(
                           controller: _soLuongController,
                           decoration: InputDecoration(
-                            labelText: 'Số lượng',
+                            labelText: 'Sá»‘ lÆ°á»£ng',
                             border: OutlineInputBorder(),
                           ),
                           keyboardType: TextInputType.number,
                           validator: (v) =>
-                              v!.isEmpty ? 'Không bỏ trống' : null,
+                              v!.isEmpty ? 'KhÃ´ng bá» trá»‘ng' : null,
                         ),
                         SizedBox(height: 16),
                         TextFormField(
                           controller: _lieuDungController,
                           decoration: InputDecoration(
-                            labelText: 'Liều dùng (vd: Sáng 1, Tối 1)',
+                            labelText: 'Liá»u dÃ¹ng (vd: SÃ¡ng 1, Tá»‘i 1)',
                             border: OutlineInputBorder(),
                           ),
                           validator: (v) =>
-                              v!.isEmpty ? 'Không bỏ trống' : null,
+                              v!.isEmpty ? 'KhÃ´ng bá» trá»‘ng' : null,
                         ),
                         SizedBox(height: 16),
                         ElevatedButton.icon(
                           onPressed:
-                              _stageThuoc, // Sửa: gọi hàm _stageThuoc
+                              _stageThuoc, // Sá»­a: gá»i hÃ m _stageThuoc
                           icon: Icon(Icons.add),
-                          label: Text('Thêm thuốc vào đơn'),
+                          label: Text('ThÃªm thuá»‘c vÃ o Ä‘Æ¡n'),
                           style: ElevatedButton.styleFrom(
                             minimumSize: Size(double.infinity, 44),
                           ),
@@ -360,9 +360,9 @@ class _KeDonThuocScreenState extends State<KeDonThuocScreen> {
 
               SizedBox(height: 16),
 
-              // THÊM: Vùng chọn ảnh
+              // THÃŠM: VÃ¹ng chá»n áº£nh
               Text(
-                'Hình ảnh/Chữ ký (Tùy chọn):',
+                'HÃ¬nh áº£nh/Chá»¯ kÃ½ (TÃ¹y chá»n):',
                 style: TextStyle(fontWeight: FontWeight.w500),
               ),
               SizedBox(height: 8),
@@ -374,8 +374,8 @@ class _KeDonThuocScreenState extends State<KeDonThuocScreen> {
                       icon: Icon(Icons.photo_library),
                       label: Text(
                         _selectedImage == null
-                            ? 'Chọn ảnh'
-                            : 'Đổi ảnh',
+                            ? 'Chá»n áº£nh'
+                            : 'Äá»•i áº£nh',
                       ),
                       style: ElevatedButton.styleFrom(
                         backgroundColor: Colors.grey[200],
@@ -391,7 +391,7 @@ class _KeDonThuocScreenState extends State<KeDonThuocScreen> {
                         children: [
                           Flexible(
                             child: Text(
-                              'Đã chọn: ${_selectedImage!.name}',
+                              'ÄÃ£ chá»n: ${_selectedImage!.name}',
                               overflow: TextOverflow.ellipsis,
                             ),
                           ),
@@ -407,18 +407,18 @@ class _KeDonThuocScreenState extends State<KeDonThuocScreen> {
                 ],
               ),
               SizedBox(height: 16),
-              // KẾT THÚC THÊM
+              // Káº¾T THÃšC THÃŠM
 
-              // 3. Danh sách thuốc đã kê (từ state _thuocDaThem)
+              // 3. Danh sÃ¡ch thuá»‘c Ä‘Ã£ kÃª (tá»« state _thuocDaThem)
               Text(
-                'Chi tiết đơn thuốc (đang soạn)',
+                'Chi tiáº¿t Ä‘Æ¡n thuá»‘c (Ä‘ang soáº¡n)',
                 style: Theme.of(context).textTheme.titleMedium,
               ),
               _thuocDaThem.isEmpty
                   ? Padding(
                       padding: const EdgeInsets.symmetric(vertical: 24.0),
                       child: Center(
-                        child: Text('Chưa có thuốc nào được thêm'),
+                        child: Text('ChÆ°a cÃ³ thuá»‘c nÃ o Ä‘Æ°á»£c thÃªm'),
                       ),
                     )
                   : Card(
@@ -436,7 +436,7 @@ class _KeDonThuocScreenState extends State<KeDonThuocScreen> {
                             title: Text(
                               '${item['tenThuoc']} (SL: ${item['soLuong']})',
                             ),
-                            subtitle: Text('Liều dùng: ${item['lieuDung']}'),
+                            subtitle: Text('Liá»u dÃ¹ng: ${item['lieuDung']}'),
                             trailing: IconButton(
                               icon: Icon(
                                 Icons.delete_outline,
@@ -450,12 +450,12 @@ class _KeDonThuocScreenState extends State<KeDonThuocScreen> {
                     ),
 
               SizedBox(height: 24),
-              // Nút Lưu Đơn Thuốc Hoàn Chỉnh
+              // NÃºt LÆ°u ÄÆ¡n Thuá»‘c HoÃ n Chá»‰nh
               if (_thuocDaThem.isNotEmpty)
                 ElevatedButton.icon(
                   onPressed: _handleSaveAll,
                   icon: Icon(Icons.save),
-                  label: Text('Lưu Đơn Thuốc Hoàn Chỉnh'),
+                  label: Text('LÆ°u ÄÆ¡n Thuá»‘c HoÃ n Chá»‰nh'),
                   style: ElevatedButton.styleFrom(
                     minimumSize: Size(double.infinity, 48),
                     backgroundColor: Colors.green[700],

@@ -3,8 +3,8 @@ import 'package:flutter/material.dart';
 import 'package:font_awesome_flutter/font_awesome_flutter.dart';
 import 'package:go_router/go_router.dart';
 import 'dart:convert';
-import 'package:provider/provider.dart'; // Thêm import
-import '../../auth/auth_provider.dart'; // Thêm import
+import 'package:provider/provider.dart'; // ThÃªm import
+import '../../auth/auth_provider.dart'; // ThÃªm import
 import '../../services/api_client.dart';
 import 'package:intl/intl.dart';
 
@@ -92,7 +92,7 @@ class _QuanLyThuocScreenState extends State<QuanLyThuocScreen> {
         });
       }
     } catch (e) {
-      _showError('Lỗi tải dữ liệu: $e');
+      _showError('Lá»—i táº£i dá»¯ liá»‡u: $e');
     } finally {
       setState(() => _isLoading = false);
     }
@@ -107,8 +107,8 @@ class _QuanLyThuocScreenState extends State<QuanLyThuocScreen> {
 
   Future<void> _handleDelete(String maThuoc) async {
     final confirm = await _showConfirmDialog(
-      'Xác nhận xoá',
-      'Bạn có chắc muốn xoá $maThuoc?',
+      'XÃ¡c nháº­n xoÃ¡',
+      'Báº¡n cÃ³ cháº¯c muá»‘n xoÃ¡ $maThuoc?',
     );
     if (confirm != true) return;
     try {
@@ -116,19 +116,19 @@ class _QuanLyThuocScreenState extends State<QuanLyThuocScreen> {
       if (response.statusCode == 200) {
         _fetchData();
       } else {
-        _showError('Lỗi: ${jsonDecode(response.body)['message']}');
+        _showError('Lá»—i: ${jsonDecode(response.body)['message']}');
       }
     } catch (e) {
-      _showError('Lỗi kết nối: $e');
+      _showError('Lá»—i káº¿t ná»‘i: $e');
     }
   }
 
-  // Dialog Thêm/Sửa (Phiên bản rút gọn, có thể thêm trường nếu cần)
+  // Dialog ThÃªm/Sá»­a (PhiÃªn báº£n rÃºt gá»n, cÃ³ thá»ƒ thÃªm trÆ°á»ng náº¿u cáº§n)
   Future<void> _showAddEditDialog({Thuoc? thuoc}) async {
     final formKey = GlobalKey<FormState>();
     final bool isEdit = thuoc != null;
 
-    // (Đây là phiên bản rút gọn, backend /thuoc/controller.js cần nhiều trường hơn)
+    // (ÄÃ¢y lÃ  phiÃªn báº£n rÃºt gá»n, backend /thuoc/controller.js cáº§n nhiá»u trÆ°á»ng hÆ¡n)
     final tenController = TextEditingController(
       text: isEdit ? thuoc.tenThuoc : '',
     );
@@ -150,7 +150,7 @@ class _QuanLyThuocScreenState extends State<QuanLyThuocScreen> {
         : null;
     final hoatChatController = TextEditingController(
       text: isEdit ? '' : '',
-    ); // Cần thêm logic lấy chi tiết
+    ); // Cáº§n thÃªm logic láº¥y chi tiáº¿t
     final giaBanController = TextEditingController(text: isEdit ? '' : '');
     final tonKhoController = TextEditingController(
       text: isEdit ? thuoc.tonKho.toString() : '0',
@@ -160,7 +160,7 @@ class _QuanLyThuocScreenState extends State<QuanLyThuocScreen> {
       context: context,
       builder: (ctx) {
         return AlertDialog(
-          title: Text(isEdit ? 'Sửa Thuốc' : 'Thêm Thuốc'),
+          title: Text(isEdit ? 'Sá»­a Thuá»‘c' : 'ThÃªm Thuá»‘c'),
           content: Form(
             key: formKey,
             child: SingleChildScrollView(
@@ -169,19 +169,19 @@ class _QuanLyThuocScreenState extends State<QuanLyThuocScreen> {
                 children: [
                   TextFormField(
                     controller: tenController,
-                    decoration: InputDecoration(labelText: 'Tên thuốc'),
-                    validator: (v) => v!.isEmpty ? 'Không bỏ trống' : null,
+                    decoration: InputDecoration(labelText: 'TÃªn thuá»‘c'),
+                    validator: (v) => v!.isEmpty ? 'KhÃ´ng bá» trá»‘ng' : null,
                   ),
                   SizedBox(height: 16),
                   TextFormField(
                     controller: hoatChatController,
-                    decoration: InputDecoration(labelText: 'Hoạt chất'),
-                    validator: (v) => v!.isEmpty ? 'Không bỏ trống' : null,
+                    decoration: InputDecoration(labelText: 'Hoáº¡t cháº¥t'),
+                    validator: (v) => v!.isEmpty ? 'KhÃ´ng bá» trá»‘ng' : null,
                   ),
                   SizedBox(height: 16),
                   DropdownButtonFormField<String>(
                     decoration: InputDecoration(
-                      labelText: 'Nhóm thuốc',
+                      labelText: 'NhÃ³m thuá»‘c',
                       border: OutlineInputBorder(),
                     ),
                     initialValue: selectedNhom,
@@ -194,12 +194,12 @@ class _QuanLyThuocScreenState extends State<QuanLyThuocScreen> {
                         )
                         .toList(),
                     onChanged: (v) => selectedNhom = v,
-                    validator: (v) => v == null ? 'Vui lòng chọn' : null,
+                    validator: (v) => v == null ? 'Vui lÃ²ng chá»n' : null,
                   ),
                   SizedBox(height: 16),
                   DropdownButtonFormField<String>(
                     decoration: InputDecoration(
-                      labelText: 'Đơn vị tính',
+                      labelText: 'ÄÆ¡n vá»‹ tÃ­nh',
                       border: OutlineInputBorder(),
                     ),
                     initialValue: selectedDVT,
@@ -212,21 +212,21 @@ class _QuanLyThuocScreenState extends State<QuanLyThuocScreen> {
                         )
                         .toList(),
                     onChanged: (v) => selectedDVT = v,
-                    validator: (v) => v == null ? 'Vui lòng chọn' : null,
+                    validator: (v) => v == null ? 'Vui lÃ²ng chá»n' : null,
                   ),
                   SizedBox(height: 16),
                   TextFormField(
                     controller: giaBanController,
-                    decoration: InputDecoration(labelText: 'Giá bán lẻ'),
+                    decoration: InputDecoration(labelText: 'GiÃ¡ bÃ¡n láº»'),
                     keyboardType: TextInputType.number,
-                    validator: (v) => v!.isEmpty ? 'Không bỏ trống' : null,
+                    validator: (v) => v!.isEmpty ? 'KhÃ´ng bá» trá»‘ng' : null,
                   ),
                   SizedBox(height: 16),
                   TextFormField(
                     controller: tonKhoController,
-                    decoration: InputDecoration(labelText: 'Tồn kho'),
+                    decoration: InputDecoration(labelText: 'Tá»“n kho'),
                     keyboardType: TextInputType.number,
-                    validator: (v) => v!.isEmpty ? 'Không bỏ trống' : null,
+                    validator: (v) => v!.isEmpty ? 'KhÃ´ng bá» trá»‘ng' : null,
                   ),
                 ],
               ),
@@ -235,24 +235,24 @@ class _QuanLyThuocScreenState extends State<QuanLyThuocScreen> {
           actions: [
             TextButton(
               onPressed: () => Navigator.of(ctx).pop(),
-              child: Text('Huỷ'),
+              child: Text('Huá»·'),
             ),
             ElevatedButton(
               onPressed: () async {
                 if (!formKey.currentState!.validate()) return;
 
-                // Backend yêu cầu rất nhiều trường, đây là các trường tối thiểu
+                // Backend yÃªu cáº§u ráº¥t nhiá»u trÆ°á»ng, Ä‘Ã¢y lÃ  cÃ¡c trÆ°á»ng tá»‘i thiá»ƒu
                 final payload = {
                   'tenThuoc': tenController.text,
                   'tenHoatChat': hoatChatController.text,
                   'maNhom': selectedNhom,
                   'maDVT': selectedDVT,
                   'giaBanLe': giaBanController.text,
-                  'giaNhap': giaBanController.text, // Tạm
+                  'giaNhap': giaBanController.text, // Táº¡m
                   'tonKhoHienTai': tonKhoController.text,
                   'hanSuDung': DateFormat(
                     'yyyy-MM-dd',
-                  ).format(DateTime.now().add(Duration(days: 365))), // Tạm
+                  ).format(DateTime.now().add(Duration(days: 365))), // Táº¡m
                 };
 
                 try {
@@ -273,13 +273,15 @@ class _QuanLyThuocScreenState extends State<QuanLyThuocScreen> {
                     Navigator.of(ctx).pop();
                     _fetchData();
                   } else {
-                    _showError('Lỗi: ${jsonDecode(response.body)['message']}');
+                    _showError(
+                      'Lá»—i: ${jsonDecode(response.body)['message']}',
+                    );
                   }
                 } catch (e) {
-                  _showError('Lỗi kết nối: $e');
+                  _showError('Lá»—i káº¿t ná»‘i: $e');
                 }
               },
-              child: Text(isEdit ? 'Cập nhật' : 'Thêm'),
+              child: Text(isEdit ? 'Cáº­p nháº­t' : 'ThÃªm'),
             ),
           ],
         );
@@ -296,11 +298,11 @@ class _QuanLyThuocScreenState extends State<QuanLyThuocScreen> {
         actions: [
           TextButton(
             onPressed: () => Navigator.of(ctx).pop(false),
-            child: Text('Huỷ'),
+            child: Text('Huá»·'),
           ),
           TextButton(
             onPressed: () => Navigator.of(ctx).pop(true),
-            child: Text('Xác nhận', style: TextStyle(color: Colors.red)),
+            child: Text('XÃ¡c nháº­n', style: TextStyle(color: Colors.red)),
           ),
         ],
       ),
@@ -310,15 +312,15 @@ class _QuanLyThuocScreenState extends State<QuanLyThuocScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: Colors.grey[100],
+      backgroundColor: Theme.of(context).scaffoldBackgroundColor,
       appBar: AppBar(
-        title: Text('Quản lý Thuốc'),
-        backgroundColor: Color(0xFF2C3E50),
-        // SỬA: Bỏ 'leading' và thêm 'actions'
+        title: Text('Quáº£n lÃ½ Thuá»‘c'),
+        backgroundColor: Theme.of(context).colorScheme.primary,
+        // Sá»¬A: Bá» 'leading' vÃ  thÃªm 'actions'
         actions: [
           IconButton(
             icon: FaIcon(FontAwesomeIcons.house, color: Colors.white, size: 20),
-            tooltip: 'Trang chủ',
+            tooltip: 'Trang chá»§',
             onPressed: () => context.go('/admin'),
           ),
           IconButton(
@@ -327,7 +329,7 @@ class _QuanLyThuocScreenState extends State<QuanLyThuocScreen> {
               color: Colors.white,
               size: 20,
             ),
-            tooltip: 'Đăng xuất',
+            tooltip: 'ÄÄƒng xuáº¥t',
             onPressed: () async {
               await Provider.of<AuthProvider>(context, listen: false).logout();
               if (!context.mounted) return;
@@ -338,7 +340,7 @@ class _QuanLyThuocScreenState extends State<QuanLyThuocScreen> {
       ),
       floatingActionButton: FloatingActionButton(
         onPressed: () => _showAddEditDialog(),
-        tooltip: 'Thêm thuốc',
+        tooltip: 'ThÃªm thuá»‘c',
         child: Icon(Icons.add),
       ),
       body: _isLoading
@@ -364,7 +366,7 @@ class _QuanLyThuocScreenState extends State<QuanLyThuocScreen> {
                       style: TextStyle(fontWeight: FontWeight.bold),
                     ),
                     subtitle: Text(
-                      'Nhóm: ${item.tenNhom} - Tồn kho: ${item.tonKho} ${item.tenDVT}',
+                      'NhÃ³m: ${item.tenNhom} - Tá»“n kho: ${item.tonKho} ${item.tenDVT}',
                     ),
                     trailing: Row(
                       mainAxisSize: MainAxisSize.min,
@@ -376,8 +378,8 @@ class _QuanLyThuocScreenState extends State<QuanLyThuocScreen> {
                             size: 20,
                           ),
                           onPressed: () {
-                            // Cần gọi API chi tiết /api/thuoc/:id để lấy đủ dữ liệu
-                            // Tạm thời bỏ qua
+                            // Cáº§n gá»i API chi tiáº¿t /api/thuoc/:id Ä‘á»ƒ láº¥y Ä‘á»§ dá»¯ liá»‡u
+                            // Táº¡m thá»i bá» qua
                           },
                         ),
                         IconButton(

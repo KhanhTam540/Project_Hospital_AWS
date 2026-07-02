@@ -1,12 +1,12 @@
-// lib/screens/admin/quan_ly_bac_si_screen.dart
+﻿// lib/screens/admin/quan_ly_bac_si_screen.dart
 import 'package:flutter/material.dart';
 import 'package:font_awesome_flutter/font_awesome_flutter.dart';
 import 'package:go_router/go_router.dart';
 import 'dart:convert';
-import 'package:provider/provider.dart'; // Thêm import
-import '../../auth/auth_provider.dart'; // Thêm import
+import 'package:provider/provider.dart'; // ThÃªm import
+import '../../auth/auth_provider.dart'; // ThÃªm import
 import '../../services/api_client.dart';
-import '../../models/user_model.dart'; // Dùng UserModel
+import '../../models/user_model.dart'; // DÃ¹ng UserModel
 
 class QuanLyBacSiScreen extends StatefulWidget {
   const QuanLyBacSiScreen({super.key});
@@ -34,13 +34,13 @@ class _QuanLyBacSiScreenState extends State<QuanLyBacSiScreen> {
       if (response.statusCode == 200) {
         final data = jsonDecode(response.body)['data'] as List;
         setState(() {
-          // API /api/bacsi trả về model BacSi, ta tạm dùng UserModel
+          // API /api/bacsi tráº£ vá» model BacSi, ta táº¡m dÃ¹ng UserModel
           _list = data.map((json) => UserModel.fromJson(json)).toList();
           _isLoading = false;
         });
       }
     } catch (e) {
-      _showError('Lỗi tải dữ liệu: $e');
+      _showError('Lá»—i táº£i dá»¯ liá»‡u: $e');
     }
   }
 
@@ -59,15 +59,15 @@ class _QuanLyBacSiScreenState extends State<QuanLyBacSiScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: Colors.grey[100],
+      backgroundColor: Theme.of(context).scaffoldBackgroundColor,
       appBar: AppBar(
-        title: Text('Quản lý Bác sĩ'),
-        backgroundColor: Color(0xFF2C3E50),
-        // THÊM NÚT
+        title: Text('Quáº£n lÃ½ BÃ¡c sÄ©'),
+        backgroundColor: Theme.of(context).colorScheme.primary,
+        // THÃŠM NÃšT
         actions: [
           IconButton(
             icon: FaIcon(FontAwesomeIcons.house, color: Colors.white, size: 20),
-            tooltip: 'Trang chủ',
+            tooltip: 'Trang chá»§',
             onPressed: () => context.go('/admin'),
           ),
           IconButton(
@@ -76,7 +76,7 @@ class _QuanLyBacSiScreenState extends State<QuanLyBacSiScreen> {
               color: Colors.white,
               size: 20,
             ),
-            tooltip: 'Đăng xuất',
+            tooltip: 'ÄÄƒng xuáº¥t',
             onPressed: () async {
               await Provider.of<AuthProvider>(context, listen: false).logout();
               if (!context.mounted) return;
@@ -87,7 +87,7 @@ class _QuanLyBacSiScreenState extends State<QuanLyBacSiScreen> {
       ),
       floatingActionButton: FloatingActionButton(
         onPressed: () => context.go('/admin/account/create'),
-        tooltip: 'Thêm bác sĩ',
+        tooltip: 'ThÃªm bÃ¡c sÄ©',
         child: Icon(Icons.add),
       ),
       body: _isLoading
@@ -110,7 +110,7 @@ class _QuanLyBacSiScreenState extends State<QuanLyBacSiScreen> {
                       style: TextStyle(fontWeight: FontWeight.bold),
                     ),
                     subtitle: Text(
-                      'Chuyên môn: ${user.chuyenMon ?? 'N/A'} - Khoa: ${user.tenKhoa ?? 'N/A'}',
+                      'ChuyÃªn mÃ´n: ${user.chuyenMon ?? 'N/A'} - Khoa: ${user.tenKhoa ?? 'N/A'}',
                     ),
                     trailing: Row(
                       mainAxisSize: MainAxisSize.min,
@@ -119,7 +119,7 @@ class _QuanLyBacSiScreenState extends State<QuanLyBacSiScreen> {
                           icon: Icon(Icons.edit, color: Colors.orange),
                           onPressed: () => _handleEdit(user),
                         ),
-                        // Nút Xóa (thường nằm ở user_management_screen)
+                        // NÃºt XÃ³a (thÆ°á»ng náº±m á»Ÿ user_management_screen)
                       ],
                     ),
                   ),

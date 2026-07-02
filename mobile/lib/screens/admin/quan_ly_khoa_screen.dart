@@ -2,12 +2,12 @@
 import 'package:flutter/material.dart';
 import 'package:font_awesome_flutter/font_awesome_flutter.dart';
 import 'dart:convert';
-import 'package:go_router/go_router.dart'; // Thêm import
-import 'package:provider/provider.dart'; // Thêm import
-import '../../auth/auth_provider.dart'; // Thêm import
+import 'package:go_router/go_router.dart'; // ThÃªm import
+import 'package:provider/provider.dart'; // ThÃªm import
+import '../../auth/auth_provider.dart'; // ThÃªm import
 import '../../services/api_client.dart';
 
-// Model đơn giản cho Khoa
+// Model Ä‘Æ¡n giáº£n cho Khoa
 class KhoaModel {
   final String maKhoa;
   final String tenKhoa;
@@ -42,7 +42,7 @@ class _QuanLyKhoaScreenState extends State<QuanLyKhoaScreen> {
     _fetchKhoas();
   }
 
-  // Lấy danh sách khoa từ API /api/khoa
+  // Láº¥y danh sÃ¡ch khoa tá»« API /api/khoa
   Future<void> _fetchKhoas() async {
     setState(() => _isLoading = true);
     try {
@@ -53,10 +53,10 @@ class _QuanLyKhoaScreenState extends State<QuanLyKhoaScreen> {
           _khoas = data.map((json) => KhoaModel.fromJson(json)).toList();
         });
       } else {
-        _showError('Lỗi: ${jsonDecode(response.body)['message']}');
+        _showError('Lá»—i: ${jsonDecode(response.body)['message']}');
       }
     } catch (e) {
-      _showError('Lỗi tải dữ liệu: $e');
+      _showError('Lá»—i táº£i dá»¯ liá»‡u: $e');
     } finally {
       setState(() => _isLoading = false);
     }
@@ -69,11 +69,11 @@ class _QuanLyKhoaScreenState extends State<QuanLyKhoaScreen> {
     );
   }
 
-  // Xử lý Xóa
+  // Xá»­ lÃ½ XÃ³a
   Future<void> _handleDelete(String maKhoa) async {
     final confirm = await _showConfirmDialog(
-      'Xác nhận xoá',
-      'Bạn có chắc muốn xoá khoa $maKhoa?',
+      'XÃ¡c nháº­n xoÃ¡',
+      'Báº¡n cÃ³ cháº¯c muá»‘n xoÃ¡ khoa $maKhoa?',
     );
     if (confirm != true) return;
 
@@ -83,20 +83,20 @@ class _QuanLyKhoaScreenState extends State<QuanLyKhoaScreen> {
       if (response.statusCode == 200) {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
-            content: Text('✅ Đã xoá khoa $maKhoa'),
+            content: Text('âœ… ÄÃ£ xoÃ¡ khoa $maKhoa'),
             backgroundColor: Colors.green,
           ),
         );
-        _fetchKhoas(); // Tải lại danh sách
+        _fetchKhoas(); // Táº£i láº¡i danh sÃ¡ch
       } else {
-        _showError('Lỗi: ${jsonDecode(response.body)['message']}');
+        _showError('Lá»—i: ${jsonDecode(response.body)['message']}');
       }
     } catch (e) {
-      _showError('Lỗi kết nối: $e');
+      _showError('Lá»—i káº¿t ná»‘i: $e');
     }
   }
 
-  // Hiển thị Dialog Thêm/Sửa
+  // Hiá»ƒn thá»‹ Dialog ThÃªm/Sá»­a
   Future<void> _showAddEditDialog({KhoaModel? khoa}) async {
     final formKey = GlobalKey<FormState>();
     final tenKhoaController = TextEditingController(text: khoa?.tenKhoa);
@@ -107,7 +107,7 @@ class _QuanLyKhoaScreenState extends State<QuanLyKhoaScreen> {
       context: context,
       builder: (ctx) {
         return AlertDialog(
-          title: Text(isEdit ? 'Sửa Khoa' : 'Thêm Khoa Mới'),
+          title: Text(isEdit ? 'Sá»­a Khoa' : 'ThÃªm Khoa Má»›i'),
           content: Form(
             key: formKey,
             child: Column(
@@ -116,16 +116,17 @@ class _QuanLyKhoaScreenState extends State<QuanLyKhoaScreen> {
                 TextFormField(
                   controller: tenKhoaController,
                   decoration: InputDecoration(
-                    labelText: 'Tên khoa',
+                    labelText: 'TÃªn khoa',
                     border: OutlineInputBorder(),
                   ),
-                  validator: (v) => v!.isEmpty ? 'Không được bỏ trống' : null,
+                  validator: (v) =>
+                      v!.isEmpty ? 'KhÃ´ng Ä‘Æ°á»£c bá» trá»‘ng' : null,
                 ),
                 SizedBox(height: 16),
                 TextFormField(
                   controller: moTaController,
                   decoration: InputDecoration(
-                    labelText: 'Mô tả',
+                    labelText: 'MÃ´ táº£',
                     border: OutlineInputBorder(),
                   ),
                 ),
@@ -135,7 +136,7 @@ class _QuanLyKhoaScreenState extends State<QuanLyKhoaScreen> {
           actions: [
             TextButton(
               onPressed: () => Navigator.of(ctx).pop(),
-              child: Text('Huỷ'),
+              child: Text('Huá»·'),
             ),
             ElevatedButton(
               onPressed: () async {
@@ -159,15 +160,17 @@ class _QuanLyKhoaScreenState extends State<QuanLyKhoaScreen> {
                   if (response.statusCode == 200 ||
                       response.statusCode == 201) {
                     Navigator.of(ctx).pop();
-                    _fetchKhoas(); // Tải lại danh sách
+                    _fetchKhoas(); // Táº£i láº¡i danh sÃ¡ch
                   } else {
-                    _showError('Lỗi: ${jsonDecode(response.body)['message']}');
+                    _showError(
+                      'Lá»—i: ${jsonDecode(response.body)['message']}',
+                    );
                   }
                 } catch (e) {
-                  _showError('Lỗi kết nối: $e');
+                  _showError('Lá»—i káº¿t ná»‘i: $e');
                 }
               },
-              child: Text(isEdit ? 'Cập nhật' : 'Thêm'),
+              child: Text(isEdit ? 'Cáº­p nháº­t' : 'ThÃªm'),
             ),
           ],
         );
@@ -175,7 +178,7 @@ class _QuanLyKhoaScreenState extends State<QuanLyKhoaScreen> {
     );
   }
 
-  // Dialog xác nhận
+  // Dialog xÃ¡c nháº­n
   Future<bool?> _showConfirmDialog(String title, String content) {
     return showDialog<bool>(
       context: context,
@@ -185,11 +188,11 @@ class _QuanLyKhoaScreenState extends State<QuanLyKhoaScreen> {
         actions: [
           TextButton(
             onPressed: () => Navigator.of(ctx).pop(false),
-            child: Text('Huỷ'),
+            child: Text('Huá»·'),
           ),
           TextButton(
             onPressed: () => Navigator.of(ctx).pop(true),
-            child: Text('Xác nhận', style: TextStyle(color: Colors.red)),
+            child: Text('XÃ¡c nháº­n', style: TextStyle(color: Colors.red)),
           ),
         ],
       ),
@@ -199,15 +202,17 @@ class _QuanLyKhoaScreenState extends State<QuanLyKhoaScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: Colors.grey[100],
+      backgroundColor: Theme.of(context).scaffoldBackgroundColor,
       appBar: AppBar(
-        title: Text('Quản lý Khoa'),
-        backgroundColor: Color(0xFF2C3E50), // Thống nhất màu
-        // THÊM NÚT
+        title: Text('Quáº£n lÃ½ Khoa'),
+        backgroundColor: Theme.of(
+          context,
+        ).colorScheme.primary, // Thá»‘ng nháº¥t mÃ u
+        // THÃŠM NÃšT
         actions: [
           IconButton(
             icon: FaIcon(FontAwesomeIcons.house, color: Colors.white, size: 20),
-            tooltip: 'Trang chủ',
+            tooltip: 'Trang chá»§',
             onPressed: () => context.go('/admin'),
           ),
           IconButton(
@@ -216,7 +221,7 @@ class _QuanLyKhoaScreenState extends State<QuanLyKhoaScreen> {
               color: Colors.white,
               size: 20,
             ),
-            tooltip: 'Đăng xuất',
+            tooltip: 'ÄÄƒng xuáº¥t',
             onPressed: () async {
               await Provider.of<AuthProvider>(context, listen: false).logout();
               if (!context.mounted) return;
@@ -227,7 +232,7 @@ class _QuanLyKhoaScreenState extends State<QuanLyKhoaScreen> {
       ),
       floatingActionButton: FloatingActionButton(
         onPressed: () => _showAddEditDialog(),
-        tooltip: 'Thêm khoa mới',
+        tooltip: 'ThÃªm khoa má»›i',
         child: Icon(Icons.add),
       ),
       body: _isLoading
@@ -256,7 +261,7 @@ class _QuanLyKhoaScreenState extends State<QuanLyKhoaScreen> {
                       khoa.tenKhoa,
                       style: TextStyle(fontWeight: FontWeight.bold),
                     ),
-                    subtitle: Text(khoa.moTa ?? 'Mã khoa: ${khoa.maKhoa}'),
+                    subtitle: Text(khoa.moTa ?? 'MÃ£ khoa: ${khoa.maKhoa}'),
                     trailing: Row(
                       mainAxisSize: MainAxisSize.min,
                       children: [

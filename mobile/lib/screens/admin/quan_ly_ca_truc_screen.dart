@@ -5,7 +5,7 @@ import 'package:provider/provider.dart';
 import '../../auth/auth_provider.dart';
 import '../../services/api_client.dart';
 
-// (Giữ nguyên các hàm helper API: getAllShifts, createShift, updateShift, deleteShift)
+// (Giá»¯ nguyÃªn cÃ¡c hÃ m helper API: getAllShifts, createShift, updateShift, deleteShift)
 final ApiClient _api = ApiClient();
 Future<List<Map<String, dynamic>>> getAllShifts() async {
   try {
@@ -15,7 +15,7 @@ Future<List<Map<String, dynamic>>> getAllShifts() async {
     }
     return [];
   } catch (e) {
-    debugPrint('Lỗi tải ca trực: $e');
+    debugPrint('Lá»—i táº£i ca trá»±c: $e');
     return [];
   }
 }
@@ -25,7 +25,7 @@ Future<bool> createShift(Map<String, dynamic> data) async {
     final response = await _api.post('/catruc', data);
     return response.statusCode == 200 || response.statusCode == 201;
   } catch (e) {
-    debugPrint('Lỗi tạo ca trực: $e');
+    debugPrint('Lá»—i táº¡o ca trá»±c: $e');
     return false;
   }
 }
@@ -35,7 +35,7 @@ Future<bool> updateShift(String maCa, Map<String, dynamic> data) async {
     final response = await _api.put('/catruc/$maCa', data);
     return response.statusCode == 200 || response.statusCode == 204;
   } catch (e) {
-    debugPrint('Lỗi cập nhật ca trực: $e');
+    debugPrint('Lá»—i cáº­p nháº­t ca trá»±c: $e');
     return false;
   }
 }
@@ -45,7 +45,7 @@ Future<bool> deleteShift(String maCa) async {
     final response = await _api.delete('/catruc/$maCa');
     return response.statusCode == 200 || response.statusCode == 204;
   } catch (e) {
-    debugPrint('Lỗi xóa ca trực: $e');
+    debugPrint('Lá»—i xÃ³a ca trá»±c: $e');
     return false;
   }
 }
@@ -112,7 +112,7 @@ class _QuanLyCaTrucPageScreenState extends State<QuanLyCaTrucPageScreen> {
     if (success) {
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
-          content: Text('✅ Tạo ca trực thành công'),
+          content: Text('âœ… Táº¡o ca trá»±c thÃ nh cÃ´ng'),
           backgroundColor: Colors.green,
         ),
       );
@@ -122,7 +122,7 @@ class _QuanLyCaTrucPageScreenState extends State<QuanLyCaTrucPageScreen> {
     } else {
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
-          content: Text('❌ Tạo ca trực thất bại'),
+          content: Text('âŒ Táº¡o ca trá»±c tháº¥t báº¡i'),
           backgroundColor: Colors.red,
         ),
       );
@@ -130,7 +130,7 @@ class _QuanLyCaTrucPageScreenState extends State<QuanLyCaTrucPageScreen> {
     await _fetchShifts();
   }
 
-  // (Hàm _handleUpdateShift và _handleDeleteShift giữ nguyên)
+  // (HÃ m _handleUpdateShift vÃ  _handleDeleteShift giá»¯ nguyÃªn)
   Future<void> _handleUpdateShift(Map<String, dynamic> shift) async {
     var tenCa = shift['tenCa']?.toString() ?? '';
     var batDau = _displayTime(shift['thoiGianBatDau']);
@@ -140,21 +140,21 @@ class _QuanLyCaTrucPageScreenState extends State<QuanLyCaTrucPageScreen> {
       context: context,
       builder: (dialogContext) {
         return AlertDialog(
-          title: Text('Sửa ca trực: ${shift['maCa']}'),
+          title: Text('Sá»­a ca trá»±c: ${shift['maCa']}'),
           content: Column(
             mainAxisSize: MainAxisSize.min,
             children: [
               TextFormField(
                 initialValue: tenCa,
                 onChanged: (value) => tenCa = value,
-                decoration: const InputDecoration(labelText: 'Tên ca'),
+                decoration: const InputDecoration(labelText: 'TÃªn ca'),
               ),
               const SizedBox(height: 10),
               TextFormField(
                 initialValue: batDau,
                 onChanged: (value) => batDau = value,
                 decoration: const InputDecoration(
-                  labelText: 'Giờ bắt đầu (HH:mm)',
+                  labelText: 'Giá» báº¯t Ä‘áº§u (HH:mm)',
                 ),
               ),
               const SizedBox(height: 10),
@@ -162,7 +162,7 @@ class _QuanLyCaTrucPageScreenState extends State<QuanLyCaTrucPageScreen> {
                 initialValue: ketThuc,
                 onChanged: (value) => ketThuc = value,
                 decoration: const InputDecoration(
-                  labelText: 'Giờ kết thúc (HH:mm)',
+                  labelText: 'Giá» káº¿t thÃºc (HH:mm)',
                 ),
               ),
             ],
@@ -170,20 +170,18 @@ class _QuanLyCaTrucPageScreenState extends State<QuanLyCaTrucPageScreen> {
           actions: [
             TextButton(
               onPressed: () => Navigator.pop(dialogContext),
-              child: const Text('Hủy'),
+              child: const Text('Há»§y'),
             ),
             TextButton(
               onPressed: () async {
                 Navigator.pop(dialogContext);
 
-                final success = await updateShift(
-                  shift['maCa']?.toString() ?? '',
-                  {
-                    'tenCa': tenCa.trim(),
-                    'thoiGianBatDau': _apiTime(batDau),
-                    'thoiGianKetThuc': _apiTime(ketThuc),
-                  },
-                );
+                final success =
+                    await updateShift(shift['maCa']?.toString() ?? '', {
+                      'tenCa': tenCa.trim(),
+                      'thoiGianBatDau': _apiTime(batDau),
+                      'thoiGianKetThuc': _apiTime(ketThuc),
+                    });
 
                 if (!mounted) {
                   return;
@@ -193,15 +191,15 @@ class _QuanLyCaTrucPageScreenState extends State<QuanLyCaTrucPageScreen> {
                   SnackBar(
                     content: Text(
                       success
-                          ? 'Cập nhật ca trực thành công.'
-                          : 'Cập nhật ca trực thất bại.',
+                          ? 'Cáº­p nháº­t ca trá»±c thÃ nh cÃ´ng.'
+                          : 'Cáº­p nháº­t ca trá»±c tháº¥t báº¡i.',
                     ),
                     backgroundColor: success ? Colors.green : Colors.red,
                   ),
                 );
                 await _fetchShifts();
               },
-              child: const Text('Lưu'),
+              child: const Text('LÆ°u'),
             ),
           ],
         );
@@ -223,16 +221,16 @@ class _QuanLyCaTrucPageScreenState extends State<QuanLyCaTrucPageScreen> {
     final confirm = await showDialog<bool>(
       context: context,
       builder: (context) => AlertDialog(
-        title: Text('Xác nhận xóa'),
-        content: Text('Bạn có chắc chắn muốn xóa ca trực $maCa?'),
+        title: Text('XÃ¡c nháº­n xÃ³a'),
+        content: Text('Báº¡n cÃ³ cháº¯c cháº¯n muá»‘n xÃ³a ca trá»±c $maCa?'),
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(context, false),
-            child: const Text('Hủy'),
+            child: const Text('Há»§y'),
           ),
           TextButton(
             onPressed: () => Navigator.pop(context, true),
-            child: const Text('Xóa', style: TextStyle(color: Colors.red)),
+            child: const Text('XÃ³a', style: TextStyle(color: Colors.red)),
           ),
         ],
       ),
@@ -242,13 +240,13 @@ class _QuanLyCaTrucPageScreenState extends State<QuanLyCaTrucPageScreen> {
       final success = await deleteShift(maCa);
       if (!mounted) return;
       if (success) {
-        ScaffoldMessenger.of(
-          context,
-        ).showSnackBar(SnackBar(content: Text('🗑️ Đã xóa ca trực $maCa')));
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('ðŸ—‘ï¸ ÄÃ£ xÃ³a ca trá»±c $maCa')),
+        );
       } else {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
-            content: Text('❌ Xóa thất bại'),
+            content: Text('âŒ XÃ³a tháº¥t báº¡i'),
             backgroundColor: Colors.red,
           ),
         );
@@ -259,24 +257,24 @@ class _QuanLyCaTrucPageScreenState extends State<QuanLyCaTrucPageScreen> {
 
   @override
   Widget build(BuildContext context) {
-    // THIẾT KẾ LẠI THEO ẢNH
+    // THIáº¾T Káº¾ Láº I THEO áº¢NH
     return Scaffold(
-      backgroundColor: Color(0xFFF4F7F6), // Màu nền xám nhạt
+      backgroundColor: Color(0xFFF4F7F6), // MÃ u ná»n xÃ¡m nháº¡t
       appBar: AppBar(
-        title: const Text('Quản lý ca trực'),
-        backgroundColor: Color(0xFF2C3E50),
+        title: const Text('Quáº£n lÃ½ ca trá»±c'),
+        backgroundColor: Theme.of(context).colorScheme.primary,
         leading: IconButton(
           icon: FaIcon(
             FontAwesomeIcons.chevronLeft,
             color: Colors.white,
             size: 20,
           ),
-          onPressed: () => context.go('/admin'), // Luôn quay về trang chủ
+          onPressed: () => context.go('/admin'), // LuÃ´n quay vá» trang chá»§
         ),
         actions: [
           IconButton(
             icon: FaIcon(FontAwesomeIcons.house, color: Colors.white, size: 20),
-            tooltip: 'Trang chủ',
+            tooltip: 'Trang chá»§',
             onPressed: () => context.go('/admin'),
           ),
           IconButton(
@@ -285,7 +283,7 @@ class _QuanLyCaTrucPageScreenState extends State<QuanLyCaTrucPageScreen> {
               color: Colors.white,
               size: 20,
             ),
-            tooltip: 'Đăng xuất',
+            tooltip: 'ÄÄƒng xuáº¥t',
             onPressed: () async {
               await Provider.of<AuthProvider>(context, listen: false).logout();
               if (!context.mounted) return;
@@ -299,7 +297,7 @@ class _QuanLyCaTrucPageScreenState extends State<QuanLyCaTrucPageScreen> {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            // Tiêu đề chính
+            // TiÃªu Ä‘á» chÃ­nh
             Row(
               children: [
                 FaIcon(
@@ -309,7 +307,7 @@ class _QuanLyCaTrucPageScreenState extends State<QuanLyCaTrucPageScreen> {
                 ),
                 SizedBox(width: 12),
                 Text(
-                  'Quản lý ca trực bệnh viện',
+                  'Quáº£n lÃ½ ca trá»±c bá»‡nh viá»‡n',
                   style: Theme.of(context).textTheme.headlineSmall?.copyWith(
                     color: Color(0xFF2C3E50),
                     fontWeight: FontWeight.bold,
@@ -319,7 +317,7 @@ class _QuanLyCaTrucPageScreenState extends State<QuanLyCaTrucPageScreen> {
             ),
             SizedBox(height: 20),
 
-            // --- Form Thêm Ca Trực ---
+            // --- Form ThÃªm Ca Trá»±c ---
             Card(
               elevation: 3,
               shape: RoundedRectangleBorder(
@@ -345,7 +343,7 @@ class _QuanLyCaTrucPageScreenState extends State<QuanLyCaTrucPageScreen> {
                           ),
                           SizedBox(width: 8),
                           Text(
-                            'Thêm ca trực mới',
+                            'ThÃªm ca trá»±c má»›i',
                             style: TextStyle(
                               fontSize: 18,
                               fontWeight: FontWeight.bold,
@@ -359,7 +357,7 @@ class _QuanLyCaTrucPageScreenState extends State<QuanLyCaTrucPageScreen> {
                       TextFormField(
                         controller: _tenCaController,
                         decoration: InputDecoration(
-                          labelText: 'Tên ca',
+                          labelText: 'TÃªn ca',
                           border: OutlineInputBorder(
                             borderRadius: BorderRadius.circular(8),
                           ),
@@ -369,7 +367,7 @@ class _QuanLyCaTrucPageScreenState extends State<QuanLyCaTrucPageScreen> {
                           ),
                         ),
                         validator: (v) =>
-                            v!.isEmpty ? 'Tên ca là bắt buộc' : null,
+                            v!.isEmpty ? 'TÃªn ca lÃ  báº¯t buá»™c' : null,
                       ),
                       SizedBox(height: 16),
 
@@ -378,7 +376,7 @@ class _QuanLyCaTrucPageScreenState extends State<QuanLyCaTrucPageScreen> {
                           Expanded(
                             child: _buildTimePicker(
                               context,
-                              'Giờ bắt đầu',
+                              'Giá» báº¯t Ä‘áº§u',
                               _batDauController,
                             ),
                           ),
@@ -386,7 +384,7 @@ class _QuanLyCaTrucPageScreenState extends State<QuanLyCaTrucPageScreen> {
                           Expanded(
                             child: _buildTimePicker(
                               context,
-                              'Giờ kết thúc',
+                              'Giá» káº¿t thÃºc',
                               _ketThucController,
                             ),
                           ),
@@ -399,10 +397,10 @@ class _QuanLyCaTrucPageScreenState extends State<QuanLyCaTrucPageScreen> {
                         child: ElevatedButton.icon(
                           onPressed: _handleCreateShift,
                           icon: FaIcon(FontAwesomeIcons.plus, size: 16),
-                          label: Text('Thêm ca'),
+                          label: Text('ThÃªm ca'),
                           style: ElevatedButton.styleFrom(
                             backgroundColor: Colors.blue[600],
-                            foregroundColor: Colors.white, // Màu chữ
+                            foregroundColor: Colors.white, // MÃ u chá»¯
                             padding: EdgeInsets.symmetric(vertical: 14),
                             shape: RoundedRectangleBorder(
                               borderRadius: BorderRadius.circular(10),
@@ -421,9 +419,9 @@ class _QuanLyCaTrucPageScreenState extends State<QuanLyCaTrucPageScreen> {
             ),
             SizedBox(height: 30),
 
-            // --- Bảng Danh sách Ca Trực ---
+            // --- Báº£ng Danh sÃ¡ch Ca Trá»±c ---
             Text(
-              'Danh sách Ca Trực',
+              'Danh sÃ¡ch Ca Trá»±c',
               style: Theme.of(context).textTheme.titleLarge?.copyWith(
                 color: Color(0xFF2C3E50),
                 fontWeight: FontWeight.bold,
@@ -439,11 +437,11 @@ class _QuanLyCaTrucPageScreenState extends State<QuanLyCaTrucPageScreen> {
                 shape: RoundedRectangleBorder(
                   borderRadius: BorderRadius.circular(8),
                 ),
-                clipBehavior: Clip.antiAlias, // Giúp bo tròn DataTable
+                clipBehavior: Clip.antiAlias, // GiÃºp bo trÃ²n DataTable
                 child: SingleChildScrollView(
                   scrollDirection: Axis.horizontal,
                   child: DataTable(
-                    columnSpacing: 25, // Tăng khoảng cách
+                    columnSpacing: 25, // TÄƒng khoáº£ng cÃ¡ch
                     horizontalMargin: 12,
                     dataRowMinHeight: 52,
                     dataRowMaxHeight: 52,
@@ -451,31 +449,31 @@ class _QuanLyCaTrucPageScreenState extends State<QuanLyCaTrucPageScreen> {
                     columns: [
                       DataColumn(
                         label: Text(
-                          'Mã ca',
+                          'MÃ£ ca',
                           style: TextStyle(fontWeight: FontWeight.bold),
                         ),
                       ),
                       DataColumn(
                         label: Text(
-                          'Tên ca',
+                          'TÃªn ca',
                           style: TextStyle(fontWeight: FontWeight.bold),
                         ),
                       ),
                       DataColumn(
                         label: Text(
-                          'Bắt đầu',
+                          'Báº¯t Ä‘áº§u',
                           style: TextStyle(fontWeight: FontWeight.bold),
                         ),
                       ),
                       DataColumn(
                         label: Text(
-                          'Kết thúc',
+                          'Káº¿t thÃºc',
                           style: TextStyle(fontWeight: FontWeight.bold),
                         ),
                       ),
                       DataColumn(
                         label: Text(
-                          'Thao tác',
+                          'Thao tÃ¡c',
                           style: TextStyle(fontWeight: FontWeight.bold),
                         ),
                       ),
@@ -485,15 +483,9 @@ class _QuanLyCaTrucPageScreenState extends State<QuanLyCaTrucPageScreen> {
                         cells: [
                           DataCell(Text(shift['maCa']?.toString() ?? '-')),
                           DataCell(Text(shift['tenCa']?.toString() ?? '-')),
+                          DataCell(Text(_displayTime(shift['thoiGianBatDau']))),
                           DataCell(
-                            Text(
-                              _displayTime(shift['thoiGianBatDau']),
-                            ),
-                          ),
-                          DataCell(
-                            Text(
-                              _displayTime(shift['thoiGianKetThuc']),
-                            ),
+                            Text(_displayTime(shift['thoiGianKetThuc'])),
                           ),
                           DataCell(
                             Row(
@@ -504,9 +496,9 @@ class _QuanLyCaTrucPageScreenState extends State<QuanLyCaTrucPageScreen> {
                                     FontAwesomeIcons.pen,
                                     size: 16,
                                     color: Colors.blue[700],
-                                  ), // Sửa icon
+                                  ), // Sá»­a icon
                                   onPressed: () => _handleUpdateShift(shift),
-                                  tooltip: 'Sửa',
+                                  tooltip: 'Sá»­a',
                                   splashRadius: 20,
                                 ),
                                 IconButton(
@@ -514,10 +506,11 @@ class _QuanLyCaTrucPageScreenState extends State<QuanLyCaTrucPageScreen> {
                                     FontAwesomeIcons.trashCan,
                                     size: 16,
                                     color: Colors.red[700],
-                                  ), // Sửa icon
-                                  onPressed: () =>
-                                      _handleDeleteShift(shift['maCa']?.toString() ?? ''),
-                                  tooltip: 'Xóa',
+                                  ), // Sá»­a icon
+                                  onPressed: () => _handleDeleteShift(
+                                    shift['maCa']?.toString() ?? '',
+                                  ),
+                                  tooltip: 'XÃ³a',
                                   splashRadius: 20,
                                 ),
                               ],
@@ -535,7 +528,7 @@ class _QuanLyCaTrucPageScreenState extends State<QuanLyCaTrucPageScreen> {
     );
   }
 
-  // SỬA LỖI 2: Sửa lại hàm _buildTimePicker
+  // Sá»¬A Lá»–I 2: Sá»­a láº¡i hÃ m _buildTimePicker
   Widget _buildTimePicker(
     BuildContext context,
     String label,
@@ -543,7 +536,7 @@ class _QuanLyCaTrucPageScreenState extends State<QuanLyCaTrucPageScreen> {
   ) {
     return TextFormField(
       readOnly: true,
-      controller: controller, // Sử dụng controller
+      controller: controller, // Sá»­ dá»¥ng controller
       decoration: InputDecoration(
         labelText: label,
         border: OutlineInputBorder(borderRadius: BorderRadius.circular(8)),

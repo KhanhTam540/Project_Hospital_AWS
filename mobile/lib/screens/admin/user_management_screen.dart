@@ -3,8 +3,8 @@ import 'dart:convert';
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 import 'package:font_awesome_flutter/font_awesome_flutter.dart';
-import 'package:provider/provider.dart'; // Thêm import
-import '../../auth/auth_provider.dart'; // Thêm import
+import 'package:provider/provider.dart'; // ThÃªm import
+import '../../auth/auth_provider.dart'; // ThÃªm import
 import '../../models/user_model.dart';
 import '../../services/api_client.dart';
 
@@ -16,7 +16,7 @@ class UserManagementScreen extends StatefulWidget {
 }
 
 class _UserManagementScreenState extends State<UserManagementScreen> {
-  // (Giữ nguyên phần state, initState, _fetchUsers, _groupUsers, _handleEdit, _handleDelete)
+  // (Giá»¯ nguyÃªn pháº§n state, initState, _fetchUsers, _groupUsers, _handleEdit, _handleDelete)
   bool _isLoading = true;
   String _error = '';
   Map<String, List<UserModel>> _groupedUsers = {
@@ -59,12 +59,12 @@ class _UserManagementScreenState extends State<UserManagementScreen> {
       } else {
         final errorBody = jsonDecode(response.body);
         setState(() {
-          _error = errorBody['message'] ?? 'Không thể tải dữ liệu';
+          _error = errorBody['message'] ?? 'KhÃ´ng thá»ƒ táº£i dá»¯ liá»‡u';
         });
       }
     } catch (e) {
       setState(() {
-        _error = 'Lỗi kết nối: $e';
+        _error = 'Lá»—i káº¿t ná»‘i: $e';
       });
     } finally {
       setState(() {
@@ -94,18 +94,18 @@ class _UserManagementScreenState extends State<UserManagementScreen> {
     bool? confirm = await showDialog(
       context: context,
       builder: (ctx) => AlertDialog(
-        title: Text('Xác nhận xoá'),
+        title: Text('XÃ¡c nháº­n xoÃ¡'),
         content: Text(
-          'Bạn có chắc chắn muốn xoá tài khoản này? Mọi dữ liệu liên quan sẽ bị mất.',
+          'Báº¡n cÃ³ cháº¯c cháº¯n muá»‘n xoÃ¡ tÃ i khoáº£n nÃ y? Má»i dá»¯ liá»‡u liÃªn quan sáº½ bá»‹ máº¥t.',
         ),
         actions: [
           TextButton(
             onPressed: () => Navigator.of(ctx).pop(false),
-            child: Text('Huỷ'),
+            child: Text('Huá»·'),
           ),
           TextButton(
             onPressed: () => Navigator.of(ctx).pop(true),
-            child: Text('Xoá', style: TextStyle(color: Colors.red)),
+            child: Text('XoÃ¡', style: TextStyle(color: Colors.red)),
           ),
         ],
       ),
@@ -121,7 +121,7 @@ class _UserManagementScreenState extends State<UserManagementScreen> {
       if (response.statusCode == 200) {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
-            content: Text('Đã xoá tài khoản $accountIdentifier'),
+            content: Text('ÄÃ£ xoÃ¡ tÃ i khoáº£n $accountIdentifier'),
             backgroundColor: Colors.green,
           ),
         );
@@ -130,7 +130,7 @@ class _UserManagementScreenState extends State<UserManagementScreen> {
         final errorBody = jsonDecode(response.body);
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
-            content: Text('Lỗi: ${errorBody['message']}'),
+            content: Text('Lá»—i: ${errorBody['message']}'),
             backgroundColor: Colors.red,
           ),
         );
@@ -138,7 +138,10 @@ class _UserManagementScreenState extends State<UserManagementScreen> {
     } catch (e) {
       if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('Lỗi kết nối: $e'), backgroundColor: Colors.red),
+        SnackBar(
+          content: Text('Lá»—i káº¿t ná»‘i: $e'),
+          backgroundColor: Colors.red,
+        ),
       );
     }
   }
@@ -146,35 +149,37 @@ class _UserManagementScreenState extends State<UserManagementScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: Colors.grey[100],
+      backgroundColor: Theme.of(context).scaffoldBackgroundColor,
       appBar: AppBar(
-        title: Text('Quản lý tài khoản'),
-        backgroundColor: Color(0xFF2C3E50), // Thống nhất màu
+        title: Text('Quáº£n lÃ½ tÃ i khoáº£n'),
+        backgroundColor: Theme.of(
+          context,
+        ).colorScheme.primary, // Thá»‘ng nháº¥t mÃ u
         actions: [
-          // THÊM NÚT HOME
+          // THÃŠM NÃšT HOME
           IconButton(
             icon: FaIcon(FontAwesomeIcons.house, color: Colors.white, size: 20),
-            tooltip: 'Trang chủ',
+            tooltip: 'Trang chá»§',
             onPressed: () => context.go('/admin'),
           ),
           IconButton(
             icon: Icon(Icons.add_circle_outline, color: Colors.white, size: 26),
-            tooltip: 'Tạo tài khoản mới',
+            tooltip: 'Táº¡o tÃ i khoáº£n má»›i',
             onPressed: () => context.go('/admin/account/create'),
           ),
           IconButton(
             icon: Icon(Icons.refresh, color: Colors.white, size: 26),
-            tooltip: 'Tải lại',
+            tooltip: 'Táº£i láº¡i',
             onPressed: _fetchUsers,
           ),
-          // THÊM NÚT ĐĂNG XUẤT
+          // THÃŠM NÃšT ÄÄ‚NG XUáº¤T
           IconButton(
             icon: FaIcon(
               FontAwesomeIcons.rightFromBracket,
               color: Colors.white,
               size: 20,
             ),
-            tooltip: 'Đăng xuất',
+            tooltip: 'ÄÄƒng xuáº¥t',
             onPressed: () async {
               await Provider.of<AuthProvider>(context, listen: false).logout();
               if (!context.mounted) return;
@@ -193,25 +198,25 @@ class _UserManagementScreenState extends State<UserManagementScreen> {
               padding: EdgeInsets.all(16),
               children: [
                 _buildUserSection(
-                  '🟦 Quản trị viên (ADMIN)',
+                  'ðŸŸ¦ Quáº£n trá»‹ viÃªn (ADMIN)',
                   _groupedUsers['ADMIN']!,
                   _buildAdminColumns(),
                   _buildAdminRows,
                 ),
                 _buildUserSection(
-                  '🟩 Bác sĩ (BACSI)',
+                  'ðŸŸ© BÃ¡c sÄ© (BACSI)',
                   _groupedUsers['BACSI']!,
                   _buildBacSiColumns(),
                   _buildBacSiRows,
                 ),
                 _buildUserSection(
-                  '🟨 Nhân viên y tế (NHANSU)',
+                  'ðŸŸ¨ NhÃ¢n viÃªn y táº¿ (NHANSU)',
                   _groupedUsers['NHANSU']!,
                   _buildNhanSuColumns(),
                   _buildNhanSuRows,
                 ),
                 _buildUserSection(
-                  '🟧 Bệnh nhân (BENHNHAN)',
+                  'ðŸŸ§ Bá»‡nh nhÃ¢n (BENHNHAN)',
                   _groupedUsers['BENHNHAN']!,
                   _buildBenhNhanColumns(),
                   _buildBenhNhanRows,
@@ -222,7 +227,7 @@ class _UserManagementScreenState extends State<UserManagementScreen> {
   }
 
   // --- WIDGETS CON ---
-  // (Giữ nguyên _buildUserSection, _buildCommonColumns, _buildActionsColumn, _buildActionsCell, _buildTrangThaiCell, và 4 nhóm hàm cho các vai trò)
+  // (Giá»¯ nguyÃªn _buildUserSection, _buildCommonColumns, _buildActionsColumn, _buildActionsCell, _buildTrangThaiCell, vÃ  4 nhÃ³m hÃ m cho cÃ¡c vai trÃ²)
   // ...
   Widget _buildUserSection(
     String title,
@@ -252,7 +257,7 @@ class _UserManagementScreenState extends State<UserManagementScreen> {
                     child: Padding(
                       padding: const EdgeInsets.all(8.0),
                       child: Text(
-                        'Không có tài khoản nào.',
+                        'KhÃ´ng cÃ³ tÃ i khoáº£n nÃ o.',
                         style: TextStyle(fontStyle: FontStyle.italic),
                       ),
                     ),
@@ -276,32 +281,32 @@ class _UserManagementScreenState extends State<UserManagementScreen> {
 
   List<DataColumn> _buildCommonColumns() {
     return [
-      DataColumn(label: Text('Mã TK')),
-      DataColumn(label: Text('Tên đăng nhập')),
+      DataColumn(label: Text('MÃ£ TK')),
+      DataColumn(label: Text('TÃªn Ä‘Äƒng nháº­p')),
       DataColumn(label: Text('Email')),
-      DataColumn(label: Text('Trạng thái')),
+      DataColumn(label: Text('Tráº¡ng thÃ¡i')),
     ];
   }
 
   DataColumn _buildActionsColumn() {
-    return DataColumn(label: Text('Thao tác'));
+    return DataColumn(label: Text('Thao tÃ¡c'));
   }
 
   DataCell _buildActionsCell(UserModel user) {
     return DataCell(
       Row(
-        mainAxisSize: MainAxisSize.min, // Giữ cho các nút gần nhau
+        mainAxisSize: MainAxisSize.min, // Giá»¯ cho cÃ¡c nÃºt gáº§n nhau
         children: [
           IconButton(
             icon: Icon(Icons.edit, color: Colors.orange[700]),
-            tooltip: 'Sửa',
-            iconSize: 20, // Giảm kích thước
+            tooltip: 'Sá»­a',
+            iconSize: 20, // Giáº£m kÃ­ch thÆ°á»›c
             splashRadius: 20,
             onPressed: () => _handleEdit(user),
           ),
           IconButton(
             icon: Icon(Icons.delete, color: Colors.red[700]),
-            tooltip: 'Xoá',
+            tooltip: 'XoÃ¡',
             iconSize: 20,
             splashRadius: 20,
             onPressed: () => _handleDelete(user),
@@ -342,14 +347,14 @@ class _UserManagementScreenState extends State<UserManagementScreen> {
         .toList();
   }
 
-  // 2. BÁC SĨ
+  // 2. BÃC SÄ¨
   List<DataColumn> _buildBacSiColumns() {
     return [
       ..._buildCommonColumns(),
-      DataColumn(label: Text('Họ tên')),
+      DataColumn(label: Text('Há» tÃªn')),
       DataColumn(label: Text('Khoa')),
-      DataColumn(label: Text('Chuyên môn')),
-      DataColumn(label: Text('Chức vụ')),
+      DataColumn(label: Text('ChuyÃªn mÃ´n')),
+      DataColumn(label: Text('Chá»©c vá»¥')),
       _buildActionsColumn(),
     ];
   }
@@ -374,14 +379,14 @@ class _UserManagementScreenState extends State<UserManagementScreen> {
         .toList();
   }
 
-  // 3. NHÂN SỰ
+  // 3. NHÃ‚N Sá»°
   List<DataColumn> _buildNhanSuColumns() {
     return [
       ..._buildCommonColumns(),
-      DataColumn(label: Text('Họ tên')),
+      DataColumn(label: Text('Há» tÃªn')),
       DataColumn(label: Text('Khoa')),
-      DataColumn(label: Text('Loại NS')),
-      DataColumn(label: Text('Cấp bậc')),
+      DataColumn(label: Text('Loáº¡i NS')),
+      DataColumn(label: Text('Cáº¥p báº­c')),
       _buildActionsColumn(),
     ];
   }
@@ -406,12 +411,12 @@ class _UserManagementScreenState extends State<UserManagementScreen> {
         .toList();
   }
 
-  // 4. BỆNH NHÂN
+  // 4. Bá»†NH NHÃ‚N
   List<DataColumn> _buildBenhNhanColumns() {
     return [
       ..._buildCommonColumns(),
-      DataColumn(label: Text('Họ tên')),
-      DataColumn(label: Text('SĐT')),
+      DataColumn(label: Text('Há» tÃªn')),
+      DataColumn(label: Text('SÄT')),
       DataColumn(label: Text('BHYT')),
       _buildActionsColumn(),
     ];

@@ -103,10 +103,10 @@ class _PhieuXetNghiemNSScreenState extends State<PhieuXetNghiemNSScreen> {
   String? _selectedHSBA;
   DateTime _selectedDate = DateTime.now();
 
-  // State và controller cho chức năng upload
+  // State vÃ  controller cho chá»©c nÄƒng upload
   final ImagePicker _picker = ImagePicker();
   XFile? _selectedImage;
-  // Kết thúc phần upload
+  // Káº¿t thÃºc pháº§n upload
 
   @override
   void initState() {
@@ -118,9 +118,9 @@ class _PhieuXetNghiemNSScreenState extends State<PhieuXetNghiemNSScreen> {
     setState(() => _isLoading = true);
     try {
       final responses = await Future.wait([
-        _api.get('/phieuxetnghiem'), // Danh sách phiếu đã có
-        _api.get('/yeucauxetnghiem'), // Danh sách yêu cầu
-        _api.get('/xetnghiem'), // Danh sách xét nghiệm
+        _api.get('/phieuxetnghiem'), // Danh sÃ¡ch phiáº¿u Ä‘Ã£ cÃ³
+        _api.get('/yeucauxetnghiem'), // Danh sÃ¡ch yÃªu cáº§u
+        _api.get('/xetnghiem'), // Danh sÃ¡ch xÃ©t nghiá»‡m
         _api.get('/hsba'), // List HSBA
       ]);
 
@@ -159,7 +159,7 @@ class _PhieuXetNghiemNSScreenState extends State<PhieuXetNghiemNSScreen> {
     );
   }
 
-  // Hàm chọn ảnh
+  // HÃ m chá»n áº£nh
   Future<void> _pickImage() async {
     final XFile? pickedFile = await _picker.pickImage(
       source: ImageSource.gallery,
@@ -170,15 +170,17 @@ class _PhieuXetNghiemNSScreenState extends State<PhieuXetNghiemNSScreen> {
       });
     }
   }
-  // Kết thúc phần upload
+  // Káº¿t thÃºc pháº§n upload
 
-  // Hàm tạo phiếu xét nghiệm hoàn chỉnh
+  // HÃ m táº¡o phiáº¿u xÃ©t nghiá»‡m hoÃ n chá»‰nh
   Future<void> _handleCreatePhieuHoanChinh() async {
     if (!_formKey.currentState!.validate()) return;
     if (_selectedYeuCau == null ||
         _selectedXN == null ||
         _selectedHSBA == null) {
-      _showError("Vui lòng chọn đủ yêu cầu, xét nghiệm và hồ sơ bệnh án.");
+      _showError(
+        "Vui lÃ²ng chá»n Ä‘á»§ yÃªu cáº§u, xÃ©t nghiá»‡m vÃ  há»“ sÆ¡ bá»‡nh Ã¡n.",
+      );
       return;
     }
 
@@ -192,12 +194,12 @@ class _PhieuXetNghiemNSScreenState extends State<PhieuXetNghiemNSScreen> {
     };
 
     setState(() => _isLoading = true);
-    final endpoint = '/phieuxetnghiem'; // Endpoint chính
+    final endpoint = '/phieuxetnghiem'; // Endpoint chÃ­nh
 
     try {
       dynamic response;
       if (_selectedImage != null) {
-        // Gửi multipart
+        // Gá»­i multipart
         final Map<String, String> fields = payload.map(
           (k, v) => MapEntry(k, v?.toString() ?? ''),
         );
@@ -206,15 +208,15 @@ class _PhieuXetNghiemNSScreenState extends State<PhieuXetNghiemNSScreen> {
           endpoint,
           fields,
           file: _selectedImage,
-          fileFieldName: 'file', // Trường file upload
+          fileFieldName: 'file', // TrÆ°á»ng file upload
         );
       } else {
-        // Gửi JSON
+        // Gá»­i JSON
         response = await _api.post(endpoint, payload);
       }
 
       if (response.statusCode == 201) {
-        _showSuccess('Đã lưu phiếu xét nghiệm thành công!');
+        _showSuccess('ÄÃ£ lÆ°u phiáº¿u xÃ©t nghiá»‡m thÃ nh cÃ´ng!');
         _loadAllData();
         _formKey.currentState?.reset();
         _ketQuaController.clear();
@@ -244,10 +246,10 @@ class _PhieuXetNghiemNSScreenState extends State<PhieuXetNghiemNSScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: Colors.grey[100],
+      backgroundColor: Theme.of(context).scaffoldBackgroundColor,
       appBar: AppBar(
-        title: Text('Phiếu xét nghiệm (Nhân sự)'),
-        backgroundColor: Colors.indigo[700], // Màu xét nghiệm
+        title: Text('Phiáº¿u xÃ©t nghiá»‡m (NhÃ¢n sá»±)'),
+        backgroundColor: Colors.indigo[700], // MÃ u xÃ©t nghiá»‡m
         actions: [
           IconButton(
             icon: FaIcon(FontAwesomeIcons.house, color: Colors.white, size: 20),
@@ -260,7 +262,7 @@ class _PhieuXetNghiemNSScreenState extends State<PhieuXetNghiemNSScreen> {
               color: Colors.white,
               size: 20,
             ),
-            tooltip: 'Đăng xuất',
+            tooltip: 'ÄÄƒng xuáº¥t',
             onPressed: () async {
               await Provider.of<AuthProvider>(context, listen: false).logout();
               if (!context.mounted) return;
@@ -276,9 +278,9 @@ class _PhieuXetNghiemNSScreenState extends State<PhieuXetNghiemNSScreen> {
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  // --- FORM GHI PHIẾU HOÀN CHỈNH ---
+                  // --- FORM GHI PHIáº¾U HOÃ€N CHá»ˆNH ---
                   Text(
-                    'Phiếu xét nghiệm (Nhân viên xét nghiệm)',
+                    'Phiáº¿u xÃ©t nghiá»‡m (NhÃ¢n viÃªn xÃ©t nghiá»‡m)',
                     style: Theme.of(context).textTheme.titleLarge?.copyWith(
                       fontWeight: FontWeight.bold,
                     ),
@@ -292,12 +294,12 @@ class _PhieuXetNghiemNSScreenState extends State<PhieuXetNghiemNSScreen> {
                         key: _formKey,
                         child: Column(
                           children: [
-                            // Hàng 1: lựa chọn và ngày thực hiện
+                            // HÃ ng 1: lá»±a chá»n vÃ  ngÃ y thá»±c hiá»‡n
                             Row(
                               children: [
                                 Expanded(
                                   child: _buildDropdown(
-                                    'Chọn yêu cầu',
+                                    'Chá»n yÃªu cáº§u',
                                     _dsYeuCau
                                         .map(
                                           (e) => DropdownMenuItem<String>(
@@ -313,7 +315,7 @@ class _PhieuXetNghiemNSScreenState extends State<PhieuXetNghiemNSScreen> {
                                 SizedBox(width: 8),
                                 Expanded(
                                   child: _buildDropdown(
-                                    'Chọn xét nghiệm',
+                                    'Chá»n xÃ©t nghiá»‡m',
                                     _dsXN
                                         .map(
                                           (e) => DropdownMenuItem<String>(
@@ -352,33 +354,34 @@ class _PhieuXetNghiemNSScreenState extends State<PhieuXetNghiemNSScreen> {
                             ),
                             SizedBox(height: 16),
 
-                            // Hàng 2: kết quả
+                            // HÃ ng 2: káº¿t quáº£
                             TextFormField(
                               controller: _ketQuaController,
                               decoration: InputDecoration(
-                                labelText: 'Kết quả xét nghiệm',
+                                labelText: 'Káº¿t quáº£ xÃ©t nghiá»‡m',
                                 border: OutlineInputBorder(),
                               ),
                               maxLines: 3,
-                              validator: (v) =>
-                                  v!.isEmpty ? 'Vui lòng nhập kết quả' : null,
+                              validator: (v) => v!.isEmpty
+                                  ? 'Vui lÃ²ng nháº­p káº¿t quáº£'
+                                  : null,
                             ),
                             SizedBox(height: 12),
 
-                            // Hàng 3: ghi chú
+                            // HÃ ng 3: ghi chÃº
                             TextFormField(
                               controller: _ghiChuController,
                               decoration: InputDecoration(
-                                labelText: 'Ghi chú',
+                                labelText: 'Ghi chÃº',
                                 border: OutlineInputBorder(),
                               ),
                               maxLines: 2,
                             ),
 
-                            // Vùng chọn ảnh
+                            // VÃ¹ng chá»n áº£nh
                             SizedBox(height: 16),
                             Text(
-                              'Hình ảnh kết quả xét nghiệm (tùy chọn):',
+                              'HÃ¬nh áº£nh káº¿t quáº£ xÃ©t nghiá»‡m (tÃ¹y chá»n):',
                               style: TextStyle(fontWeight: FontWeight.w500),
                             ),
                             SizedBox(height: 8),
@@ -391,7 +394,7 @@ class _PhieuXetNghiemNSScreenState extends State<PhieuXetNghiemNSScreen> {
                                     label: Text(
                                       _selectedImage == null
                                           ? 'Ch?n ?nh'
-                                          : 'Đổi ảnh',
+                                          : 'Äá»•i áº£nh',
                                     ),
                                     style: ElevatedButton.styleFrom(
                                       backgroundColor: Colors.grey[200],
@@ -407,7 +410,7 @@ class _PhieuXetNghiemNSScreenState extends State<PhieuXetNghiemNSScreen> {
                                       children: [
                                         Flexible(
                                           child: Text(
-                                            'Đã chọn: ${_selectedImage!.name}',
+                                            'ÄÃ£ chá»n: ${_selectedImage!.name}',
                                             overflow: TextOverflow.ellipsis,
                                           ),
                                         ),
@@ -427,14 +430,14 @@ class _PhieuXetNghiemNSScreenState extends State<PhieuXetNghiemNSScreen> {
                               ],
                             ),
 
-                            // Kết thúc phần upload
+                            // Káº¿t thÃºc pháº§n upload
                             SizedBox(height: 20),
 
-                            // Nút thao tác Luu
+                            // NÃºt thao tÃ¡c Luu
                             ElevatedButton.icon(
                               onPressed: _handleCreatePhieuHoanChinh,
                               icon: Icon(Icons.save),
-                              label: Text('Lưu phiếu xét nghiệm'),
+                              label: Text('LÆ°u phiáº¿u xÃ©t nghiá»‡m'),
                               style: ElevatedButton.styleFrom(
                                 minimumSize: Size(double.infinity, 48),
                                 backgroundColor: Colors.blue[800],
@@ -448,9 +451,9 @@ class _PhieuXetNghiemNSScreenState extends State<PhieuXetNghiemNSScreen> {
                   ),
                   SizedBox(height: 30),
 
-                  // --- DANH SÁCH PHIẾU ĐÃ CÓ ---
+                  // --- DANH SÃCH PHIáº¾U ÄÃƒ CÃ“ ---
                   Text(
-                    'Lịch sử phiếu xét nghiệm',
+                    'Lá»‹ch sá»­ phiáº¿u xÃ©t nghiá»‡m',
                     style: Theme.of(context).textTheme.titleLarge?.copyWith(
                       fontWeight: FontWeight.bold,
                     ),
@@ -462,7 +465,7 @@ class _PhieuXetNghiemNSScreenState extends State<PhieuXetNghiemNSScreen> {
             ),
     );
   }
-  // Các hàm hỗ trợ
+  // CÃ¡c hÃ m há»— trá»£
 
   Widget _buildDropdown(
     String label,
@@ -478,7 +481,7 @@ class _PhieuXetNghiemNSScreenState extends State<PhieuXetNghiemNSScreen> {
       initialValue: currentValue,
       items: items,
       onChanged: onChanged,
-      validator: (v) => v == null ? 'Vui lòng chọn' : null,
+      validator: (v) => v == null ? 'Vui lÃ²ng chá»n' : null,
     );
   }
 
@@ -489,7 +492,7 @@ class _PhieuXetNghiemNSScreenState extends State<PhieuXetNghiemNSScreen> {
         text: DateFormat('dd/MM/yyyy').format(_selectedDate),
       ),
       decoration: InputDecoration(
-        labelText: 'Ngày thực hiện',
+        labelText: 'NgÃ y thá»±c hiá»‡n',
         border: OutlineInputBorder(),
         suffixIcon: Icon(Icons.calendar_today),
       ),
@@ -508,10 +511,10 @@ class _PhieuXetNghiemNSScreenState extends State<PhieuXetNghiemNSScreen> {
 
   Widget _buildListPhieu() {
     if (_list.isEmpty) {
-      return Center(child: Text('Không có phiếu xét nghiệm nào.'));
+      return Center(child: Text('KhÃ´ng cÃ³ phiáº¿u xÃ©t nghiá»‡m nÃ o.'));
     }
 
-    // Dùng DataTable để hiển thị dữ liệu có cấu trúc
+    // DÃ¹ng DataTable Ä‘á»ƒ hiá»ƒn thá»‹ dá»¯ liá»‡u cÃ³ cáº¥u trÃºc
     return Card(
       elevation: 2,
       clipBehavior: Clip.antiAlias,
@@ -523,14 +526,14 @@ class _PhieuXetNghiemNSScreenState extends State<PhieuXetNghiemNSScreen> {
           dataRowMaxHeight: 50,
           headingRowColor: WidgetStateProperty.all(Colors.indigo[50]),
           columns: [
-            DataColumn(label: Text('Mã')),
+            DataColumn(label: Text('MÃ£')),
             DataColumn(label: Text('YC')),
-            DataColumn(label: Text('Xét nghiệm')),
+            DataColumn(label: Text('XÃ©t nghiá»‡m')),
             DataColumn(label: Text('HSBA')),
-            DataColumn(label: Text('Ngày')),
+            DataColumn(label: Text('NgÃ y')),
             DataColumn(label: Text('K?t qu?')),
             DataColumn(label: Text('Ngu?i nh?p')),
-            DataColumn(label: Text('Xóa')),
+            DataColumn(label: Text('XÃ³a')),
           ],
           rows: _list
               .map(
@@ -547,7 +550,7 @@ class _PhieuXetNghiemNSScreenState extends State<PhieuXetNghiemNSScreen> {
                       IconButton(
                         icon: Icon(Icons.delete_outline, color: Colors.red),
                         onPressed: () {
-                          // Không thể xóa phiếu đã ghi nhận
+                          // KhÃ´ng thá»ƒ xÃ³a phiáº¿u Ä‘Ã£ ghi nháº­n
                         },
                       ),
                     ),

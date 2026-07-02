@@ -11,7 +11,7 @@ import '../../auth/auth_provider.dart';
 class YeuCauXN {
   final String maYeuCau;
   final String maBN;
-  final String? tenBN; // Thêm tên bệnh nhân
+  final String? tenBN; // ThÃªm tÃªn bá»‡nh nhÃ¢n
   final String? tenBS;
   final String loaiYeuCau;
   final String trangThai;
@@ -37,7 +37,8 @@ class YeuCauXN {
     return YeuCauXN(
       maYeuCau: json['maYeuCau'],
       maBN: json['maBN'],
-      tenBN: json['BenhNhan']?['hoTen'] ?? json['maBN'], // Lấy tên bệnh nhân
+      tenBN:
+          json['BenhNhan']?['hoTen'] ?? json['maBN'], // Láº¥y tÃªn bá»‡nh nhÃ¢n
       tenBS: json['BacSi']?['hoTen'] ?? 'N/A',
       loaiYeuCau: json['loaiYeuCau'] ?? 'THONG_THUONG',
       trangThai: json['trangThai'] ?? 'CHO_THUC_HIEN',
@@ -80,9 +81,9 @@ class _YeuCauXNBSScreenState extends State<YeuCauXNBSScreen> {
   String? _selectedLoaiYeuCau = 'THONG_THUONG';
 
   final List<Map<String, String>> _loaiYeuCauOptions = const [
-    {'value': 'THONG_THUONG', 'label': 'Thông thường'},
+    {'value': 'THONG_THUONG', 'label': 'ThÃ´ng thÆ°á»ng'},
     {'value': 'KHAN_CAP', 'label': 'Kh?n c?p'},
-    {'value': 'THEO_DOI', 'label': 'Theo dõi'},
+    {'value': 'THEO_DOI', 'label': 'Theo dÃµi'},
   ];
 
   @override
@@ -97,10 +98,10 @@ class _YeuCauXNBSScreenState extends State<YeuCauXNBSScreen> {
     try {
       final responses = await Future.wait([
         _api.get('/yeucauxetnghiem'), // List YC (c?n l?c)
-        _api.get('/benhnhan'), // Danh sách bệnh nhân cho biểu mẫu
+        _api.get('/benhnhan'), // Danh sÃ¡ch bá»‡nh nhÃ¢n cho biá»ƒu máº«u
       ]);
 
-      // 1. Lấy danh sách yêu cầu theo mã bác sĩ
+      // 1. Láº¥y danh sÃ¡ch yÃªu cáº§u theo mÃ£ bÃ¡c sÄ©
       if (responses[0].statusCode == 200) {
         final data = jsonDecode(responses[0].body)['data'] as List;
         final filteredList = data
@@ -116,7 +117,7 @@ class _YeuCauXNBSScreenState extends State<YeuCauXNBSScreen> {
         _list = filteredList;
       }
 
-      // 2. Lấy danh sách bệnh nhân
+      // 2. Láº¥y danh sÃ¡ch bá»‡nh nhÃ¢n
       if (responses[1].statusCode == 200) {
         final data = jsonDecode(responses[1].body)['data'] as List;
         _dsBenhNhan = data
@@ -149,15 +150,15 @@ class _YeuCauXNBSScreenState extends State<YeuCauXNBSScreen> {
       case 'CHO_THUC_HIEN':
         return 'Ch? th?c hi?n';
       case 'DA_LAY_MAU':
-        return 'Đã lấy mẫu';
+        return 'ÄÃ£ láº¥y máº«u';
       case 'DA_HOAN_THANH':
-        return 'Đã hoàn thành';
+        return 'ÄÃ£ hoÃ n thÃ nh';
       default:
         return trangThai;
     }
   }
 
-  // --- HÀM TẠO YÊU CẦU XÉT NGHIỆM ---
+  // --- HÃ€M Táº O YÃŠU Cáº¦U XÃ‰T NGHIá»†M ---
   Future<void> _handleCreateYeuCau() async {
     if (!_formKey.currentState!.validate() || _maBS == null) return;
     setState(() => _isSubmitting = true);
@@ -165,7 +166,7 @@ class _YeuCauXNBSScreenState extends State<YeuCauXNBSScreen> {
     final payload = {
       'maBN': _selectedMaBN,
       'loaiYeuCau': _selectedLoaiYeuCau,
-      'trangThai': 'CHO_THUC_HIEN', // Luôn khởi tạo
+      'trangThai': 'CHO_THUC_HIEN', // LuÃ´n khá»Ÿi táº¡o
       // maBS du?c l?y t? token ? backend
     };
 
@@ -174,7 +175,7 @@ class _YeuCauXNBSScreenState extends State<YeuCauXNBSScreen> {
       final response = await _api.post('/yeucauxetnghiem', payload);
 
       if (response.statusCode == 201) {
-        _showSuccess('Tạo yêu cầu xét nghiệm thành công!');
+        _showSuccess('Táº¡o yÃªu cáº§u xÃ©t nghiá»‡m thÃ nh cÃ´ng!');
         _loadAllData();
         _formKey.currentState?.reset();
         setState(() {
@@ -182,7 +183,10 @@ class _YeuCauXNBSScreenState extends State<YeuCauXNBSScreen> {
           _selectedLoaiYeuCau = 'THONG_THUONG';
         });
       } else {
-        _showError(jsonDecode(response.body)['message'] ?? 'Lỗi tạo yêu cầu xét nghiệm.');
+        _showError(
+          jsonDecode(response.body)['message'] ??
+              'Lá»—i táº¡o yÃªu cáº§u xÃ©t nghiá»‡m.',
+        );
       }
     } catch (e) {
       _showError('L?i k?t n?i: $e');
@@ -194,10 +198,10 @@ class _YeuCauXNBSScreenState extends State<YeuCauXNBSScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: Colors.grey[100],
+      backgroundColor: Theme.of(context).scaffoldBackgroundColor,
       appBar: AppBar(
-        title: Text('Yêu cầu xét nghiệm'),
-        backgroundColor: Color(0xFF004D40), // Màu bác sĩ
+        title: Text('YÃªu cáº§u xÃ©t nghiá»‡m'),
+        backgroundColor: Color(0xFF004D40), // MÃ u bÃ¡c sÄ©
         actions: [
           IconButton(
             icon: FaIcon(FontAwesomeIcons.house, color: Colors.white, size: 20),
@@ -210,7 +214,7 @@ class _YeuCauXNBSScreenState extends State<YeuCauXNBSScreen> {
               color: Colors.white,
               size: 20,
             ),
-            tooltip: 'Đăng xuất',
+            tooltip: 'ÄÄƒng xuáº¥t',
             onPressed: () async {
               await Provider.of<AuthProvider>(context, listen: false).logout();
               if (!context.mounted) return;
@@ -226,9 +230,9 @@ class _YeuCauXNBSScreenState extends State<YeuCauXNBSScreen> {
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              // --- FORM TẠO YÊU CẦU ---
+              // --- FORM Táº O YÃŠU Cáº¦U ---
               Text(
-                'Tạo yêu cầu xét nghiệm',
+                'Táº¡o yÃªu cáº§u xÃ©t nghiá»‡m',
                 style: Theme.of(context).textTheme.headlineSmall?.copyWith(
                   fontWeight: FontWeight.bold,
                 ),
@@ -242,10 +246,10 @@ class _YeuCauXNBSScreenState extends State<YeuCauXNBSScreen> {
                     key: _formKey,
                     child: Column(
                       children: [
-                        // 1. Chọn bệnh nhân
+                        // 1. Chá»n bá»‡nh nhÃ¢n
                         DropdownButtonFormField<String>(
                           decoration: InputDecoration(
-                            labelText: 'Chọn bệnh nhân',
+                            labelText: 'Chá»n bá»‡nh nhÃ¢n',
                             border: OutlineInputBorder(),
                           ),
                           initialValue: _selectedMaBN,
@@ -258,14 +262,15 @@ class _YeuCauXNBSScreenState extends State<YeuCauXNBSScreen> {
                               )
                               .toList(),
                           onChanged: (v) => setState(() => _selectedMaBN = v),
-                          validator: (v) =>
-                              v == null ? 'Vui lòng chọn bệnh nhân' : null,
+                          validator: (v) => v == null
+                              ? 'Vui lÃ²ng chá»n bá»‡nh nhÃ¢n'
+                              : null,
                         ),
                         SizedBox(height: 16),
-                        // 2. Loại yêu cầu
+                        // 2. Loáº¡i yÃªu cáº§u
                         DropdownButtonFormField<String>(
                           decoration: InputDecoration(
-                            labelText: 'Loại yêu cầu',
+                            labelText: 'Loáº¡i yÃªu cáº§u',
                             border: OutlineInputBorder(),
                           ),
                           initialValue: _selectedLoaiYeuCau,
@@ -279,11 +284,12 @@ class _YeuCauXNBSScreenState extends State<YeuCauXNBSScreen> {
                               .toList(),
                           onChanged: (v) =>
                               setState(() => _selectedLoaiYeuCau = v),
-                          validator: (v) =>
-                              v == null ? 'Vui lòng chọn loại yêu cầu' : null,
+                          validator: (v) => v == null
+                              ? 'Vui lÃ²ng chá»n loáº¡i yÃªu cáº§u'
+                              : null,
                         ),
                         SizedBox(height: 20),
-                        // Nút thao tác
+                        // NÃºt thao tÃ¡c
                         ElevatedButton.icon(
                           onPressed: _isSubmitting ? null : _handleCreateYeuCau,
                           icon: _isSubmitting
@@ -298,8 +304,8 @@ class _YeuCauXNBSScreenState extends State<YeuCauXNBSScreen> {
                               : FaIcon(FontAwesomeIcons.vial, size: 18),
                           label: Text(
                             _isSubmitting
-                                ? 'Đang tạo...'
-                                : 'Tạo yêu cầu xét nghiệm',
+                                ? 'Äang táº¡o...'
+                                : 'Táº¡o yÃªu cáº§u xÃ©t nghiá»‡m',
                           ),
                           style: ElevatedButton.styleFrom(
                             minimumSize: Size(double.infinity, 44),
@@ -315,9 +321,9 @@ class _YeuCauXNBSScreenState extends State<YeuCauXNBSScreen> {
 
               SizedBox(height: 30),
 
-              // --- DANH SÁCH YÊU CẦU ĐÃ GỬI ---
+              // --- DANH SÃCH YÃŠU Cáº¦U ÄÃƒ Gá»¬I ---
               Text(
-                'Lịch sử yêu cầu của tôi',
+                'Lá»‹ch sá»­ yÃªu cáº§u cá»§a tÃ´i',
                 style: Theme.of(
                   context,
                 ).textTheme.titleLarge?.copyWith(fontWeight: FontWeight.bold),
@@ -327,7 +333,9 @@ class _YeuCauXNBSScreenState extends State<YeuCauXNBSScreen> {
               _isLoading
                   ? Center(child: CircularProgressIndicator())
                   : _list.isEmpty
-                  ? Center(child: Text('Chưa có yêu cầu nào được tạo.'))
+                  ? Center(
+                      child: Text('ChÆ°a cÃ³ yÃªu cáº§u nÃ o Ä‘Æ°á»£c táº¡o.'),
+                    )
                   : ListView.builder(
                       shrinkWrap: true,
                       physics: NeverScrollableScrollPhysics(),
@@ -348,7 +356,7 @@ class _YeuCauXNBSScreenState extends State<YeuCauXNBSScreen> {
                               'YC: ${item.maYeuCau} - BN: ${item.tenBN ?? item.maBN}',
                             ),
                             subtitle: Text(
-                              'Loại: ${item.loaiYeuCau} - Ngày: ${item.ngayYeuCau}',
+                              'Loáº¡i: ${item.loaiYeuCau} - NgÃ y: ${item.ngayYeuCau}',
                             ),
                             trailing: Chip(
                               label: Text(

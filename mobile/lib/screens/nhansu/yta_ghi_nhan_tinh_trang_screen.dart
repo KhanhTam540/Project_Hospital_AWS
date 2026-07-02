@@ -3,9 +3,9 @@ import 'package:flutter/material.dart';
 import 'package:font_awesome_flutter/font_awesome_flutter.dart';
 import 'dart:convert';
 import 'package:intl/intl.dart';
-import 'package:go_router/go_router.dart'; // Thêm import
-import 'package:provider/provider.dart'; // Thêm import
-import '../../auth/auth_provider.dart'; // Thêm import
+import 'package:go_router/go_router.dart'; // ThÃªm import
+import 'package:provider/provider.dart'; // ThÃªm import
+import '../../auth/auth_provider.dart'; // ThÃªm import
 import '../../services/api_client.dart';
 
 // Model
@@ -75,7 +75,7 @@ class _GhiNhanTinhTrangScreenState extends State<GhiNhanTinhTrangScreen> {
         });
       }
     } catch (e) {
-      _showError('Lỗi tải dữ liệu: $e');
+      _showError('Lá»—i táº£i dá»¯ liá»‡u: $e');
     } finally {
       setState(() => _isLoading = false);
     }
@@ -97,7 +97,7 @@ class _GhiNhanTinhTrangScreenState extends State<GhiNhanTinhTrangScreen> {
       context: context,
       builder: (ctx) {
         return AlertDialog(
-          title: Text('Ghi nhận cho BN: ${hsba.tenBN ?? hsba.maBN}'),
+          title: Text('Ghi nháº­n cho BN: ${hsba.tenBN ?? hsba.maBN}'),
           content: Form(
             key: formKey,
             child: Column(
@@ -106,7 +106,7 @@ class _GhiNhanTinhTrangScreenState extends State<GhiNhanTinhTrangScreen> {
                 TextFormField(
                   controller: lichSuController,
                   decoration: InputDecoration(
-                    labelText: 'Lịch sử bệnh',
+                    labelText: 'Lá»‹ch sá»­ bá»‡nh',
                     border: OutlineInputBorder(),
                   ),
                   maxLines: 3,
@@ -115,7 +115,7 @@ class _GhiNhanTinhTrangScreenState extends State<GhiNhanTinhTrangScreen> {
                 TextFormField(
                   controller: ghiChuController,
                   decoration: InputDecoration(
-                    labelText: 'Ghi chú (tình trạng, sinh hiệu)',
+                    labelText: 'Ghi chÃº (tÃ¬nh tráº¡ng, sinh hiá»‡u)',
                     border: OutlineInputBorder(),
                   ),
                   maxLines: 3,
@@ -126,7 +126,7 @@ class _GhiNhanTinhTrangScreenState extends State<GhiNhanTinhTrangScreen> {
           actions: [
             TextButton(
               onPressed: () => Navigator.of(ctx).pop(false),
-              child: Text('Huỷ'),
+              child: Text('Huá»·'),
             ),
             ElevatedButton(
               onPressed: () async {
@@ -145,15 +145,17 @@ class _GhiNhanTinhTrangScreenState extends State<GhiNhanTinhTrangScreen> {
                   );
                   if (!mounted || !ctx.mounted) return;
                   if (response.statusCode == 200) {
-                    Navigator.of(ctx).pop(true); // Trả về true
+                    Navigator.of(ctx).pop(true); // Tráº£ vá» true
                   } else {
-                    _showError('Lỗi: ${jsonDecode(response.body)['message']}');
+                    _showError(
+                      'Lá»—i: ${jsonDecode(response.body)['message']}',
+                    );
                   }
                 } catch (e) {
-                  _showError('Lỗi kết nối: $e');
+                  _showError('Lá»—i káº¿t ná»‘i: $e');
                 }
               },
-              child: Text('Lưu'),
+              child: Text('LÆ°u'),
             ),
           ],
         );
@@ -161,22 +163,22 @@ class _GhiNhanTinhTrangScreenState extends State<GhiNhanTinhTrangScreen> {
     );
 
     if (success == true) {
-      _fetchData(); // Tải lại danh sách nếu lưu thành công
+      _fetchData(); // Táº£i láº¡i danh sÃ¡ch náº¿u lÆ°u thÃ nh cÃ´ng
     }
   }
 
   @override
   Widget build(BuildContext context) {
-    // SỬA: Thêm Scaffold và AppBar
+    // Sá»¬A: ThÃªm Scaffold vÃ  AppBar
     return Scaffold(
-      backgroundColor: Colors.grey[100],
+      backgroundColor: Theme.of(context).scaffoldBackgroundColor,
       appBar: AppBar(
-        title: Text('Ghi nhận tình trạng BN'),
-        backgroundColor: Color(0xFF166534), // Màu Y tá
+        title: Text('Ghi nháº­n tÃ¬nh tráº¡ng BN'),
+        backgroundColor: Color(0xFF166534), // MÃ u Y tÃ¡
         actions: [
           IconButton(
             icon: FaIcon(FontAwesomeIcons.house, color: Colors.white, size: 20),
-            tooltip: 'Trang chủ',
+            tooltip: 'Trang chá»§',
             onPressed: () => context.go('/yta'),
           ),
           IconButton(
@@ -185,7 +187,7 @@ class _GhiNhanTinhTrangScreenState extends State<GhiNhanTinhTrangScreen> {
               color: Colors.white,
               size: 20,
             ),
-            tooltip: 'Đăng xuất',
+            tooltip: 'ÄÄƒng xuáº¥t',
             onPressed: () async {
               await Provider.of<AuthProvider>(context, listen: false).logout();
               if (!context.mounted) return;
@@ -217,9 +219,11 @@ class _GhiNhanTinhTrangScreenState extends State<GhiNhanTinhTrangScreen> {
                       'BN: ${item.tenBN ?? item.maBN}',
                       style: TextStyle(fontWeight: FontWeight.bold),
                     ),
-                    subtitle: Text('Lịch sử: ${item.lichSuBenh ?? "Chưa có"}'),
+                    subtitle: Text(
+                      'Lá»‹ch sá»­: ${item.lichSuBenh ?? "ChÆ°a cÃ³"}',
+                    ),
                     trailing: ElevatedButton(
-                      child: Text('Ghi nhận'),
+                      child: Text('Ghi nháº­n'),
                       onPressed: () => _showEditDialog(item),
                     ),
                   ),

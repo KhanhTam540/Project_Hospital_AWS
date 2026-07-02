@@ -80,7 +80,7 @@ class _AssignRoleScreenState extends State<AssignRoleScreen> {
         setState(() {
           _error =
               errorBody['message']?.toString() ??
-              'Không thể tải danh sách tài khoản.';
+              'KhÃ´ng thá»ƒ táº£i danh sÃ¡ch tÃ i khoáº£n.';
         });
       }
     } catch (error) {
@@ -88,7 +88,7 @@ class _AssignRoleScreenState extends State<AssignRoleScreen> {
         return;
       }
       setState(() {
-        _error = 'Lỗi kết nối: $error';
+        _error = 'Lá»—i káº¿t ná»‘i: $error';
       });
     } finally {
       if (mounted) {
@@ -100,7 +100,7 @@ class _AssignRoleScreenState extends State<AssignRoleScreen> {
   }
 
   void _handleChangeRole(String maTK, String? newRole) {
-    // Logic khi thay đổi Dropdown
+    // Logic khi thay Ä‘á»•i Dropdown
     if (newRole != null) {
       setState(() {
         _updatedRoles[maTK] = newRole;
@@ -113,7 +113,7 @@ class _AssignRoleScreenState extends State<AssignRoleScreen> {
 
     if (newRole == user.maNhom) {
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Không có thay đổi để lưu.')),
+        const SnackBar(content: Text('KhÃ´ng cÃ³ thay Ä‘á»•i Ä‘á»ƒ lÆ°u.')),
       );
       return;
     }
@@ -137,7 +137,9 @@ class _AssignRoleScreenState extends State<AssignRoleScreen> {
       if (response.statusCode == 200) {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
-            content: Text('Đã gán quyền $newRole cho ${user.tenDangNhap}.'),
+            content: Text(
+              'ÄÃ£ gÃ¡n quyá»n $newRole cho ${user.tenDangNhap}.',
+            ),
             backgroundColor: Colors.green,
           ),
         );
@@ -149,8 +151,8 @@ class _AssignRoleScreenState extends State<AssignRoleScreen> {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
             content: Text(
-              'Thao tác thất bại: '
-              '${errorBody['message']?.toString() ?? 'Lỗi không xác định'}',
+              'Thao tÃ¡c tháº¥t báº¡i: '
+              '${errorBody['message']?.toString() ?? 'Lá»—i khÃ´ng xÃ¡c Ä‘á»‹nh'}',
             ),
             backgroundColor: Colors.red,
           ),
@@ -161,7 +163,10 @@ class _AssignRoleScreenState extends State<AssignRoleScreen> {
         return;
       }
       ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('Lỗi API: $error'), backgroundColor: Colors.red),
+        SnackBar(
+          content: Text('Lá»—i API: $error'),
+          backgroundColor: Colors.red,
+        ),
       );
     } finally {
       if (mounted) {
@@ -170,7 +175,7 @@ class _AssignRoleScreenState extends State<AssignRoleScreen> {
     }
   }
 
-  // --- HÀM HELPER MỚI ĐỂ LẤY MÀU CHO VAI TRÒ ---
+  // --- HÃ€M HELPER Má»šI Äá»‚ Láº¤Y MÃ€U CHO VAI TRÃ’ ---
   Color _getRoleColor(String role) {
     switch (role) {
       case 'ADMIN':
@@ -189,25 +194,27 @@ class _AssignRoleScreenState extends State<AssignRoleScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: Colors.grey[100], // Màu nền cho toàn trang
+      backgroundColor: Theme.of(
+        context,
+      ).scaffoldBackgroundColor, // MÃ u ná»n cho toÃ n trang
       appBar: AppBar(
-        title: const Text('Phân quyền người dùng'),
-        backgroundColor: Color(0xFF2C3E50), // Màu AppBar
+        title: const Text('PhÃ¢n quyá»n ngÆ°á»i dÃ¹ng'),
+        backgroundColor: Theme.of(context).colorScheme.primary, // MÃ u AppBar
         actions: [
-          // Nút Trang chủ
+          // NÃºt Trang chá»§
           IconButton(
             icon: FaIcon(FontAwesomeIcons.house, color: Colors.white, size: 20),
-            tooltip: 'Trang chủ',
+            tooltip: 'Trang chá»§',
             onPressed: () => context.go('/admin'),
           ),
-          // Nút Đăng xuất
+          // NÃºt ÄÄƒng xuáº¥t
           IconButton(
             icon: FaIcon(
               FontAwesomeIcons.rightFromBracket,
               color: Colors.white,
               size: 20,
             ),
-            tooltip: 'Đăng xuất',
+            tooltip: 'ÄÄƒng xuáº¥t',
             onPressed: () async {
               await Provider.of<AuthProvider>(context, listen: false).logout();
               if (!context.mounted) return;
@@ -226,9 +233,9 @@ class _AssignRoleScreenState extends State<AssignRoleScreen> {
               mainAxisAlignment: MainAxisAlignment.spaceBetween,
               children: [
                 Text(
-                  '🛡️ Phân quyền người dùng',
+                  'ðŸ›¡ï¸ PhÃ¢n quyá»n ngÆ°á»i dÃ¹ng',
                   style: Theme.of(context).textTheme.headlineSmall?.copyWith(
-                    color: Color(0xFF2C3E50), // Màu tiêu đề
+                    color: Color(0xFF2C3E50), // MÃ u tiÃªu Ä‘á»
                     fontWeight: FontWeight.bold,
                   ),
                 ),
@@ -239,20 +246,20 @@ class _AssignRoleScreenState extends State<AssignRoleScreen> {
                     color: Colors.blue[700],
                   ),
                   onPressed: _isLoading ? null : _fetchUsers,
-                  tooltip: 'Tải lại danh sách',
+                  tooltip: 'Táº£i láº¡i danh sÃ¡ch',
                 ),
               ],
             ),
             const SizedBox(height: 10),
             Text(
-              'Chọn tài khoản và gán quyền mới bên dưới.',
+              'Chá»n tÃ i khoáº£n vÃ  gÃ¡n quyá»n má»›i bÃªn dÆ°á»›i.',
               style: Theme.of(
                 context,
               ).textTheme.titleMedium?.copyWith(color: Colors.grey[600]),
             ),
             const SizedBox(height: 20),
 
-            // --- Nội dung chính ---
+            // --- Ná»™i dung chÃ­nh ---
             if (_isLoading)
               Center(
                 child: Padding(
@@ -265,16 +272,16 @@ class _AssignRoleScreenState extends State<AssignRoleScreen> {
                 child: Text(_error, style: TextStyle(color: Colors.red)),
               )
             else
-              // Sử dụng ListView.builder để tạo danh sách Card
+              // Sá»­ dá»¥ng ListView.builder Ä‘á»ƒ táº¡o danh sÃ¡ch Card
               ListView.builder(
                 itemCount: _users.length,
                 shrinkWrap:
-                    true, // Cần thiết khi lồng trong SingleChildScrollView
+                    true, // Cáº§n thiáº¿t khi lá»“ng trong SingleChildScrollView
                 physics:
-                    const NeverScrollableScrollPhysics(), // Cần thiết khi lồng
+                    const NeverScrollableScrollPhysics(), // Cáº§n thiáº¿t khi lá»“ng
                 itemBuilder: (context, index) {
                   final user = _users[index];
-                  return _buildUserCard(user); // Widget Card mới
+                  return _buildUserCard(user); // Widget Card má»›i
                 },
               ),
           ],
@@ -283,11 +290,11 @@ class _AssignRoleScreenState extends State<AssignRoleScreen> {
     );
   }
 
-  // --- WIDGET MỚI: _buildUserCard ---
+  // --- WIDGET Má»šI: _buildUserCard ---
   Widget _buildUserCard(UserModel user) {
-    // Lấy vai trò đã chọn (nếu có thay đổi) hoặc vai trò hiện tại
+    // Láº¥y vai trÃ² Ä‘Ã£ chá»n (náº¿u cÃ³ thay Ä‘á»•i) hoáº·c vai trÃ² hiá»‡n táº¡i
     final selectedRole = _updatedRoles[user.maTK] ?? user.maNhom;
-    // Kiểm tra xem có thay đổi không
+    // Kiá»ƒm tra xem cÃ³ thay Ä‘á»•i khÃ´ng
     final hasChange = selectedRole != user.maNhom;
 
     return Card(
@@ -299,11 +306,11 @@ class _AssignRoleScreenState extends State<AssignRoleScreen> {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            // --- Thông tin User (Avatar, Tên, Email) ---
+            // --- ThÃ´ng tin User (Avatar, TÃªn, Email) ---
             Row(
               children: [
                 CircleAvatar(
-                  backgroundColor: Color(0xFF2C3E50),
+                  backgroundColor: Theme.of(context).colorScheme.primary,
                   radius: 20,
                   child: FaIcon(
                     FontAwesomeIcons.user,
@@ -337,18 +344,18 @@ class _AssignRoleScreenState extends State<AssignRoleScreen> {
             const Divider(height: 1),
             const SizedBox(height: 16),
 
-            // --- Phần Gán Quyền ---
+            // --- Pháº§n GÃ¡n Quyá»n ---
             Row(
               mainAxisAlignment: MainAxisAlignment.spaceBetween,
               crossAxisAlignment: CrossAxisAlignment.center,
               children: [
-                // --- Quyền hiện tại (Dùng Chip) ---
+                // --- Quyá»n hiá»‡n táº¡i (DÃ¹ng Chip) ---
                 Flexible(
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
                       Text(
-                        'Quyền hiện tại:',
+                        'Quyá»n hiá»‡n táº¡i:',
                         style: TextStyle(color: Colors.grey[700], fontSize: 12),
                       ),
                       const SizedBox(height: 4),
@@ -363,7 +370,7 @@ class _AssignRoleScreenState extends State<AssignRoleScreen> {
                         ),
                         backgroundColor: _getRoleColor(
                           user.maNhom,
-                        ), // Dùng màu theo vai trò
+                        ), // DÃ¹ng mÃ u theo vai trÃ²
                         padding: EdgeInsets.symmetric(
                           horizontal: 8,
                           vertical: 4,
@@ -371,12 +378,12 @@ class _AssignRoleScreenState extends State<AssignRoleScreen> {
                         visualDensity: VisualDensity(
                           horizontal: 0.0,
                           vertical: -4,
-                        ), // Làm chip nhỏ lại
+                        ), // LÃ m chip nhá» láº¡i
                       ),
                     ],
                   ),
                 ),
-                // --- Mũi tên ---
+                // --- MÅ©i tÃªn ---
                 Padding(
                   padding: const EdgeInsets.symmetric(horizontal: 8.0),
                   child: FaIcon(
@@ -385,13 +392,13 @@ class _AssignRoleScreenState extends State<AssignRoleScreen> {
                     size: 20,
                   ),
                 ),
-                // --- Gán quyền mới (Dropdown) ---
+                // --- GÃ¡n quyá»n má»›i (Dropdown) ---
                 Flexible(
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
                       Text(
-                        'Gán quyền mới:',
+                        'GÃ¡n quyá»n má»›i:',
                         style: TextStyle(color: Colors.grey[700], fontSize: 12),
                       ),
                       const SizedBox(height: 4),
@@ -401,7 +408,9 @@ class _AssignRoleScreenState extends State<AssignRoleScreen> {
                           vertical: 0,
                         ),
                         decoration: BoxDecoration(
-                          color: Colors.grey[100],
+                          color: Theme.of(
+                            context,
+                          ).colorScheme.surfaceContainerHighest,
                           borderRadius: BorderRadius.circular(8),
                           border: Border.all(color: Colors.grey[300]!),
                         ),
@@ -424,7 +433,9 @@ class _AssignRoleScreenState extends State<AssignRoleScreen> {
                               fontSize: 16,
                               fontWeight: FontWeight.w500,
                             ),
-                            dropdownColor: Colors.white,
+                            dropdownColor: Theme.of(
+                              context,
+                            ).colorScheme.surface,
                           ),
                         ),
                       ),
@@ -434,7 +445,7 @@ class _AssignRoleScreenState extends State<AssignRoleScreen> {
               ],
             ),
 
-            // --- Nút Lưu (Chỉ hiện khi có thay đổi) ---
+            // --- NÃºt LÆ°u (Chá»‰ hiá»‡n khi cÃ³ thay Ä‘á»•i) ---
             if (hasChange) ...[
               const SizedBox(height: 20),
               SizedBox(
@@ -442,7 +453,7 @@ class _AssignRoleScreenState extends State<AssignRoleScreen> {
                 child: ElevatedButton.icon(
                   onPressed: () => _handleSave(user),
                   icon: FaIcon(FontAwesomeIcons.solidFloppyDisk, size: 16),
-                  label: Text('Lưu thay đổi'),
+                  label: Text('LÆ°u thay Ä‘á»•i'),
                   style: ElevatedButton.styleFrom(
                     backgroundColor: Colors.green[600],
                     foregroundColor: Colors.white,

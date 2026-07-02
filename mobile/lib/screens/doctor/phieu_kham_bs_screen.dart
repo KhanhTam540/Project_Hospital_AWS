@@ -7,9 +7,9 @@ import 'dart:convert';
 import 'package:go_router/go_router.dart';
 import '../../services/api_client.dart';
 import '../../auth/auth_provider.dart';
-// SỬA: Import thanh điều hướng
+// Sá»¬A: Import thanh Ä‘iá»u hÆ°á»›ng
 import 'doctor_bottom_nav_bar.dart';
-// THÊM: Import cho upload
+// THÃŠM: Import cho upload
 import 'package:image_picker/image_picker.dart';
 
 // === Model PhieuKhamModel ===
@@ -61,11 +61,11 @@ class BenhNhanModel {
       BenhNhanModel(maBN: json['maBN'], hoTen: json['hoTen'] ?? 'N/A');
 }
 
-// === Model HSBA (cần maBN) ===
+// === Model HSBA (cáº§n maBN) ===
 class HSBAModel {
   final String maHSBA;
   final String maBN;
-  final dynamic benhNhan; // 'BenhNhan' object lồng vào (nếu có)
+  final dynamic benhNhan; // 'BenhNhan' object lá»“ng vÃ o (náº¿u cÃ³)
 
   HSBAModel({required this.maHSBA, required this.maBN, this.benhNhan});
 
@@ -78,7 +78,7 @@ class HSBAModel {
   }
 }
 
-// SỬA: Sửa lại tên class (bỏ chữ 'n' thừa)
+// Sá»¬A: Sá»­a láº¡i tÃªn class (bá» chá»¯ 'n' thá»«a)
 class PhieuKhamBSScreenn extends StatefulWidget {
   const PhieuKhamBSScreenn({super.key});
 
@@ -86,7 +86,7 @@ class PhieuKhamBSScreenn extends StatefulWidget {
   State<PhieuKhamBSScreenn> createState() => _PhieuKhamBSScreenState();
 }
 
-// SỬA: Sửa lại tên class
+// Sá»¬A: Sá»­a láº¡i tÃªn class
 class _PhieuKhamBSScreenState extends State<PhieuKhamBSScreenn> {
   final ApiClient _api = ApiClient();
   List<PhieuKhamModel> _phieuKhams = [];
@@ -103,27 +103,27 @@ class _PhieuKhamBSScreenState extends State<PhieuKhamBSScreenn> {
   final _chuanDoanController = TextEditingController();
   final _loiDanController = TextEditingController();
   String? _selectedHSBA;
-  String? _selectedBN; // Tự động điền
+  String? _selectedBN; // Tá»± Ä‘á»™ng Ä‘iá»n
   bool _isSubmitting = false;
 
-  // THÊM: State và Controller cho chức năng Upload
+  // THÃŠM: State vÃ  Controller cho chá»©c nÄƒng Upload
   final ImagePicker _picker = ImagePicker();
   XFile? _selectedImage;
-  // KẾT THÚC THÊM
+  // Káº¾T THÃšC THÃŠM
 
   @override
   void initState() {
     super.initState();
     _maBS = Provider.of<AuthProvider>(context, listen: false).maBS;
     if (_maBS != null) {
-      _loadAllData(); // Gọi hàm tải chung
+      _loadAllData(); // Gá»i hÃ m táº£i chung
     } else {
       setState(() => _isLoading = false);
-      _showError("Lỗi: Không tìm thấy mã Bác sĩ.");
+      _showError("Lá»—i: KhÃ´ng tÃ¬m tháº¥y mÃ£ BÃ¡c sÄ©.");
     }
   }
 
-  // Hàm tải chung cho cả Form và List
+  // HÃ m táº£i chung cho cáº£ Form vÃ  List
   Future<void> _loadAllData() async {
     setState(() {
       _isLoading = true;
@@ -132,7 +132,7 @@ class _PhieuKhamBSScreenState extends State<PhieuKhamBSScreenn> {
     try {
       await Future.wait([_fetchData(), _loadDropdownData()]);
     } catch (e) {
-      _showError("Lỗi tải dữ liệu tổng hợp: $e");
+      _showError("Lá»—i táº£i dá»¯ liá»‡u tá»•ng há»£p: $e");
     } finally {
       if (mounted) {
         setState(() {
@@ -144,7 +144,7 @@ class _PhieuKhamBSScreenState extends State<PhieuKhamBSScreenn> {
   }
 
   Future<void> _fetchData() async {
-    // Không set isLoading ở đây nữa
+    // KhÃ´ng set isLoading á»Ÿ Ä‘Ã¢y ná»¯a
     try {
       final response = await _api.get('/phieukham/bacsi/$_maBS');
       if (!mounted) return;
@@ -157,12 +157,12 @@ class _PhieuKhamBSScreenState extends State<PhieuKhamBSScreenn> {
         });
       }
     } catch (e) {
-      _showError('Lỗi tải phiếu khám: $e');
+      _showError('Lá»—i táº£i phiáº¿u khÃ¡m: $e');
     }
   }
 
   Future<void> _loadDropdownData() async {
-    // Không set isLoading ở đây nữa
+    // KhÃ´ng set isLoading á»Ÿ Ä‘Ã¢y ná»¯a
     try {
       final resHSBA = await _api.get('/hsba');
       if (!mounted) return;
@@ -180,10 +180,10 @@ class _PhieuKhamBSScreenState extends State<PhieuKhamBSScreenn> {
         }
         _benhNhanList = uniqueBNs.values.toList();
       } else {
-        _showError('Lỗi tải danh sách HSBA');
+        _showError('Lá»—i táº£i danh sÃ¡ch HSBA');
       }
     } catch (e) {
-      _showError('Lỗi tải danh sách Bệnh nhân/HSBA');
+      _showError('Lá»—i táº£i danh sÃ¡ch Bá»‡nh nhÃ¢n/HSBA');
     }
   }
 
@@ -201,7 +201,7 @@ class _PhieuKhamBSScreenState extends State<PhieuKhamBSScreenn> {
     );
   }
 
-  // THÊM: Hàm chọn ảnh
+  // THÃŠM: HÃ m chá»n áº£nh
   Future<void> _pickImage() async {
     final XFile? pickedFile = await _picker.pickImage(
       source: ImageSource.gallery,
@@ -212,7 +212,7 @@ class _PhieuKhamBSScreenState extends State<PhieuKhamBSScreenn> {
       });
     }
   }
-  // KẾT THÚC THÊM
+  // Káº¾T THÃšC THÃŠM
 
   void _onHoSoChanged(String? maHSBA) {
     if (maHSBA == null) {
@@ -229,7 +229,7 @@ class _PhieuKhamBSScreenState extends State<PhieuKhamBSScreenn> {
     });
   }
 
-  // SỬA: Cập nhật hàm _handleCreate để sử dụng postMultipart
+  // Sá»¬A: Cáº­p nháº­t hÃ m _handleCreate Ä‘á»ƒ sá»­ dá»¥ng postMultipart
   Future<void> _handleCreate() async {
     if (!_inlineFormKey.currentState!.validate()) return;
     if (_selectedHSBA == null || _selectedBN == null || _maBS == null) return;
@@ -249,10 +249,10 @@ class _PhieuKhamBSScreenState extends State<PhieuKhamBSScreenn> {
 
     try {
       dynamic response;
-      final endpoint = '/phieukham'; // Endpoint chính
+      final endpoint = '/phieukham'; // Endpoint chÃ­nh
 
       if (_selectedImage != null) {
-        // Dùng MULTIPART (SỬA: fileFieldName = 'file')
+        // DÃ¹ng MULTIPART (Sá»¬A: fileFieldName = 'file')
         final Map<String, String> fields = payload.map(
           (k, v) => MapEntry(k, v?.toString() ?? ''),
         );
@@ -261,15 +261,16 @@ class _PhieuKhamBSScreenState extends State<PhieuKhamBSScreenn> {
           endpoint,
           fields,
           file: _selectedImage,
-          fileFieldName: 'file', // <--- SỬA THÀNH 'file' để khớp với backend
+          fileFieldName:
+              'file', // <--- Sá»¬A THÃ€NH 'file' Ä‘á»ƒ khá»›p vá»›i backend
         );
       } else {
-        // Dùng JSON POST
+        // DÃ¹ng JSON POST
         response = await _api.post(endpoint, payload);
       }
 
       if (response.statusCode == 201) {
-        _showSuccess('Tạo phiếu khám thành công!');
+        _showSuccess('Táº¡o phiáº¿u khÃ¡m thÃ nh cÃ´ng!');
         _fetchData();
         _inlineFormKey.currentState?.reset();
         _trieuChungController.clear();
@@ -278,10 +279,10 @@ class _PhieuKhamBSScreenState extends State<PhieuKhamBSScreenn> {
         setState(() {
           _selectedHSBA = null;
           _selectedBN = null;
-          _selectedImage = null; // Reset ảnh
+          _selectedImage = null; // Reset áº£nh
         });
       } else {
-        String errorMessage = 'Lỗi lưu: ${response.statusCode}';
+        String errorMessage = 'Lá»—i lÆ°u: ${response.statusCode}';
         try {
           final errorBody = jsonDecode(response.body);
           errorMessage = errorBody['message'] ?? errorMessage;
@@ -289,7 +290,7 @@ class _PhieuKhamBSScreenState extends State<PhieuKhamBSScreenn> {
         _showError(errorMessage);
       }
     } catch (e) {
-      _showError('Lỗi kết nối: $e');
+      _showError('Lá»—i káº¿t ná»‘i: $e');
     } finally {
       if (mounted) setState(() => _isSubmitting = false);
     }
@@ -299,16 +300,18 @@ class _PhieuKhamBSScreenState extends State<PhieuKhamBSScreenn> {
     bool? confirm = await showDialog(
       context: context,
       builder: (ctx) => AlertDialog(
-        title: Text('Xác nhận xóa'),
-        content: Text('Bạn có chắc chắn muốn xóa phiếu khám này?'),
+        title: Text('XÃ¡c nháº­n xÃ³a'),
+        content: Text(
+          'Báº¡n cÃ³ cháº¯c cháº¯n muá»‘n xÃ³a phiáº¿u khÃ¡m nÃ y?',
+        ),
         actions: [
           TextButton(
             onPressed: () => Navigator.of(ctx).pop(false),
-            child: Text('Không'),
+            child: Text('KhÃ´ng'),
           ),
           TextButton(
             onPressed: () => Navigator.of(ctx).pop(true),
-            child: Text('Đồng ý'),
+            child: Text('Äá»“ng Ã½'),
           ),
         ],
       ),
@@ -317,28 +320,30 @@ class _PhieuKhamBSScreenState extends State<PhieuKhamBSScreenn> {
     try {
       final res = await _api.delete('/phieukham/$maPK');
       if (res.statusCode == 200) {
-        _showSuccess("Xóa phiếu thành công!");
+        _showSuccess("XÃ³a phiáº¿u thÃ nh cÃ´ng!");
         _fetchData();
       } else {
-        _showError("Lỗi: Không thể xóa phiếu.");
+        _showError("Lá»—i: KhÃ´ng thá»ƒ xÃ³a phiáº¿u.");
       }
     } catch (e) {
-      _showError("Lỗi kết nối khi xóa.");
+      _showError("Lá»—i káº¿t ná»‘i khi xÃ³a.");
     }
   }
 
   @override
   Widget build(BuildContext context) {
-    // SỬA: Thêm Scaffold, AppBar, và BottomNav
+    // Sá»¬A: ThÃªm Scaffold, AppBar, vÃ  BottomNav
     return Scaffold(
-      backgroundColor: Colors.grey[100], // Đồng bộ màu nền
+      backgroundColor: Theme.of(
+        context,
+      ).scaffoldBackgroundColor, // Äá»“ng bá»™ mÃ u ná»n
       appBar: AppBar(
-        title: Text('Phiếu khám bệnh'),
-        backgroundColor: Color(0xFF004D40), // Màu xanh đậm của bác sĩ
+        title: Text('Phiáº¿u khÃ¡m bá»‡nh'),
+        backgroundColor: Color(0xFF004D40), // MÃ u xanh Ä‘áº­m cá»§a bÃ¡c sÄ©
         actions: [
           IconButton(
             icon: FaIcon(FontAwesomeIcons.house, color: Colors.white, size: 20),
-            tooltip: 'Trang chủ',
+            tooltip: 'Trang chá»§',
             onPressed: () => context.go('/doctor'),
           ),
           IconButton(
@@ -347,7 +352,7 @@ class _PhieuKhamBSScreenState extends State<PhieuKhamBSScreenn> {
               color: Colors.white,
               size: 20,
             ),
-            tooltip: 'Đăng xuất',
+            tooltip: 'ÄÄƒng xuáº¥t',
             onPressed: () async {
               await Provider.of<AuthProvider>(context, listen: false).logout();
               if (!context.mounted) return;
@@ -357,7 +362,7 @@ class _PhieuKhamBSScreenState extends State<PhieuKhamBSScreenn> {
         ],
       ),
       body: RefreshIndicator(
-        onRefresh: _loadAllData, // Dùng hàm tải chung
+        onRefresh: _loadAllData, // DÃ¹ng hÃ m táº£i chung
         child: SingleChildScrollView(
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
@@ -366,24 +371,24 @@ class _PhieuKhamBSScreenState extends State<PhieuKhamBSScreenn> {
               Padding(
                 padding: const EdgeInsets.all(16.0).copyWith(bottom: 0),
                 child: Text(
-                  'Tạo phiếu khám bệnh',
+                  'Táº¡o phiáº¿u khÃ¡m bá»‡nh',
                   style: Theme.of(context).textTheme.headlineSmall?.copyWith(
                     fontWeight: FontWeight.bold,
                   ),
                 ),
               ),
               _buildInlineForm(), // Widget Form
-              // Danh sách
+              // Danh sÃ¡ch
               Padding(
                 padding: const EdgeInsets.all(16.0).copyWith(bottom: 8, top: 8),
                 child: Text(
-                  'Lịch sử phiếu khám',
+                  'Lá»‹ch sá»­ phiáº¿u khÃ¡m',
                   style: Theme.of(
                     context,
                   ).textTheme.titleLarge?.copyWith(fontWeight: FontWeight.bold),
                 ),
               ),
-              (_isLoading || _isLoadingDropdowns) // Sửa: Gộp 2 cờ loading
+              (_isLoading || _isLoadingDropdowns) // Sá»­a: Gá»™p 2 cá» loading
                   ? Center(
                       child: Padding(
                         padding: const EdgeInsets.all(16.0),
@@ -394,7 +399,7 @@ class _PhieuKhamBSScreenState extends State<PhieuKhamBSScreenn> {
                   ? Center(
                       child: Padding(
                         padding: const EdgeInsets.all(16.0),
-                        child: Text('Chưa có phiếu khám nào.'),
+                        child: Text('ChÆ°a cÃ³ phiáº¿u khÃ¡m nÃ o.'),
                       ),
                     )
                   : ListView.builder(
@@ -405,7 +410,7 @@ class _PhieuKhamBSScreenState extends State<PhieuKhamBSScreenn> {
                       itemBuilder: (context, index) {
                         final phieu = _phieuKhams[index];
 
-                        // An toàn hơn: tìm tên BN
+                        // An toÃ n hÆ¡n: tÃ¬m tÃªn BN
                         final tenBN = _benhNhanList
                             .firstWhere(
                               (bn) => bn.maBN == phieu.maBN,
@@ -429,7 +434,7 @@ class _PhieuKhamBSScreenState extends State<PhieuKhamBSScreenn> {
                               style: TextStyle(fontWeight: FontWeight.bold),
                             ),
                             subtitle: Text(
-                              'Chẩn đoán: ${phieu.chuanDoan ?? "Chưa có"}',
+                              'Cháº©n Ä‘oÃ¡n: ${phieu.chuanDoan ?? "ChÆ°a cÃ³"}',
                             ),
                             trailing: Row(
                               mainAxisSize: MainAxisSize.min,
@@ -447,7 +452,7 @@ class _PhieuKhamBSScreenState extends State<PhieuKhamBSScreenn> {
                                     Icons.delete_outline,
                                     color: Colors.red[700],
                                   ),
-                                  tooltip: 'Xóa phiếu',
+                                  tooltip: 'XÃ³a phiáº¿u',
                                   onPressed: () => _handleDelete(phieu.maPK),
                                 ),
                               ],
@@ -460,12 +465,12 @@ class _PhieuKhamBSScreenState extends State<PhieuKhamBSScreenn> {
           ),
         ),
       ),
-      // SỬA: Thêm Bottom Nav Bar, index = 3
+      // Sá»¬A: ThÃªm Bottom Nav Bar, index = 3
       bottomNavigationBar: DoctorBottomNavBar(currentIndex: 3),
     );
   }
 
-  // === THAY THẾ TOÀN BỘ HÀM NÀY (Có tích hợp Upload) ===
+  // === THAY THáº¾ TOÃ€N Bá»˜ HÃ€M NÃ€Y (CÃ³ tÃ­ch há»£p Upload) ===
   // Widget build form inline
   Widget _buildInlineForm() {
     return Card(
@@ -479,10 +484,10 @@ class _PhieuKhamBSScreenState extends State<PhieuKhamBSScreenn> {
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              // 1. Chọn HSBA
+              // 1. Chá»n HSBA
               DropdownButtonFormField<String>(
                 decoration: InputDecoration(
-                  labelText: 'Chọn HSBA',
+                  labelText: 'Chá»n HSBA',
                   border: OutlineInputBorder(),
                 ),
                 initialValue: _selectedHSBA,
@@ -498,11 +503,11 @@ class _PhieuKhamBSScreenState extends State<PhieuKhamBSScreenn> {
                     )
                     .toList(),
                 onChanged: _isLoadingDropdowns ? null : _onHoSoChanged,
-                validator: (v) => v == null ? 'Vui lòng chọn' : null,
+                validator: (v) => v == null ? 'Vui lÃ²ng chá»n' : null,
               ),
               SizedBox(height: 12),
 
-              // 2. Bệnh nhân (Tự động điền)
+              // 2. Bá»‡nh nhÃ¢n (Tá»± Ä‘á»™ng Ä‘iá»n)
               TextFormField(
                 key: Key(_selectedBN ?? 'empty'),
                 initialValue: _benhNhanList
@@ -513,51 +518,55 @@ class _PhieuKhamBSScreenState extends State<PhieuKhamBSScreenn> {
                     .hoTen,
                 readOnly: true,
                 decoration: InputDecoration(
-                  labelText: 'Bệnh nhân',
+                  labelText: 'Bá»‡nh nhÃ¢n',
                   border: OutlineInputBorder(),
                   filled: _selectedBN != null,
-                  fillColor: Colors.grey[100],
+                  fillColor: Theme.of(
+                    context,
+                  ).colorScheme.surfaceContainerHighest,
                 ),
               ),
               SizedBox(height: 12),
 
-              // 3. Triệu chứng
+              // 3. Triá»‡u chá»©ng
               TextFormField(
                 controller: _trieuChungController,
                 decoration: InputDecoration(
-                  labelText: 'Triệu chứng',
+                  labelText: 'Triá»‡u chá»©ng',
                   border: OutlineInputBorder(),
                 ),
-                validator: (v) =>
-                    (v == null || v.isEmpty) ? 'Không được bỏ trống' : null,
+                validator: (v) => (v == null || v.isEmpty)
+                    ? 'KhÃ´ng Ä‘Æ°á»£c bá» trá»‘ng'
+                    : null,
               ),
               SizedBox(height: 12),
 
-              // 4. Chẩn đoán
+              // 4. Cháº©n Ä‘oÃ¡n
               TextFormField(
                 controller: _chuanDoanController,
                 decoration: InputDecoration(
-                  labelText: 'Chẩn đoán',
+                  labelText: 'Cháº©n Ä‘oÃ¡n',
                   border: OutlineInputBorder(),
                 ),
-                validator: (v) =>
-                    (v == null || v.isEmpty) ? 'Không được bỏ trống' : null,
+                validator: (v) => (v == null || v.isEmpty)
+                    ? 'KhÃ´ng Ä‘Æ°á»£c bá» trá»‘ng'
+                    : null,
               ),
               SizedBox(height: 12),
 
-              // 5. Lời dặn
+              // 5. Lá»i dáº·n
               TextFormField(
                 controller: _loiDanController,
                 decoration: InputDecoration(
-                  labelText: 'Lời dặn',
+                  labelText: 'Lá»i dáº·n',
                   border: OutlineInputBorder(),
                 ),
               ),
 
-              // THÊM: Vùng chọn ảnh
+              // THÃŠM: VÃ¹ng chá»n áº£nh
               SizedBox(height: 16),
               Text(
-                'Hình ảnh đính kèm (Tùy chọn):',
+                'HÃ¬nh áº£nh Ä‘Ã­nh kÃ¨m (TÃ¹y chá»n):',
                 style: TextStyle(fontWeight: FontWeight.w500),
               ),
               SizedBox(height: 8),
@@ -568,7 +577,9 @@ class _PhieuKhamBSScreenState extends State<PhieuKhamBSScreenn> {
                       onPressed: _pickImage,
                       icon: Icon(Icons.photo_library),
                       label: Text(
-                        _selectedImage == null ? 'Chọn ảnh' : 'Đổi ảnh',
+                        _selectedImage == null
+                            ? 'Chá»n áº£nh'
+                            : 'Äá»•i áº£nh',
                       ),
                       style: ElevatedButton.styleFrom(
                         backgroundColor: Colors.grey[200],
@@ -584,7 +595,7 @@ class _PhieuKhamBSScreenState extends State<PhieuKhamBSScreenn> {
                         children: [
                           Flexible(
                             child: Text(
-                              'Đã chọn: ${_selectedImage!.name}',
+                              'ÄÃ£ chá»n: ${_selectedImage!.name}',
                               overflow: TextOverflow.ellipsis,
                             ),
                           ),
@@ -600,9 +611,9 @@ class _PhieuKhamBSScreenState extends State<PhieuKhamBSScreenn> {
                 ],
               ),
               SizedBox(height: 16),
-              // KẾT THÚC THÊM
+              // Káº¾T THÃšC THÃŠM
 
-              // 6. Nút Lưu
+              // 6. NÃºt LÆ°u
               ElevatedButton.icon(
                 onPressed: _isSubmitting ? null : _handleCreate,
                 icon: _isSubmitting
@@ -615,15 +626,17 @@ class _PhieuKhamBSScreenState extends State<PhieuKhamBSScreenn> {
                         ),
                       )
                     : Icon(Icons.save),
-                label: Text(_isSubmitting ? 'Đang lưu...' : 'Lưu phiếu khám'),
+                label: Text(
+                  _isSubmitting ? 'Äang lÆ°u...' : 'LÆ°u phiáº¿u khÃ¡m',
+                ),
                 style: ElevatedButton.styleFrom(
                   minimumSize: Size(double.infinity, 44),
                   backgroundColor:
-                      Colors.blue[800], // Màu xanh dương (giống trang web)
+                      Colors.blue[800], // MÃ u xanh dÆ°Æ¡ng (giá»‘ng trang web)
                   foregroundColor: Colors.white,
                   shape: RoundedRectangleBorder(
                     borderRadius: BorderRadius.circular(8),
-                  ), // Bo góc nút
+                  ), // Bo gÃ³c nÃºt
                 ),
               ),
             ],

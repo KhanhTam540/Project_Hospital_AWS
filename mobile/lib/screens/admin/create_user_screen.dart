@@ -4,16 +4,16 @@ import 'package:flutter/material.dart';
 import 'package:font_awesome_flutter/font_awesome_flutter.dart';
 import 'package:go_router/go_router.dart';
 import 'package:intl/intl.dart';
-import 'package:provider/provider.dart'; // Thêm import
-import '../../auth/auth_provider.dart'; // Thêm import
+import 'package:provider/provider.dart'; // ThÃªm import
+import '../../auth/auth_provider.dart'; // ThÃªm import
 import '../../models/user_model.dart';
 import '../../services/api_client.dart';
 
-// --- Cấu hình ---
+// --- Cáº¥u hÃ¬nh ---
 const List<String> roles = ['ADMIN', 'BACSI', 'NHANSU', 'BENHNHAN'];
 const List<String> staffTypes = ['YT', 'XN', 'TN'];
 
-// Lớp Khoa đơn giản
+// Lá»›p Khoa Ä‘Æ¡n giáº£n
 class Khoa {
   final String maKhoa;
   final String tenKhoa;
@@ -25,10 +25,10 @@ class Khoa {
 }
 
 // ===============================================
-//           MÀN HÌNH TẠO/SỬA TÀI KHOẢN
+//           MÃ€N HÃŒNH Táº O/Sá»¬A TÃ€I KHOáº¢N
 // ===============================================
 class CreateUserScreen extends StatefulWidget {
-  final dynamic userToEdit; // Nhận 'dynamic' từ GoRouter
+  final dynamic userToEdit; // Nháº­n 'dynamic' tá»« GoRouter
 
   const CreateUserScreen({super.key, this.userToEdit});
 
@@ -43,7 +43,7 @@ class _CreateUserScreenState extends State<CreateUserScreen> {
   bool _isLoading = false;
   final ApiClient _api = ApiClient();
 
-  // (Giữ nguyên toàn bộ phần state, controllers, và logic initState, dispose, _fetchKhoas, _handleSubmit)
+  // (Giá»¯ nguyÃªn toÃ n bá»™ pháº§n state, controllers, vÃ  logic initState, dispose, _fetchKhoas, _handleSubmit)
   List<Khoa> _khoasList = [];
   bool _isLoadingKhoas = true;
 
@@ -69,7 +69,9 @@ class _CreateUserScreenState extends State<CreateUserScreen> {
   void initState() {
     super.initState();
     _isEditMode = widget.userToEdit != null;
-    _title = _isEditMode ? '✏️ Cập nhật tài khoản' : '➕ Tạo tài khoản mới';
+    _title = _isEditMode
+        ? 'âœï¸ Cáº­p nháº­t tÃ i khoáº£n'
+        : 'âž• Táº¡o tÃ i khoáº£n má»›i';
 
     _fetchKhoas();
 
@@ -99,7 +101,7 @@ class _CreateUserScreenState extends State<CreateUserScreen> {
             'yyyy-MM-dd',
           ).parse(user.ngaySinh!.split('T').first);
         } catch (e) {
-          print('Lỗi parse ngày sinh: $e');
+          print('Lá»—i parse ngÃ y sinh: $e');
         }
       }
     }
@@ -195,20 +197,21 @@ class _CreateUserScreenState extends State<CreateUserScreen> {
       if (response.statusCode == 200 || response.statusCode == 201) {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
-            content: Text('✅ Thao tác thành công!'),
+            content: Text('âœ… Thao tÃ¡c thÃ nh cÃ´ng!'),
             backgroundColor: Colors.green,
           ),
         );
-        context.go('/admin/account/list'); // Quay về danh sách
+        context.go('/admin/account/list'); // Quay vá» danh sÃ¡ch
       } else {
         final errorBody = jsonDecode(response.body);
-        String errorMessage = errorBody['message'] ?? 'Lỗi không xác định';
+        String errorMessage =
+            errorBody['message'] ?? 'Lá»—i khÃ´ng xÃ¡c Ä‘á»‹nh';
         if (errorBody['errors'] != null && errorBody['errors'].isNotEmpty) {
           errorMessage = errorBody['errors'][0]['msg'] ?? errorMessage;
         }
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
-            content: Text('❌ Lỗi: $errorMessage'),
+            content: Text('âŒ Lá»—i: $errorMessage'),
             backgroundColor: Colors.red,
           ),
         );
@@ -217,7 +220,7 @@ class _CreateUserScreenState extends State<CreateUserScreen> {
       if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
-          content: Text('❌ Lỗi kết nối: $e'),
+          content: Text('âŒ Lá»—i káº¿t ná»‘i: $e'),
           backgroundColor: Colors.red,
         ),
       );
@@ -232,13 +235,17 @@ class _CreateUserScreenState extends State<CreateUserScreen> {
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-        title: Text(_isEditMode ? 'Cập nhật tài khoản' : 'Tạo tài khoản'),
-        backgroundColor: Color(0xFF2C3E50), // Thống nhất màu
-        // THÊM NÚT HOME VÀ ĐĂNG XUẤT
+        title: Text(
+          _isEditMode ? 'Cáº­p nháº­t tÃ i khoáº£n' : 'Táº¡o tÃ i khoáº£n',
+        ),
+        backgroundColor: Theme.of(
+          context,
+        ).colorScheme.primary, // Thá»‘ng nháº¥t mÃ u
+        // THÃŠM NÃšT HOME VÃ€ ÄÄ‚NG XUáº¤T
         actions: [
           IconButton(
             icon: FaIcon(FontAwesomeIcons.house, color: Colors.white, size: 20),
-            tooltip: 'Trang chủ',
+            tooltip: 'Trang chá»§',
             onPressed: () => context.go('/admin'),
           ),
           IconButton(
@@ -247,7 +254,7 @@ class _CreateUserScreenState extends State<CreateUserScreen> {
               color: Colors.white,
               size: 20,
             ),
-            tooltip: 'Đăng xuất',
+            tooltip: 'ÄÄƒng xuáº¥t',
             onPressed: () async {
               await Provider.of<AuthProvider>(context, listen: false).logout();
               if (!context.mounted) return;
@@ -281,24 +288,26 @@ class _CreateUserScreenState extends State<CreateUserScreen> {
                   ),
                   SizedBox(height: 20),
 
-                  // (Giữ nguyên code các trường TextFields và Dropdowns...)
+                  // (Giá»¯ nguyÃªn code cÃ¡c trÆ°á»ng TextFields vÃ  Dropdowns...)
                   _buildTextField(
-                    'Tên đăng nhập',
+                    'TÃªn Ä‘Äƒng nháº­p',
                     controller: _usernameController,
                     readOnly: _isEditMode,
                   ),
                   _buildTextField(
-                    'Mật khẩu',
+                    'Máº­t kháº©u',
                     controller: _passwordController,
                     isPassword: true,
-                    hint: _isEditMode ? 'Để trống nếu không đổi' : null,
+                    hint: _isEditMode
+                        ? 'Äá»ƒ trá»‘ng náº¿u khÃ´ng Ä‘á»•i'
+                        : null,
                     isRequired: !_isEditMode,
                     validator: (v) {
                       if (!_isEditMode && (v == null || v.isEmpty)) {
-                        return 'Mật khẩu là bắt buộc';
+                        return 'Máº­t kháº©u lÃ  báº¯t buá»™c';
                       }
                       if (v != null && v.isNotEmpty && v.length < 6) {
-                        return 'Mật khẩu tối thiểu 6 ký tự';
+                        return 'Máº­t kháº©u tá»‘i thiá»ƒu 6 kÃ½ tá»±';
                       }
                       return null;
                     },
@@ -312,14 +321,16 @@ class _CreateUserScreenState extends State<CreateUserScreen> {
 
                   DropdownButtonFormField<String>(
                     decoration: InputDecoration(
-                      labelText: 'Vai trò',
+                      labelText: 'Vai trÃ²',
                       border: OutlineInputBorder(),
                     ),
                     initialValue: _vaiTro.isEmpty ? null : _vaiTro,
                     items: roles
                         .map(
-                          (role) =>
-                              DropdownMenuItem<String>(value: role, child: Text(role)),
+                          (role) => DropdownMenuItem<String>(
+                            value: role,
+                            child: Text(role),
+                          ),
                         )
                         .toList(),
                     onChanged: (String? newValue) {
@@ -327,75 +338,85 @@ class _CreateUserScreenState extends State<CreateUserScreen> {
                         _vaiTro = newValue!;
                       });
                     },
-                    validator: (v) =>
-                        v == null || v.isEmpty ? 'Vui lòng chọn vai trò' : null,
+                    validator: (v) => v == null || v.isEmpty
+                        ? 'Vui lÃ²ng chá»n vai trÃ²'
+                        : null,
                   ),
                   SizedBox(height: 16),
 
                   if (_vaiTro == 'BACSI' || _vaiTro == 'NHANSU') ...[
-                    _buildTextField('Họ tên', controller: _fullNameController),
+                    _buildTextField(
+                      'Há» tÃªn',
+                      controller: _fullNameController,
+                    ),
                     _buildKhoaDropdown(),
                   ],
 
                   if (_vaiTro == 'NHANSU') ...[
                     _buildDropdown(
-                      'Loại Nhân sự',
+                      'Loáº¡i NhÃ¢n sá»±',
                       staffTypes,
                       _loaiNS,
                       (v) => setState(() => _loaiNS = v),
                     ),
                     _buildTextField(
-                      'Cấp bậc',
-                      hint: 'Điều dưỡng, Kỹ thuật viên...',
+                      'Cáº¥p báº­c',
+                      hint: 'Äiá»u dÆ°á»¡ng, Ká»¹ thuáº­t viÃªn...',
                       controller: _rankController,
                     ),
                     _buildTextField(
-                      'Chuyên môn',
-                      hint: 'Xét nghiệm, Tiếp nhận...',
+                      'ChuyÃªn mÃ´n',
+                      hint: 'XÃ©t nghiá»‡m, Tiáº¿p nháº­n...',
                       controller: _specialtyController,
                     ),
                   ],
 
                   if (_vaiTro == 'BACSI') ...[
                     _buildTextField(
-                      'Chuyên môn',
-                      hint: 'Nội Tim mạch, Ngoại Thần kinh...',
+                      'ChuyÃªn mÃ´n',
+                      hint: 'Ná»™i Tim máº¡ch, Ngoáº¡i Tháº§n kinh...',
                       controller: _specialtyController,
                     ),
                     _buildTextField(
-                      'Trình độ',
-                      hint: 'Thạc sĩ, Tiến sĩ...',
+                      'TrÃ¬nh Ä‘á»™',
+                      hint: 'Tháº¡c sÄ©, Tiáº¿n sÄ©...',
                       controller: _degreeController,
                     ),
                     _buildTextField(
-                      'Chức vụ',
-                      hint: 'Trưởng khoa, Phó khoa...',
+                      'Chá»©c vá»¥',
+                      hint: 'TrÆ°á»Ÿng khoa, PhÃ³ khoa...',
                       controller: _positionController,
                     ),
                   ],
 
                   if (_vaiTro == 'BENHNHAN') ...[
-                    _buildTextField('Họ tên', controller: _fullNameController),
+                    _buildTextField(
+                      'Há» tÃªn',
+                      controller: _fullNameController,
+                    ),
                     _buildDateField(
                       context,
-                      'Ngày sinh',
+                      'NgÃ y sinh',
                       _ngaySinh,
                       (v) => setState(() => _ngaySinh = v),
                     ),
                     _buildDropdown(
-                      'Giới tính',
-                      ['Nam', 'Nữ', 'Khác'],
+                      'Giá»›i tÃ­nh',
+                      ['Nam', 'Ná»¯', 'KhÃ¡c'],
                       _gioiTinh,
                       (v) => setState(() => _gioiTinh = v),
                     ),
-                    _buildTextField('Địa chỉ', controller: _addressController),
                     _buildTextField(
-                      'Số điện thoại',
+                      'Äá»‹a chá»‰',
+                      controller: _addressController,
+                    ),
+                    _buildTextField(
+                      'Sá»‘ Ä‘iá»‡n thoáº¡i',
                       controller: _phoneController,
                       keyboardType: TextInputType.phone,
                     ),
                     _buildTextField(
-                      'Số thẻ BHYT (nếu có)',
+                      'Sá»‘ tháº» BHYT (náº¿u cÃ³)',
                       controller: _bhytController,
                       isRequired: false,
                     ),
@@ -421,9 +442,11 @@ class _CreateUserScreenState extends State<CreateUserScreen> {
                                   ? FontAwesomeIcons.solidFloppyDisk
                                   : FontAwesomeIcons.plus,
                               size: 18,
-                            ), // Sửa: Dùng solidFloppyDisk
+                            ), // Sá»­a: DÃ¹ng solidFloppyDisk
                       label: Text(
-                        _isEditMode ? 'Lưu cập nhật' : 'Tạo tài khoản',
+                        _isEditMode
+                            ? 'LÆ°u cáº­p nháº­t'
+                            : 'Táº¡o tÃ i khoáº£n',
                       ),
                       style: ElevatedButton.styleFrom(
                         backgroundColor: _isLoading
@@ -446,7 +469,7 @@ class _CreateUserScreenState extends State<CreateUserScreen> {
     );
   }
 
-  // (Giữ nguyên 4 hàm helper: _buildKhoaDropdown, _buildTextField, _buildDropdown, _buildDateField)
+  // (Giá»¯ nguyÃªn 4 hÃ m helper: _buildKhoaDropdown, _buildTextField, _buildDropdown, _buildDateField)
   // ...
   Widget _buildKhoaDropdown() {
     return Padding(
@@ -464,7 +487,12 @@ class _CreateUserScreenState extends State<CreateUserScreen> {
         ),
         initialValue: _maKhoa,
         items: _isLoadingKhoas
-            ? [DropdownMenuItem<String>(value: null, child: Text('Đang tải khoa...'))]
+            ? [
+                DropdownMenuItem<String>(
+                  value: null,
+                  child: Text('Äang táº£i khoa...'),
+                ),
+              ]
             : _khoasList
                   .map(
                     (khoa) => DropdownMenuItem<String>(
@@ -478,7 +506,8 @@ class _CreateUserScreenState extends State<CreateUserScreen> {
             _maKhoa = newValue;
           });
         },
-        validator: (v) => v == null || v.isEmpty ? 'Vui lòng chọn khoa' : null,
+        validator: (v) =>
+            v == null || v.isEmpty ? 'Vui lÃ²ng chá»n khoa' : null,
       ),
     );
   }
@@ -505,14 +534,16 @@ class _CreateUserScreenState extends State<CreateUserScreen> {
           border: OutlineInputBorder(),
           suffixIcon: isPassword ? Icon(Icons.visibility) : null,
           filled: readOnly,
-          fillColor: readOnly ? Colors.grey[100] : Colors.white,
+          fillColor: readOnly
+              ? Theme.of(context).disabledColor.withValues(alpha: 0.08)
+              : Theme.of(context).colorScheme.surface,
         ),
         obscureText: isPassword,
         validator:
             validator ??
             (value) {
               if (isRequired && (value == null || value.isEmpty)) {
-                return '$label là bắt buộc';
+                return '$label lÃ  báº¯t buá»™c';
               }
               return null;
             },
@@ -540,7 +571,7 @@ class _CreateUserScreenState extends State<CreateUserScreen> {
         }).toList(),
         onChanged: onChanged,
         validator: (v) =>
-            v == null || v.isEmpty ? 'Vui lòng chọn $label' : null,
+            v == null || v.isEmpty ? 'Vui lÃ²ng chá»n $label' : null,
       ),
     );
   }
@@ -571,10 +602,11 @@ class _CreateUserScreenState extends State<CreateUserScreen> {
             lastDate: DateTime.now(),
           );
           if (picked != null) {
-            onChanged(picked); // Cập nhật state
+            onChanged(picked); // Cáº­p nháº­t state
           }
         },
-        validator: (v) => v == null || v.isEmpty ? '$label là bắt buộc' : null,
+        validator: (v) =>
+            v == null || v.isEmpty ? '$label lÃ  báº¯t buá»™c' : null,
       ),
     );
   }
