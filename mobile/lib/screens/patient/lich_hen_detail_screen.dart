@@ -8,10 +8,7 @@ import '../../widgets/app_components.dart';
 import 'lich_hen_bn_screen.dart';
 
 class LichHenDetailScreen extends StatefulWidget {
-  const LichHenDetailScreen({
-    super.key,
-    required this.maLich,
-  });
+  const LichHenDetailScreen({super.key, required this.maLich});
 
   final String maLich;
 

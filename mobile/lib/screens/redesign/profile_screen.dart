@@ -43,7 +43,9 @@ class _ProfileScreenState extends State<ProfileScreen> {
           '/bacsi/maTK/${Uri.encodeComponent(auth.maTK ?? '')}',
         );
       } else if (auth.role == 'NHANSU' && (auth.maTK ?? '').isNotEmpty) {
-        domain = await _service.getObject('/nhansu/maTK/${Uri.encodeComponent(auth.maTK!)}');
+        domain = await _service.getObject(
+          '/nhansu/maTK/${Uri.encodeComponent(auth.maTK!)}',
+        );
       }
       if (!mounted) return;
       setState(() {
@@ -60,29 +62,34 @@ class _ProfileScreenState extends State<ProfileScreen> {
 
   Future<void> _editPatient() async {
     final auth = context.read<AuthProvider>();
-    final patientId = auth.maBN ??
+    final patientId =
+        auth.maBN ??
         firstText(_domainProfile, const ['maBN', 'patientId'], fallback: '');
     if (patientId.isEmpty) return;
 
     final fullName = TextEditingController(
-      text: firstText(_domainProfile, const ['hoTen', 'fullName'], fallback: ''),
+      text: firstText(_domainProfile, const [
+        'hoTen',
+        'fullName',
+      ], fallback: ''),
     );
     final phone = TextEditingController(
-      text: firstText(
-        _domainProfile,
-        const ['soDienThoai', 'phoneNumber'],
-        fallback: '',
-      ),
+      text: firstText(_domainProfile, const [
+        'soDienThoai',
+        'phoneNumber',
+      ], fallback: ''),
     );
     final address = TextEditingController(
-      text: firstText(_domainProfile, const ['diaChi', 'address'], fallback: ''),
+      text: firstText(_domainProfile, const [
+        'diaChi',
+        'address',
+      ], fallback: ''),
     );
     final insurance = TextEditingController(
-      text: firstText(
-        _domainProfile,
-        const ['bhyt', 'healthInsuranceNumber'],
-        fallback: '',
-      ),
+      text: firstText(_domainProfile, const [
+        'bhyt',
+        'healthInsuranceNumber',
+      ], fallback: ''),
     );
 
     final shouldSave = await showDialog<bool>(
@@ -155,14 +162,14 @@ class _ProfileScreenState extends State<ProfileScreen> {
       });
       await _load();
       if (!mounted) return;
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Đã cập nhật hồ sơ.')),
-      );
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(const SnackBar(content: Text('Đã cập nhật hồ sơ.')));
     } catch (error) {
       if (!mounted) return;
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('Không thể cập nhật: $error')),
-      );
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(SnackBar(content: Text('Không thể cập nhật: $error')));
     }
   }
 
@@ -182,7 +189,9 @@ class _ProfileScreenState extends State<ProfileScreen> {
               TextField(
                 controller: oldPassword,
                 obscureText: true,
-                decoration: const InputDecoration(labelText: 'Mật khẩu hiện tại'),
+                decoration: const InputDecoration(
+                  labelText: 'Mật khẩu hiện tại',
+                ),
               ),
               const SizedBox(height: 12),
               TextField(
@@ -212,14 +221,14 @@ class _ProfileScreenState extends State<ProfileScreen> {
         newPassword: newPassword.text,
       );
       if (!mounted) return;
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Đổi mật khẩu thành công.')),
-      );
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(const SnackBar(content: Text('Đổi mật khẩu thành công.')));
     } catch (error) {
       if (!mounted) return;
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('Không thể đổi mật khẩu: $error')),
-      );
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(SnackBar(content: Text('Không thể đổi mật khẩu: $error')));
     }
   }
 

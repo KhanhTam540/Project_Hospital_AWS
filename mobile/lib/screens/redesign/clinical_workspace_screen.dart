@@ -12,7 +12,8 @@ class ClinicalWorkspaceScreen extends StatefulWidget {
   const ClinicalWorkspaceScreen({super.key});
 
   @override
-  State<ClinicalWorkspaceScreen> createState() => _ClinicalWorkspaceScreenState();
+  State<ClinicalWorkspaceScreen> createState() =>
+      _ClinicalWorkspaceScreenState();
 }
 
 class _ClinicalWorkspaceScreenState extends State<ClinicalWorkspaceScreen> {
@@ -103,7 +104,8 @@ class _ClinicalWorkspaceScreenState extends State<ClinicalWorkspaceScreen> {
       children: [
         PageHeader(
           title: 'Hồ sơ lâm sàng',
-          subtitle: 'Bệnh án, phiếu khám, đơn thuốc và tài liệu y tế theo bệnh nhân.',
+          subtitle:
+              'Bệnh án, phiếu khám, đơn thuốc và tài liệu y tế theo bệnh nhân.',
           icon: Icons.cleaning_services_outlined,
           badge: const EndpointBadge(
             method: 'GET/POST',
@@ -141,7 +143,8 @@ class _ClinicalWorkspaceScreenState extends State<ClinicalWorkspaceScreen> {
         if ((_patientId ?? '').isEmpty)
           const EmptyState(
             title: 'Chưa xác định bệnh nhân',
-            message: 'Tài khoản chưa được liên kết với hồ sơ bệnh nhân hoặc danh sách bệnh nhân đang trống.',
+            message:
+                'Tài khoản chưa được liên kết với hồ sơ bệnh nhân hoặc danh sách bệnh nhân đang trống.',
             icon: Icons.person_off_rounded,
           )
         else if (_loading)
@@ -185,7 +188,12 @@ class _ClinicalWorkspaceScreenState extends State<ClinicalWorkspaceScreen> {
             endpoint: '/patients/$_patientId/records',
             items: _records,
             primaryKeys: const ['diagnosis', 'chuanDoan', 'recordId', 'maHSBA'],
-            secondaryKeys: const ['symptoms', 'trieuChung', 'createdAt', 'ngayLap'],
+            secondaryKeys: const [
+              'symptoms',
+              'trieuChung',
+              'createdAt',
+              'ngayLap',
+            ],
             emptyText: 'Chưa có hồ sơ bệnh án.',
             onCreate: isDoctor ? () => _showRecordForm(_patientId!) : null,
           ),
@@ -196,10 +204,22 @@ class _ClinicalWorkspaceScreenState extends State<ClinicalWorkspaceScreen> {
             icon: Icons.monitor_heart_rounded,
             endpoint: '/patients/$_patientId/examinations',
             items: _examinations,
-            primaryKeys: const ['diagnosis', 'chuanDoan', 'examinationId', 'maPK'],
-            secondaryKeys: const ['symptoms', 'trieuChung', 'createdAt', 'ngayKham'],
+            primaryKeys: const [
+              'diagnosis',
+              'chuanDoan',
+              'examinationId',
+              'maPK',
+            ],
+            secondaryKeys: const [
+              'symptoms',
+              'trieuChung',
+              'createdAt',
+              'ngayKham',
+            ],
             emptyText: 'Chưa có phiếu khám.',
-            onCreate: isDoctor || isStaff ? () => _showExaminationForm(_patientId!) : null,
+            onCreate: isDoctor || isStaff
+                ? () => _showExaminationForm(_patientId!)
+                : null,
           ),
           const SizedBox(height: 16),
           _ClinicalSection(
@@ -208,10 +228,17 @@ class _ClinicalWorkspaceScreenState extends State<ClinicalWorkspaceScreen> {
             icon: Icons.medication_rounded,
             endpoint: '/patients/$_patientId/prescriptions',
             items: _prescriptions,
-            primaryKeys: const ['prescriptionId', 'maDT', 'generalInstructions', 'loiDan'],
+            primaryKeys: const [
+              'prescriptionId',
+              'maDT',
+              'generalInstructions',
+              'loiDan',
+            ],
             secondaryKeys: const ['createdAt', 'ngayKeDon', 'doctorId', 'maBS'],
             emptyText: 'Chưa có đơn thuốc.',
-            onCreate: isDoctor ? () => _showPrescriptionForm(_patientId!) : null,
+            onCreate: isDoctor
+                ? () => _showPrescriptionForm(_patientId!)
+                : null,
           ),
           const SizedBox(height: 16),
           _DocumentSection(
@@ -363,11 +390,8 @@ class _ClinicalWorkspaceScreenState extends State<ClinicalWorkspaceScreen> {
       context: context,
       isScrollControlled: true,
       useSafeArea: true,
-      builder: (context) => _ClinicalFormSheet(
-        title: title,
-        fields: fields,
-        onSave: onSave,
-      ),
+      builder: (context) =>
+          _ClinicalFormSheet(title: title, fields: fields, onSave: onSave),
     );
     return result == true;
   }
@@ -411,7 +435,10 @@ class _ClinicalSection extends StatelessWidget {
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     Text(title, style: Theme.of(context).textTheme.titleLarge),
-                    Text(subtitle, style: Theme.of(context).textTheme.bodyMedium),
+                    Text(
+                      subtitle,
+                      style: Theme.of(context).textTheme.bodyMedium,
+                    ),
                   ],
                 ),
               ),
@@ -424,22 +451,33 @@ class _ClinicalSection extends StatelessWidget {
             ],
           ),
           const SizedBox(height: 12),
-          EndpointBadge(method: onCreate == null ? 'GET' : 'GET/POST', path: endpoint),
+          EndpointBadge(
+            method: onCreate == null ? 'GET' : 'GET/POST',
+            path: endpoint,
+          ),
           const SizedBox(height: 14),
           if (items.isEmpty)
             Text(emptyText, style: Theme.of(context).textTheme.bodyMedium)
           else
             ...items.take(8).map((item) {
               final title = firstText(item, primaryKeys);
-              final subtitle = firstText(item, secondaryKeys, fallback: 'Nhấn để xem chi tiết');
+              final subtitle = firstText(
+                item,
+                secondaryKeys,
+                fallback: 'Nhấn để xem chi tiết',
+              );
               return Padding(
                 padding: const EdgeInsets.only(bottom: 8),
                 child: DataListTile(
                   title: title,
                   subtitle: subtitle,
                   icon: icon,
-                  status: firstText(item, const ['status', 'trangThai'], fallback: ''),
-                  onTap: () => showDataDetails(context, title: title, data: item),
+                  status: firstText(item, const [
+                    'status',
+                    'trangThai',
+                  ], fallback: ''),
+                  onTap: () =>
+                      showDataDetails(context, title: title, data: item),
                 ),
               );
             }),
@@ -477,7 +515,9 @@ class _DocumentSectionState extends State<_DocumentSection> {
     try {
       final bytes = await file.readAsBytes();
       final extension = file.name.toLowerCase();
-      final contentType = extension.endsWith('.png') ? 'image/png' : 'image/jpeg';
+      final contentType = extension.endsWith('.png')
+          ? 'image/png'
+          : 'image/jpeg';
       final request = await _service.createUploadUrl(
         patientId: widget.patientId,
         fileName: file.name,
@@ -488,7 +528,9 @@ class _DocumentSectionState extends State<_DocumentSection> {
       final documentId = firstText(request, const ['documentId']);
       final rawHeaders = request['requiredHeaders'];
       final headers = rawHeaders is Map
-          ? rawHeaders.map((key, value) => MapEntry(key.toString(), value.toString()))
+          ? rawHeaders.map(
+              (key, value) => MapEntry(key.toString(), value.toString()),
+            )
           : <String, String>{'Content-Type': contentType};
       await _service.uploadToPresignedUrl(
         uploadUrl: uploadUrl,
@@ -503,9 +545,9 @@ class _DocumentSectionState extends State<_DocumentSection> {
       );
     } catch (error) {
       if (!mounted) return;
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text(error.toString())),
-      );
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(SnackBar(content: Text(error.toString())));
     } finally {
       if (mounted) setState(() => _uploading = false);
     }
@@ -523,9 +565,9 @@ class _DocumentSectionState extends State<_DocumentSection> {
       );
     } catch (error) {
       if (!mounted) return;
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text(error.toString())),
-      );
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(SnackBar(content: Text(error.toString())));
     }
   }
 
@@ -537,14 +579,23 @@ class _DocumentSectionState extends State<_DocumentSection> {
         children: [
           Row(
             children: [
-              Icon(Icons.folder_copy_rounded, color: Theme.of(context).colorScheme.primary),
+              Icon(
+                Icons.folder_copy_rounded,
+                color: Theme.of(context).colorScheme.primary,
+              ),
               const SizedBox(width: 10),
               Expanded(
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    Text('Tài liệu y tế', style: Theme.of(context).textTheme.titleLarge),
-                    Text('Ảnh và tài liệu lưu trong S3 private', style: Theme.of(context).textTheme.bodyMedium),
+                    Text(
+                      'Tài liệu y tế',
+                      style: Theme.of(context).textTheme.titleLarge,
+                    ),
+                    Text(
+                      'Ảnh và tài liệu lưu trong S3 private',
+                      style: Theme.of(context).textTheme.bodyMedium,
+                    ),
                   ],
                 ),
               ),
@@ -552,25 +603,41 @@ class _DocumentSectionState extends State<_DocumentSection> {
                 FilledButton.icon(
                   onPressed: _uploading ? null : _upload,
                   icon: _uploading
-                      ? const SizedBox(width: 17, height: 17, child: CircularProgressIndicator(strokeWidth: 2))
+                      ? const SizedBox(
+                          width: 17,
+                          height: 17,
+                          child: CircularProgressIndicator(strokeWidth: 2),
+                        )
                       : const Icon(Icons.cloud_upload_rounded),
                   label: const Text('Tải lên'),
                 ),
             ],
           ),
           const SizedBox(height: 12),
-          const EndpointBadge(method: 'GET/POST', path: '/medical/upload-url · /documents'),
+          const EndpointBadge(
+            method: 'GET/POST',
+            path: '/medical/upload-url · /documents',
+          ),
           const SizedBox(height: 14),
           if (widget.documents.isEmpty)
-            Text('Chưa có tài liệu y tế.', style: Theme.of(context).textTheme.bodyMedium)
+            Text(
+              'Chưa có tài liệu y tế.',
+              style: Theme.of(context).textTheme.bodyMedium,
+            )
           else
             ...widget.documents.map((document) {
-              final name = firstText(document, const ['fileName', 'documentId']);
+              final name = firstText(document, const [
+                'fileName',
+                'documentId',
+              ]);
               return Padding(
                 padding: const EdgeInsets.only(bottom: 8),
                 child: DataListTile(
                   title: name,
-                  subtitle: firstText(document, const ['createdAt', 'contentType']),
+                  subtitle: firstText(document, const [
+                    'createdAt',
+                    'contentType',
+                  ]),
                   icon: Icons.description_rounded,
                   status: firstText(document, const ['status'], fallback: ''),
                   trailing: IconButton(
@@ -578,7 +645,8 @@ class _DocumentSectionState extends State<_DocumentSection> {
                     onPressed: () => _copyDownload(document),
                     icon: const Icon(Icons.download_rounded),
                   ),
-                  onTap: () => showDataDetails(context, title: name, data: document),
+                  onTap: () =>
+                      showDataDetails(context, title: name, data: document),
                 ),
               );
             }),
@@ -589,7 +657,12 @@ class _DocumentSectionState extends State<_DocumentSection> {
 }
 
 class _FormFieldSpec {
-  const _FormFieldSpec(this.label, this.controller, this.maxLines, {this.numeric = false});
+  const _FormFieldSpec(
+    this.label,
+    this.controller,
+    this.maxLines, {
+    this.numeric = false,
+  });
   final String label;
   final TextEditingController controller;
   final int maxLines;
@@ -622,7 +695,9 @@ class _ClinicalFormSheetState extends State<_ClinicalFormSheet> {
       Navigator.of(context).pop(true);
     } catch (error) {
       if (!mounted) return;
-      ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(error.toString())));
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(SnackBar(content: Text(error.toString())));
     } finally {
       if (mounted) setState(() => _saving = false);
     }
@@ -652,13 +727,18 @@ class _ClinicalFormSheetState extends State<_ClinicalFormSheet> {
               ),
             ),
             const SizedBox(height: 18),
-            Text(widget.title, style: Theme.of(context).textTheme.headlineMedium),
+            Text(
+              widget.title,
+              style: Theme.of(context).textTheme.headlineMedium,
+            ),
             const SizedBox(height: 18),
             for (final field in widget.fields) ...[
               TextField(
                 controller: field.controller,
                 maxLines: field.maxLines,
-                keyboardType: field.numeric ? TextInputType.number : TextInputType.text,
+                keyboardType: field.numeric
+                    ? TextInputType.number
+                    : TextInputType.text,
                 decoration: InputDecoration(labelText: field.label),
               ),
               const SizedBox(height: 12),
@@ -668,7 +748,11 @@ class _ClinicalFormSheetState extends State<_ClinicalFormSheet> {
               child: FilledButton.icon(
                 onPressed: _saving ? null : _save,
                 icon: _saving
-                    ? const SizedBox(width: 18, height: 18, child: CircularProgressIndicator(strokeWidth: 2))
+                    ? const SizedBox(
+                        width: 18,
+                        height: 18,
+                        child: CircularProgressIndicator(strokeWidth: 2),
+                      )
                     : const Icon(Icons.save_rounded),
                 label: const Text('Lưu dữ liệu'),
               ),

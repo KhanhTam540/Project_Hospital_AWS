@@ -7,10 +7,7 @@ import '../../widgets/app_components.dart';
 import 'ket_qua_xet_nghiem_screen.dart';
 
 class KetQuaXetNghiemDetailScreen extends StatefulWidget {
-  const KetQuaXetNghiemDetailScreen({
-    super.key,
-    required this.maPhieuXN,
-  });
+  const KetQuaXetNghiemDetailScreen({super.key, required this.maPhieuXN});
 
   final String maPhieuXN;
 
@@ -40,9 +37,7 @@ class _KetQuaXetNghiemDetailScreenState
     });
 
     try {
-      final response = await _api.get(
-        '/phieuxetnghiem/${widget.maPhieuXN}',
-      );
+      final response = await _api.get('/phieuxetnghiem/${widget.maPhieuXN}');
       final data = _api.dataOf(response);
       if (data is! Map) {
         throw const FormatException('API không trả về phiếu xét nghiệm.');
@@ -50,9 +45,8 @@ class _KetQuaXetNghiemDetailScreenState
 
       if (!mounted) return;
       setState(
-        () => _result = LabResultModel.fromJson(
-          Map<String, dynamic>.from(data),
-        ),
+        () =>
+            _result = LabResultModel.fromJson(Map<String, dynamic>.from(data)),
       );
     } catch (error) {
       if (!mounted) return;
@@ -162,7 +156,10 @@ class _KetQuaXetNghiemDetailScreenState
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Text('Thông tin phiếu', style: Theme.of(context).textTheme.titleLarge),
+          Text(
+            'Thông tin phiếu',
+            style: Theme.of(context).textTheme.titleLarge,
+          ),
           const SizedBox(height: 14),
           _DetailRow(label: 'Mã phiếu', value: result.id),
           _DetailRow(label: 'Ngày thực hiện', value: result.performedAtText),
@@ -175,10 +172,7 @@ class _KetQuaXetNghiemDetailScreenState
                 : '${result.resultText}${result.unit.isEmpty ? '' : ' ${result.unit}'}',
           ),
           if (result.referenceRange.isNotEmpty)
-            _DetailRow(
-              label: 'Tham chiếu',
-              value: result.referenceRange,
-            ),
+            _DetailRow(label: 'Tham chiếu', value: result.referenceRange),
         ],
       ),
     );
@@ -186,10 +180,7 @@ class _KetQuaXetNghiemDetailScreenState
 }
 
 class _DetailRow extends StatelessWidget {
-  const _DetailRow({
-    required this.label,
-    required this.value,
-  });
+  const _DetailRow({required this.label, required this.value});
 
   final String label;
   final String value;
@@ -201,17 +192,13 @@ class _DetailRow extends StatelessWidget {
       child: Row(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          SizedBox(
-            width: 110,
-            child: Text(label),
-          ),
+          SizedBox(width: 110, child: Text(label)),
           Expanded(
             child: Text(
               value,
-              style: Theme.of(context)
-                  .textTheme
-                  .bodyLarge
-                  ?.copyWith(fontWeight: FontWeight.w700),
+              style: Theme.of(
+                context,
+              ).textTheme.bodyLarge?.copyWith(fontWeight: FontWeight.w700),
             ),
           ),
         ],

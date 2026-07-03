@@ -1,140 +1,295 @@
 class UserModel {
   const UserModel({
-    required this.maTK,
     required this.username,
-    required this.tenDangNhap,
-    this.email,
+    required this.maTK,
     required this.maNhom,
     required this.trangThai,
+    this.email,
     this.hoTen,
+    this.maBN,
+    this.maBS,
+    this.maNS,
     this.maKhoa,
     this.tenKhoa,
-    this.chuyenMon,
-    this.maBS,
-    this.chucVu,
-    this.trinhDo,
-    this.maNS,
     this.loaiNS,
+    this.chuyenMon,
     this.capBac,
-    this.maBN,
-    this.gioiTinh,
-    this.ngaySinh,
+    this.trinhDo,
+    this.chucVu,
+    this.diaChi,
     this.soDienThoai,
     this.bhyt,
-    this.diaChi,
+    this.gioiTinh,
+    this.ngaySinh,
+    this.confirmationStatus,
   });
 
-  /// Mã tài khoản nghiệp vụ trong DynamoDB.
+  /// Cognito username.
+  ///
+  /// Các API quản trị tài khoản phải dùng trường này,
+  /// không dùng maTK để gọi Cognito.
+  final String username;
+
+  /// Mã hồ sơ ứng dụng lưu trong DynamoDB.
   final String maTK;
 
-  /// Cognito username dùng cho các API quản trị tài khoản.
-  final String username;
-  final String tenDangNhap;
-  final String? email;
   final String maNhom;
   final bool trangThai;
 
+  final String? email;
   final String? hoTen;
+
+  final String? maBN;
+  final String? maBS;
+  final String? maNS;
+
   final String? maKhoa;
   final String? tenKhoa;
-  final String? chuyenMon;
-  final String? maBS;
-  final String? chucVu;
-  final String? trinhDo;
-  final String? maNS;
+
   final String? loaiNS;
+  final String? chuyenMon;
   final String? capBac;
-  final String? maBN;
-  final String? gioiTinh;
-  final String? ngaySinh;
+  final String? trinhDo;
+  final String? chucVu;
+
+  final String? diaChi;
   final String? soDienThoai;
   final String? bhyt;
-  final String? diaChi;
+  final String? gioiTinh;
+  final String? ngaySinh;
+
+  final String? confirmationStatus;
+
+  /// Tương thích với các màn hình cũ.
+  String get tenDangNhap => username;
+
+  bool get enabled => trangThai;
+
+  static String? _nullableString(dynamic value) {
+    if (value == null) {
+      return null;
+    }
+
+    final result = value.toString().trim();
+
+    if (result.isEmpty || result.toLowerCase() == 'null') {
+      return null;
+    }
+
+    return result;
+  }
+
+  static bool _readEnabled(Map<String, dynamic> json) {
+    final value = json['enabled'] ?? json['trangThai'] ?? json['status'];
+
+    if (value is bool) {
+      return value;
+    }
+
+    if (value is num) {
+      return value != 0;
+    }
+
+    final normalized = value?.toString().trim().toUpperCase();
+
+    if (normalized == null || normalized.isEmpty) {
+      return true;
+    }
+
+    return !const {
+      'FALSE',
+      '0',
+      'DISABLED',
+      'INACTIVE',
+      'LOCKED',
+    }.contains(normalized);
+  }
+
+  static String _readRole(Map<String, dynamic> json) {
+    final direct = _nullableString(
+      json['maNhom'] ?? json['primaryRole'] ?? json['role'],
+    );
+
+    if (direct != null) {
+      return direct.toUpperCase();
+    }
+
+    final groups = json['groups'];
+
+    if (groups is List && groups.isNotEmpty) {
+      return groups.first.toString().toUpperCase();
+    }
+
+    return 'BENHNHAN';
+  }
+
+  static String? _readDepartmentName(Map<String, dynamic> json) {
+    final direct = _nullableString(json['tenKhoa'] ?? json['departmentName']);
+
+    if (direct != null) {
+      return direct;
+    }
+
+    final department = json['Khoa'] ?? json['department'];
+
+    if (department is Map) {
+      final departmentMap = Map<String, dynamic>.from(department);
+
+      return _nullableString(
+        departmentMap['tenKhoa'] ??
+            departmentMap['departmentName'] ??
+            departmentMap['name'],
+      );
+    }
+
+    return null;
+  }
 
   factory UserModel.fromJson(Map<String, dynamic> json) {
-    String text(Object? value, {String fallback = ''}) {
-      final result = value?.toString().trim() ?? '';
-      return result.isEmpty ? fallback : result;
-    }
+    final username =
+        _nullableString(
+          json['username'] ?? json['tenDangNhap'] ?? json['cognitoUsername'],
+        ) ??
+        '';
 
-    bool parseEnabled(Object? value) {
-      if (value is bool) return value;
-      if (value is num) return value != 0;
-      final normalized = text(value).toUpperCase();
-      return const {'TRUE', '1', 'ACTIVE', 'ENABLED', 'CONFIRMED'}
-          .contains(normalized);
-    }
-
-    final username = text(
-      json['username'] ?? json['cognitoUsername'] ?? json['tenDangNhap'],
-      fallback: text(json['maTK'], fallback: 'N/A'),
-    );
-    final fullName = text(
-      json['hoTen'] ?? json['fullName'] ?? json['name'],
-      fallback: username,
-    );
+    final appUserId =
+        _nullableString(json['maTK'] ?? json['userId'] ?? json['id']) ??
+        username;
 
     return UserModel(
-      maTK: text(
-        json['maTK'] ?? json['appUserId'] ?? json['id'],
-        fallback: username,
-      ),
       username: username,
-      tenDangNhap: username,
-      email: text(json['email']).isEmpty ? null : text(json['email']),
-      maNhom: text(
-        json['maNhom'] ?? json['primaryRole'] ?? json['role'],
-        fallback: 'CHUA_PHAN_QUYEN',
-      ).toUpperCase(),
-      trangThai: parseEnabled(
-        json['enabled'] ?? json['trangThai'] ?? json['status'],
+      maTK: appUserId,
+      maNhom: _readRole(json),
+      trangThai: _readEnabled(json),
+
+      email: _nullableString(json['email']),
+
+      hoTen: _nullableString(json['hoTen'] ?? json['fullName'] ?? json['name']),
+
+      maBN: _nullableString(json['maBN'] ?? json['patientId']),
+
+      maBS: _nullableString(json['maBS'] ?? json['doctorId']),
+
+      maNS: _nullableString(json['maNS'] ?? json['staffId']),
+
+      maKhoa: _nullableString(json['maKhoa'] ?? json['departmentId']),
+
+      tenKhoa: _readDepartmentName(json),
+
+      loaiNS: _nullableString(json['loaiNS'] ?? json['staffType']),
+
+      chuyenMon: _nullableString(json['chuyenMon'] ?? json['specialty']),
+
+      capBac: _nullableString(json['capBac'] ?? json['rank']),
+
+      trinhDo: _nullableString(json['trinhDo'] ?? json['degree']),
+
+      chucVu: _nullableString(json['chucVu'] ?? json['position']),
+
+      diaChi: _nullableString(json['diaChi'] ?? json['address']),
+
+      soDienThoai: _nullableString(
+        json['soDienThoai'] ?? json['phoneNumber'] ?? json['phone_number'],
       ),
-      hoTen: fullName,
-      maKhoa: text(json['maKhoa'] ?? json['departmentId']).isEmpty
-          ? null
-          : text(json['maKhoa'] ?? json['departmentId']),
-      tenKhoa: text(json['tenKhoa'] ?? json['departmentName']).isEmpty
-          ? null
-          : text(json['tenKhoa'] ?? json['departmentName']),
-      chuyenMon: text(json['chuyenMon'] ?? json['specialty']).isEmpty
-          ? null
-          : text(json['chuyenMon'] ?? json['specialty']),
-      maBS: text(json['maBS'] ?? json['doctorId']).isEmpty
-          ? null
-          : text(json['maBS'] ?? json['doctorId']),
-      chucVu: text(json['chucVu'] ?? json['position']).isEmpty
-          ? null
-          : text(json['chucVu'] ?? json['position']),
-      trinhDo: text(json['trinhDo'] ?? json['degree']).isEmpty
-          ? null
-          : text(json['trinhDo'] ?? json['degree']),
-      maNS: text(json['maNS'] ?? json['staffId']).isEmpty
-          ? null
-          : text(json['maNS'] ?? json['staffId']),
-      loaiNS: text(json['loaiNS'] ?? json['staffType']).isEmpty
-          ? null
-          : text(json['loaiNS'] ?? json['staffType']).toUpperCase(),
-      capBac: text(json['capBac'] ?? json['rank']).isEmpty
-          ? null
-          : text(json['capBac'] ?? json['rank']),
-      maBN: text(json['maBN'] ?? json['patientId']).isEmpty
-          ? null
-          : text(json['maBN'] ?? json['patientId']),
-      gioiTinh: text(json['gioiTinh'] ?? json['gender']).isEmpty
-          ? null
-          : text(json['gioiTinh'] ?? json['gender']),
-      ngaySinh: text(json['ngaySinh'] ?? json['dateOfBirth']).isEmpty
-          ? null
-          : text(json['ngaySinh'] ?? json['dateOfBirth']),
-      soDienThoai: text(json['soDienThoai'] ?? json['phoneNumber']).isEmpty
-          ? null
-          : text(json['soDienThoai'] ?? json['phoneNumber']),
-      bhyt: text(json['bhyt'] ?? json['healthInsuranceNumber']).isEmpty
-          ? null
-          : text(json['bhyt'] ?? json['healthInsuranceNumber']),
-      diaChi: text(json['diaChi'] ?? json['address']).isEmpty
-          ? null
-          : text(json['diaChi'] ?? json['address']),
+
+      bhyt: _nullableString(
+        json['bhyt'] ??
+            json['healthInsurance'] ??
+            json['healthInsuranceNumber'],
+      ),
+
+      gioiTinh: _nullableString(json['gioiTinh'] ?? json['gender']),
+
+      ngaySinh: _nullableString(json['ngaySinh'] ?? json['birthDate']),
+
+      confirmationStatus: _nullableString(
+        json['confirmationStatus'] ?? json['userStatus'],
+      ),
+    );
+  }
+
+  Map<String, dynamic> toJson() {
+    return {
+      'username': username,
+      'tenDangNhap': username,
+      'maTK': maTK,
+      'maNhom': maNhom,
+      'enabled': trangThai,
+      'trangThai': trangThai,
+
+      'email': email,
+      'hoTen': hoTen,
+
+      'maBN': maBN,
+      'maBS': maBS,
+      'maNS': maNS,
+
+      'maKhoa': maKhoa,
+      'tenKhoa': tenKhoa,
+
+      'loaiNS': loaiNS,
+      'chuyenMon': chuyenMon,
+      'capBac': capBac,
+      'trinhDo': trinhDo,
+      'chucVu': chucVu,
+
+      'diaChi': diaChi,
+      'soDienThoai': soDienThoai,
+      'bhyt': bhyt,
+      'gioiTinh': gioiTinh,
+      'ngaySinh': ngaySinh,
+
+      'confirmationStatus': confirmationStatus,
+    };
+  }
+
+  UserModel copyWith({
+    String? username,
+    String? maTK,
+    String? maNhom,
+    bool? trangThai,
+    String? email,
+    String? hoTen,
+    String? maBN,
+    String? maBS,
+    String? maNS,
+    String? maKhoa,
+    String? tenKhoa,
+    String? loaiNS,
+    String? chuyenMon,
+    String? capBac,
+    String? trinhDo,
+    String? chucVu,
+    String? diaChi,
+    String? soDienThoai,
+    String? bhyt,
+    String? gioiTinh,
+    String? ngaySinh,
+    String? confirmationStatus,
+  }) {
+    return UserModel(
+      username: username ?? this.username,
+      maTK: maTK ?? this.maTK,
+      maNhom: maNhom ?? this.maNhom,
+      trangThai: trangThai ?? this.trangThai,
+      email: email ?? this.email,
+      hoTen: hoTen ?? this.hoTen,
+      maBN: maBN ?? this.maBN,
+      maBS: maBS ?? this.maBS,
+      maNS: maNS ?? this.maNS,
+      maKhoa: maKhoa ?? this.maKhoa,
+      tenKhoa: tenKhoa ?? this.tenKhoa,
+      loaiNS: loaiNS ?? this.loaiNS,
+      chuyenMon: chuyenMon ?? this.chuyenMon,
+      capBac: capBac ?? this.capBac,
+      trinhDo: trinhDo ?? this.trinhDo,
+      chucVu: chucVu ?? this.chucVu,
+      diaChi: diaChi ?? this.diaChi,
+      soDienThoai: soDienThoai ?? this.soDienThoai,
+      bhyt: bhyt ?? this.bhyt,
+      gioiTinh: gioiTinh ?? this.gioiTinh,
+      ngaySinh: ngaySinh ?? this.ngaySinh,
+      confirmationStatus: confirmationStatus ?? this.confirmationStatus,
     );
   }
 }

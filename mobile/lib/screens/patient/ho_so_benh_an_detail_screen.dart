@@ -9,16 +9,12 @@ import '../../theme/app_theme.dart';
 import '../../widgets/app_components.dart';
 
 class HoSoBenhAnDetailScreen extends StatefulWidget {
-  const HoSoBenhAnDetailScreen({
-    super.key,
-    required this.maHSBA,
-  });
+  const HoSoBenhAnDetailScreen({super.key, required this.maHSBA});
 
   final String maHSBA;
 
   @override
-  State<HoSoBenhAnDetailScreen> createState() =>
-      _HoSoBenhAnDetailScreenState();
+  State<HoSoBenhAnDetailScreen> createState() => _HoSoBenhAnDetailScreenState();
 }
 
 class _HoSoBenhAnDetailScreenState extends State<HoSoBenhAnDetailScreen> {
@@ -64,9 +60,9 @@ class _HoSoBenhAnDetailScreenState extends State<HoSoBenhAnDetailScreen> {
       final prescriptions = _items(_api.dataOf(responses[2]));
       final documents = _items(_api.dataOf(responses[3]));
       final record = records.cast<Map<String, dynamic>?>().firstWhere(
-            (item) => item?['recordId']?.toString() == widget.maHSBA,
-            orElse: () => null,
-          );
+        (item) => item?['recordId']?.toString() == widget.maHSBA,
+        orElse: () => null,
+      );
 
       if (record == null) {
         throw StateError('Không tìm thấy hồ sơ ${widget.maHSBA}.');
@@ -75,14 +71,12 @@ class _HoSoBenhAnDetailScreenState extends State<HoSoBenhAnDetailScreen> {
       if (!mounted) return;
       setState(() {
         _record = record;
-        _examinations = examinations
-            .where((item) {
-              final recordId = item['recordId']?.toString();
-              return recordId == null ||
-                  recordId.isEmpty ||
-                  recordId == widget.maHSBA;
-            })
-            .toList();
+        _examinations = examinations.where((item) {
+          final recordId = item['recordId']?.toString();
+          return recordId == null ||
+              recordId.isEmpty ||
+              recordId == widget.maHSBA;
+        }).toList();
         _prescriptions = prescriptions
             .where((item) => item['recordId']?.toString() == widget.maHSBA)
             .toList();
@@ -158,13 +152,13 @@ class _HoSoBenhAnDetailScreenState extends State<HoSoBenhAnDetailScreen> {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Text('Thông tin bệnh án', style: Theme.of(context).textTheme.titleLarge),
+          Text(
+            'Thông tin bệnh án',
+            style: Theme.of(context).textTheme.titleLarge,
+          ),
           const SizedBox(height: 14),
           _InfoRow(label: 'Mã hồ sơ', value: widget.maHSBA),
-          _InfoRow(
-            label: 'Ngày lập',
-            value: _date(record['createdAt']),
-          ),
+          _InfoRow(label: 'Ngày lập', value: _date(record['createdAt'])),
           _InfoRow(label: 'Triệu chứng', value: _text(record['symptoms'])),
           _InfoRow(label: 'Chẩn đoán', value: _text(record['diagnosis'])),
           _InfoRow(label: 'Điều trị', value: _text(record['treatment'])),
@@ -210,7 +204,8 @@ class _HoSoBenhAnDetailScreenState extends State<HoSoBenhAnDetailScreen> {
             ? item['medicineItems'] as List
             : const [];
         final lines = medicines.whereType<Map>().map((medicine) {
-          final name = medicine['medicineName'] ?? medicine['medicineId'] ?? 'Thuốc';
+          final name =
+              medicine['medicineName'] ?? medicine['medicineId'] ?? 'Thuốc';
           final quantity = medicine['quantity'] ?? '';
           final dosage = medicine['dosage'] ?? '';
           final frequency = medicine['frequency'] ?? '';
@@ -219,10 +214,7 @@ class _HoSoBenhAnDetailScreenState extends State<HoSoBenhAnDetailScreen> {
         if (_text(item['generalInstructions']).isNotEmpty) {
           lines.add('Hướng dẫn: ${_text(item['generalInstructions'])}');
         }
-        return _SubCard(
-          title: _date(item['createdAt']),
-          lines: lines,
-        );
+        return _SubCard(title: _date(item['createdAt']), lines: lines);
       }).toList(),
     );
   }
@@ -294,9 +286,7 @@ class _InfoRow extends StatelessWidget {
             width: 100,
             child: Text(label, style: Theme.of(context).textTheme.bodyMedium),
           ),
-          Expanded(
-            child: Text(value.isEmpty ? 'Chưa cập nhật' : value),
-          ),
+          Expanded(child: Text(value.isEmpty ? 'Chưa cập nhật' : value)),
         ],
       ),
     );
@@ -322,10 +312,7 @@ class _ListSection extends StatelessWidget {
         children: [
           Text(title, style: Theme.of(context).textTheme.titleLarge),
           const SizedBox(height: 12),
-          if (children.isEmpty)
-            Text(emptyMessage)
-          else
-            ...children,
+          if (children.isEmpty) Text(emptyMessage) else ...children,
         ],
       ),
     );

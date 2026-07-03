@@ -89,8 +89,7 @@ class _QuanLyNhanSuScreenState extends State<QuanLyNhanSuScreen> {
         ],
       ),
       floatingActionButton: FloatingActionButton(
-        onPressed: () =>
-            context.go('/admin/account/create'),
+        onPressed: () => context.go('/admin/account/create'),
         tooltip: 'Thêm nhân viên', // Đi đến trang tạo mới
         child: Icon(Icons.add),
       ),

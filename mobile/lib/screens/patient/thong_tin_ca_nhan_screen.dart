@@ -76,9 +76,8 @@ class _ThongTinCaNhanScreenState extends State<ThongTinCaNhanScreen> {
       final data = Map<String, dynamic>.from(_api.dataOf(response) as Map);
       if (!mounted) return;
       setState(() {
-        _fullName.text = _text(data['hoTen'] ?? data['fullName']) ??
-            auth.tenDangNhap ??
-            '';
+        _fullName.text =
+            _text(data['hoTen'] ?? data['fullName']) ?? auth.tenDangNhap ?? '';
         _phone.text = _text(data['soDienThoai'] ?? data['phoneNumber']) ?? '';
         _address.text = _text(data['diaChi'] ?? data['address']) ?? '';
         _insurance.text =
@@ -137,9 +136,9 @@ class _ThongTinCaNhanScreenState extends State<ThongTinCaNhanScreen> {
     setState(() => _isChangingPassword = true);
     try {
       await context.read<AuthProvider>().changePassword(
-            oldPassword: _oldPassword.text,
-            newPassword: _newPassword.text,
-          );
+        oldPassword: _oldPassword.text,
+        newPassword: _newPassword.text,
+      );
       if (!mounted) return;
       _oldPassword.clear();
       _newPassword.clear();
@@ -274,7 +273,10 @@ class _ThongTinCaNhanScreenState extends State<ThongTinCaNhanScreen> {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.stretch,
           children: [
-            Text('Hồ sơ bệnh nhân', style: Theme.of(context).textTheme.titleLarge),
+            Text(
+              'Hồ sơ bệnh nhân',
+              style: Theme.of(context).textTheme.titleLarge,
+            ),
             const SizedBox(height: 14),
             TextFormField(
               controller: _fullName,
@@ -378,9 +380,7 @@ class _ThongTinCaNhanScreenState extends State<ThongTinCaNhanScreen> {
             FilledButton.icon(
               onPressed: _isChangingPassword ? null : _changePassword,
               icon: const Icon(Icons.password_outlined),
-              label: Text(
-                _isChangingPassword ? 'Đang đổi...' : 'Đổi mật khẩu',
-              ),
+              label: Text(_isChangingPassword ? 'Đang đổi...' : 'Đổi mật khẩu'),
             ),
           ],
         ),

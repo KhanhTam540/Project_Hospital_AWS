@@ -35,8 +35,14 @@ class _ScheduleScreenState extends State<ScheduleScreen>
           child: TabBar(
             controller: _tabController,
             tabs: const [
-              Tab(icon: Icon(Icons.event_available_rounded), text: 'Lịch làm việc'),
-              Tab(icon: Icon(Icons.access_time_filled_rounded), text: 'Ca trực'),
+              Tab(
+                icon: Icon(Icons.event_available_rounded),
+                text: 'Lịch làm việc',
+              ),
+              Tab(
+                icon: Icon(Icons.access_time_filled_rounded),
+                text: 'Ca trực',
+              ),
             ],
           ),
         ),

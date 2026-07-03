@@ -53,7 +53,10 @@ class _DashboardScreenState extends State<DashboardScreen> {
       if (auth.role == 'ADMIN') {
         futures.addAll([
           _safeList(() => _service.patients(), (value) => _patients = value),
-          _safeList(() => _service.appointments(), (value) => _appointments = value),
+          _safeList(
+            () => _service.appointments(),
+            (value) => _appointments = value,
+          ),
           _safeObject(
             () => _service.accountSummary(),
             (value) => _accountSummary = value,
@@ -70,8 +73,14 @@ class _DashboardScreenState extends State<DashboardScreen> {
       } else if (auth.role == 'NHANSU') {
         futures.addAll([
           _safeList(() => _service.patients(), (value) => _patients = value),
-          _safeList(() => _service.appointments(), (value) => _appointments = value),
-          _safeList(() => _service.labResults(), (value) => _labResults = value),
+          _safeList(
+            () => _service.appointments(),
+            (value) => _appointments = value,
+          ),
+          _safeList(
+            () => _service.labResults(),
+            (value) => _labResults = value,
+          ),
         ]);
       } else if (auth.role == 'BENHNHAN') {
         final patientId = auth.maBN;
@@ -81,7 +90,10 @@ class _DashboardScreenState extends State<DashboardScreen> {
             (value) => _appointments = value,
           ),
           if (patientId != null && patientId.isNotEmpty)
-            _safeList(() => _service.records(patientId), (value) => _records = value),
+            _safeList(
+              () => _service.records(patientId),
+              (value) => _records = value,
+            ),
           _safeList(
             () => _service.labResults(patientId: patientId),
             (value) => _labResults = value,
@@ -122,11 +134,13 @@ class _DashboardScreenState extends State<DashboardScreen> {
   @override
   Widget build(BuildContext context) {
     final auth = context.watch<AuthProvider>();
-    final name = firstText(
-      _me,
-      const ['fullName', 'hoTen', 'username', 'tenDangNhap', 'email'],
-      fallback: auth.tenDangNhap ?? auth.email ?? 'bạn',
-    );
+    final name = firstText(_me, const [
+      'fullName',
+      'hoTen',
+      'username',
+      'tenDangNhap',
+      'email',
+    ], fallback: auth.tenDangNhap ?? auth.email ?? 'bạn');
     final status = firstText(_health, const ['status'], fallback: 'unknown');
     final nextAppointment = _upcomingAppointment();
     final navItems = HospitalNavigation.forAuth(auth)
@@ -149,9 +163,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
         else if (_error != null)
           ErrorState(message: _error!, onRetry: _load)
         else ...[
-          ResponsiveGrid(
-            children: _metrics(auth),
-          ),
+          ResponsiveGrid(children: _metrics(auth)),
           const SizedBox(height: 26),
           const SectionTitle(
             title: 'Truy cập nhanh',
@@ -188,7 +200,8 @@ class _DashboardScreenState extends State<DashboardScreen> {
           if (nextAppointment == null)
             const EmptyState(
               title: 'Chưa có lịch khám sắp tới',
-              message: 'Bạn có thể mở mục Lịch khám để tạo hoặc theo dõi lịch hẹn.',
+              message:
+                  'Bạn có thể mở mục Lịch khám để tạo hoặc theo dõi lịch hẹn.',
               icon: Icons.event_busy_rounded,
             )
           else
@@ -206,7 +219,9 @@ class _DashboardScreenState extends State<DashboardScreen> {
       return [
         MetricCard(
           label: 'Tài khoản',
-          value: firstText(_accountSummary, const ['total'], fallback: _summaryTotal()),
+          value: firstText(_accountSummary, const [
+            'total',
+          ], fallback: _summaryTotal()),
           icon: Icons.manage_accounts_rounded,
           color: AppTheme.primary,
           onTap: () => context.go('/accounts'),
@@ -300,8 +315,12 @@ class _DashboardScreenState extends State<DashboardScreen> {
   }
 
   String _summaryTotal() {
-    final values = ['admin', 'doctor', 'staff', 'patient']
-        .map((key) => int.tryParse((_accountSummary[key] ?? 0).toString()) ?? 0);
+    final values = [
+      'admin',
+      'doctor',
+      'staff',
+      'patient',
+    ].map((key) => int.tryParse((_accountSummary[key] ?? 0).toString()) ?? 0);
     return '${values.fold<int>(0, (total, value) => total + value)}';
   }
 
@@ -309,8 +328,16 @@ class _DashboardScreenState extends State<DashboardScreen> {
     if (_appointments.isEmpty) return null;
     final copy = [..._appointments];
     copy.sort((a, b) {
-      final aDate = firstText(a, const ['appointmentDate', 'ngayKham', 'ngayHen'], fallback: '9999');
-      final bDate = firstText(b, const ['appointmentDate', 'ngayKham', 'ngayHen'], fallback: '9999');
+      final aDate = firstText(a, const [
+        'appointmentDate',
+        'ngayKham',
+        'ngayHen',
+      ], fallback: '9999');
+      final bDate = firstText(b, const [
+        'appointmentDate',
+        'ngayKham',
+        'ngayHen',
+      ], fallback: '9999');
       return aDate.compareTo(bDate);
     });
     return copy.first;
@@ -358,7 +385,10 @@ class _HeroBanner extends StatelessWidget {
               Row(
                 children: [
                   Container(
-                    padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 10,
+                      vertical: 6,
+                    ),
                     decoration: BoxDecoration(
                       color: Colors.white.withValues(alpha: 0.16),
                       borderRadius: BorderRadius.circular(999),
@@ -367,13 +397,17 @@ class _HeroBanner extends StatelessWidget {
                       mainAxisSize: MainAxisSize.min,
                       children: [
                         Icon(
-                          systemOnline ? Icons.cloud_done_rounded : Icons.cloud_off_rounded,
+                          systemOnline
+                              ? Icons.cloud_done_rounded
+                              : Icons.cloud_off_rounded,
                           color: Colors.white,
                           size: 16,
                         ),
                         const SizedBox(width: 6),
                         Text(
-                          systemOnline ? 'AWS đang hoạt động' : 'Đang kiểm tra AWS',
+                          systemOnline
+                              ? 'AWS đang hoạt động'
+                              : 'Đang kiểm tra AWS',
                           style: const TextStyle(
                             color: Colors.white,
                             fontWeight: FontWeight.w700,
@@ -388,16 +422,16 @@ class _HeroBanner extends StatelessWidget {
               const SizedBox(height: 14),
               Text(
                 'Xin chào, $name',
-                style: Theme.of(context).textTheme.headlineLarge?.copyWith(
-                      color: Colors.white,
-                    ),
+                style: Theme.of(
+                  context,
+                ).textTheme.headlineLarge?.copyWith(color: Colors.white),
               ),
               const SizedBox(height: 7),
               Text(
                 '$role · Quản lý công việc và dữ liệu y tế trong một giao diện thống nhất.',
                 style: Theme.of(context).textTheme.bodyLarge?.copyWith(
-                      color: Colors.white.withValues(alpha: 0.88),
-                    ),
+                  color: Colors.white.withValues(alpha: 0.88),
+                ),
               ),
             ],
           );
@@ -415,11 +449,7 @@ class _HeroBanner extends StatelessWidget {
           if (compact) {
             return Column(
               crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                text,
-                const SizedBox(height: 18),
-                action,
-              ],
+              children: [text, const SizedBox(height: 18), action],
             );
           }
 
@@ -444,11 +474,23 @@ class _AppointmentPreview extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final doctor = firstText(item, const ['tenBacSi', 'BacSi', 'maBS', 'doctorId']);
-    final date = firstText(item, const ['ngayKham', 'appointmentDate', 'ngayHen']);
+    final doctor = firstText(item, const [
+      'tenBacSi',
+      'BacSi',
+      'maBS',
+      'doctorId',
+    ]);
+    final date = firstText(item, const [
+      'ngayKham',
+      'appointmentDate',
+      'ngayHen',
+    ]);
     final time = firstText(item, const ['gioKham', 'appointmentTime', 'maCa']);
     final status = firstText(item, const ['trangThai', 'status']);
-    final queue = firstText(item, const ['soThuTu', 'queueNumber'], fallback: '—');
+    final queue = firstText(item, const [
+      'soThuTu',
+      'queueNumber',
+    ], fallback: '—');
 
     return HospitalCard(
       onTap: onTap,
@@ -470,9 +512,15 @@ class _AppointmentPreview extends StatelessWidget {
               children: [
                 Text(doctor, style: Theme.of(context).textTheme.titleMedium),
                 const SizedBox(height: 4),
-                Text('$date · $time', style: Theme.of(context).textTheme.bodyMedium),
+                Text(
+                  '$date · $time',
+                  style: Theme.of(context).textTheme.bodyMedium,
+                ),
                 const SizedBox(height: 5),
-                Text('Số thứ tự: $queue', style: Theme.of(context).textTheme.bodySmall),
+                Text(
+                  'Số thứ tự: $queue',
+                  style: Theme.of(context).textTheme.bodySmall,
+                ),
               ],
             ),
           ),

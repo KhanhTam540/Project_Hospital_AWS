@@ -36,11 +36,7 @@ Future<void> main() async {
 }
 
 class HospitalApp extends StatelessWidget {
-  const HospitalApp({
-    super.key,
-    required this.router,
-    this.configurationError,
-  });
+  const HospitalApp({super.key, required this.router, this.configurationError});
 
   final GoRouter router;
   final Object? configurationError;
@@ -62,9 +58,7 @@ class HospitalApp extends StatelessWidget {
         debugShowCheckedModeBanner: false,
         title: 'Hospital P2TB',
         theme: AppTheme.light(),
-        home: const Scaffold(
-          body: Center(child: CircularProgressIndicator()),
-        ),
+        home: const Scaffold(body: Center(child: CircularProgressIndicator())),
       );
     }
 

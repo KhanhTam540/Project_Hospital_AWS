@@ -277,7 +277,10 @@ class _DangKyBenhNhanYtaScreenState extends State<DangKyBenhNhanYtaScreen> {
         ),
         initialValue: currentValue,
         items: items
-            .map((item) => DropdownMenuItem<String>(value: item, child: Text(item)))
+            .map(
+              (item) =>
+                  DropdownMenuItem<String>(value: item, child: Text(item)),
+            )
             .toList(),
         onChanged: onChanged,
         validator: (v) =>

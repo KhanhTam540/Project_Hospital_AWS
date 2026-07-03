@@ -117,9 +117,11 @@ class _PatientDirectoryScreenState extends State<PatientDirectoryScreen> {
   Future<void> _openForm({Map<String, dynamic>? patient}) async {
     final auth = context.read<AuthProvider>();
     final canCreate = auth.role == 'ADMIN' || auth.role == 'NHANSU';
-    final canEdit = canCreate ||
+    final canEdit =
+        canCreate ||
         (auth.role == 'BENHNHAN' &&
-            firstText(patient ?? const {}, const ['maBN', 'patientId']) == auth.maBN);
+            firstText(patient ?? const {}, const ['maBN', 'patientId']) ==
+                auth.maBN);
     if (patient == null && !canCreate) return;
     if (patient != null && !canEdit) return;
 
@@ -152,7 +154,10 @@ class _PatientDirectoryScreenState extends State<PatientDirectoryScreen> {
           title: 'Hồ sơ bệnh nhân',
           subtitle: 'Tra cứu, đăng ký và cập nhật thông tin bệnh nhân.',
           icon: Icons.personal_injury_rounded,
-          badge: const EndpointBadge(method: 'GET/POST/PUT', path: '/benhnhan · /patients'),
+          badge: const EndpointBadge(
+            method: 'GET/POST/PUT',
+            path: '/benhnhan · /patients',
+          ),
           actions: [
             OutlinedButton.icon(
               onPressed: _load,
@@ -184,15 +189,24 @@ class _PatientDirectoryScreenState extends State<PatientDirectoryScreen> {
           ...visible.map((patient) {
             final id = firstText(patient, const ['maBN', 'patientId']);
             final name = firstText(patient, const ['hoTen', 'fullName']);
-            final phone = firstText(patient, const ['soDienThoai', 'phoneNumber']);
-            final insurance = firstText(patient, const ['bhyt', 'healthInsuranceNumber']);
+            final phone = firstText(patient, const [
+              'soDienThoai',
+              'phoneNumber',
+            ]);
+            final insurance = firstText(patient, const [
+              'bhyt',
+              'healthInsuranceNumber',
+            ]);
             return Padding(
               padding: const EdgeInsets.only(bottom: 10),
               child: DataListTile(
                 title: name,
                 subtitle: '$id · $phone · BHYT: $insurance',
                 icon: Icons.person_rounded,
-                status: firstText(patient, const ['trangThai', 'status'], fallback: ''),
+                status: firstText(patient, const [
+                  'trangThai',
+                  'status',
+                ], fallback: ''),
                 onTap: () => _showPatientDetails(patient, auth, canCreate),
               ),
             );
@@ -227,13 +241,36 @@ class _PatientFormSheetState extends State<_PatientFormSheet> {
   void initState() {
     super.initState();
     final patient = widget.patient ?? const <String, dynamic>{};
-    _name = TextEditingController(text: firstText(patient, const ['hoTen', 'fullName'], fallback: ''));
-    _birthDate = TextEditingController(text: firstText(patient, const ['ngaySinh', 'dateOfBirth'], fallback: ''));
-    _phone = TextEditingController(text: firstText(patient, const ['soDienThoai', 'phoneNumber'], fallback: ''));
-    _address = TextEditingController(text: firstText(patient, const ['diaChi', 'address'], fallback: ''));
-    _insurance = TextEditingController(text: firstText(patient, const ['bhyt', 'healthInsuranceNumber'], fallback: ''));
-    final gender = firstText(patient, const ['gioiTinh', 'gender'], fallback: 'NAM').toUpperCase();
-    _gender = gender == 'NỮ' || gender == 'NU' ? 'NU' : gender == 'KHÁC' || gender == 'KHAC' ? 'KHAC' : 'NAM';
+    _name = TextEditingController(
+      text: firstText(patient, const ['hoTen', 'fullName'], fallback: ''),
+    );
+    _birthDate = TextEditingController(
+      text: firstText(patient, const ['ngaySinh', 'dateOfBirth'], fallback: ''),
+    );
+    _phone = TextEditingController(
+      text: firstText(patient, const [
+        'soDienThoai',
+        'phoneNumber',
+      ], fallback: ''),
+    );
+    _address = TextEditingController(
+      text: firstText(patient, const ['diaChi', 'address'], fallback: ''),
+    );
+    _insurance = TextEditingController(
+      text: firstText(patient, const [
+        'bhyt',
+        'healthInsuranceNumber',
+      ], fallback: ''),
+    );
+    final gender = firstText(patient, const [
+      'gioiTinh',
+      'gender',
+    ], fallback: 'NAM').toUpperCase();
+    _gender = gender == 'NỮ' || gender == 'NU'
+        ? 'NU'
+        : gender == 'KHÁC' || gender == 'KHAC'
+        ? 'KHAC'
+        : 'NAM';
   }
 
   @override
@@ -268,7 +305,9 @@ class _PatientFormSheetState extends State<_PatientFormSheet> {
       Navigator.of(context).pop(true);
     } catch (error) {
       if (!mounted) return;
-      ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(error.toString())));
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(SnackBar(content: Text(error.toString())));
     } finally {
       if (mounted) setState(() => _saving = false);
     }
@@ -307,19 +346,34 @@ class _PatientFormSheetState extends State<_PatientFormSheet> {
               const SizedBox(height: 18),
               TextFormField(
                 controller: _name,
-                decoration: const InputDecoration(labelText: 'Họ và tên', prefixIcon: Icon(Icons.person_rounded)),
-                validator: (value) => value == null || value.trim().isEmpty ? 'Vui lòng nhập họ tên' : null,
+                decoration: const InputDecoration(
+                  labelText: 'Họ và tên',
+                  prefixIcon: Icon(Icons.person_rounded),
+                ),
+                validator: (value) => value == null || value.trim().isEmpty
+                    ? 'Vui lòng nhập họ tên'
+                    : null,
               ),
               const SizedBox(height: 12),
               TextFormField(
                 controller: _birthDate,
-                decoration: const InputDecoration(labelText: 'Ngày sinh (YYYY-MM-DD)', prefixIcon: Icon(Icons.cake_rounded)),
-                validator: (value) => value == null || !RegExp(r'^\d{4}-\d{2}-\d{2}$').hasMatch(value.trim()) ? 'Nhập đúng định dạng YYYY-MM-DD' : null,
+                decoration: const InputDecoration(
+                  labelText: 'Ngày sinh (YYYY-MM-DD)',
+                  prefixIcon: Icon(Icons.cake_rounded),
+                ),
+                validator: (value) =>
+                    value == null ||
+                        !RegExp(r'^\d{4}-\d{2}-\d{2}$').hasMatch(value.trim())
+                    ? 'Nhập đúng định dạng YYYY-MM-DD'
+                    : null,
               ),
               const SizedBox(height: 12),
               DropdownButtonFormField<String>(
                 initialValue: _gender,
-                decoration: const InputDecoration(labelText: 'Giới tính', prefixIcon: Icon(Icons.wc_rounded)),
+                decoration: const InputDecoration(
+                  labelText: 'Giới tính',
+                  prefixIcon: Icon(Icons.wc_rounded),
+                ),
                 items: const [
                   DropdownMenuItem(value: 'NAM', child: Text('Nam')),
                   DropdownMenuItem(value: 'NU', child: Text('Nữ')),
@@ -331,18 +385,27 @@ class _PatientFormSheetState extends State<_PatientFormSheet> {
               TextFormField(
                 controller: _phone,
                 keyboardType: TextInputType.phone,
-                decoration: const InputDecoration(labelText: 'Số điện thoại', prefixIcon: Icon(Icons.phone_rounded)),
+                decoration: const InputDecoration(
+                  labelText: 'Số điện thoại',
+                  prefixIcon: Icon(Icons.phone_rounded),
+                ),
               ),
               const SizedBox(height: 12),
               TextFormField(
                 controller: _insurance,
-                decoration: const InputDecoration(labelText: 'Mã BHYT', prefixIcon: Icon(Icons.health_and_safety_rounded)),
+                decoration: const InputDecoration(
+                  labelText: 'Mã BHYT',
+                  prefixIcon: Icon(Icons.health_and_safety_rounded),
+                ),
               ),
               const SizedBox(height: 12),
               TextFormField(
                 controller: _address,
                 maxLines: 2,
-                decoration: const InputDecoration(labelText: 'Địa chỉ', prefixIcon: Icon(Icons.location_on_rounded)),
+                decoration: const InputDecoration(
+                  labelText: 'Địa chỉ',
+                  prefixIcon: Icon(Icons.location_on_rounded),
+                ),
               ),
               const SizedBox(height: 20),
               SizedBox(
@@ -350,7 +413,11 @@ class _PatientFormSheetState extends State<_PatientFormSheet> {
                 child: FilledButton.icon(
                   onPressed: _saving ? null : _save,
                   icon: _saving
-                      ? const SizedBox(width: 18, height: 18, child: CircularProgressIndicator(strokeWidth: 2))
+                      ? const SizedBox(
+                          width: 18,
+                          height: 18,
+                          child: CircularProgressIndicator(strokeWidth: 2),
+                        )
                       : const Icon(Icons.save_rounded),
                   label: Text(_editing ? 'Lưu thay đổi' : 'Tạo hồ sơ'),
                 ),
