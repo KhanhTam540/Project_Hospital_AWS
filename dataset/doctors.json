@@ -1,0 +1,63 @@
+[
+  {
+    "pk": "STAFF#BS001",
+    "sk": "PROFILE",
+    "entityType": "DOCTOR",
+    "staffId": "BS001",
+    "doctorId": "BS001",
+    "fullName": "Bác sĩ Nguyễn Minh Khoa",
+    "role": "BACSI",
+    "departmentId": "KHOA_NOI",
+    "specialty": "Nội tổng quát",
+    "status": "ACTIVE",
+    "dataSource": "P2TB_SAMPLE",
+    "createdAt": "2026-06-24T00:00:00.000Z",
+    "updatedAt": "2026-06-24T00:00:00.000Z",
+    "accountUserId": "USER002"
+  },
+  {
+    "pk": "STAFF#BS002",
+    "sk": "PROFILE",
+    "entityType": "DOCTOR",
+    "staffId": "BS002",
+    "doctorId": "BS002",
+    "fullName": "Bác sĩ Trần Thu Hà",
+    "role": "BACSI",
+    "departmentId": "KHOA_NOI",
+    "specialty": "Tim mạch",
+    "status": "ACTIVE",
+    "dataSource": "P2TB_SAMPLE",
+    "createdAt": "2026-06-24T00:00:00.000Z",
+    "updatedAt": "2026-06-24T00:00:00.000Z"
+  },
+  {
+    "pk": "STAFF#BS003",
+    "sk": "PROFILE",
+    "entityType": "DOCTOR",
+    "staffId": "BS003",
+    "doctorId": "BS003",
+    "fullName": "Bác sĩ Lê Hoàng Nam",
+    "role": "BACSI",
+    "departmentId": "KHOA_NGOAI",
+    "specialty": "Ngoại tổng quát",
+    "status": "ACTIVE",
+    "dataSource": "P2TB_SAMPLE",
+    "createdAt": "2026-06-24T00:00:00.000Z",
+    "updatedAt": "2026-06-24T00:00:00.000Z"
+  },
+  {
+    "pk": "STAFF#BS004",
+    "sk": "PROFILE",
+    "entityType": "DOCTOR",
+    "staffId": "BS004",
+    "doctorId": "BS004",
+    "fullName": "Bác sĩ Phạm Gia Bảo",
+    "role": "BACSI",
+    "departmentId": "KHOA_NGOAI",
+    "specialty": "Chấn thương chỉnh hình",
+    "status": "ACTIVE",
+    "dataSource": "P2TB_SAMPLE",
+    "createdAt": "2026-06-24T00:00:00.000Z",
+    "updatedAt": "2026-06-24T00:00:00.000Z"
+  }
+]

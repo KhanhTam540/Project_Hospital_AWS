@@ -1,0 +1,26 @@
+[
+  {
+    "pk": "MEDICINE_UNIT#VIEN",
+    "sk": "META",
+    "entityType": "MEDICINE_UNIT",
+    "unitId": "VIEN",
+    "unitName": "Viên",
+    "description": "Đơn vị viên thuốc.",
+    "status": "ACTIVE",
+    "dataSource": "P2TB_SAMPLE",
+    "createdAt": "2026-06-24T00:00:00.000Z",
+    "updatedAt": "2026-06-24T00:00:00.000Z"
+  },
+  {
+    "pk": "MEDICINE_UNIT#CHAI",
+    "sk": "META",
+    "entityType": "MEDICINE_UNIT",
+    "unitId": "CHAI",
+    "unitName": "Chai",
+    "description": "Đơn vị chai dung dịch.",
+    "status": "ACTIVE",
+    "dataSource": "P2TB_SAMPLE",
+    "createdAt": "2026-06-24T00:00:00.000Z",
+    "updatedAt": "2026-06-24T00:00:00.000Z"
+  }
+]

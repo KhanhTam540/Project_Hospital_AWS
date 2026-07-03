@@ -1,0 +1,50 @@
+[
+  {
+    "pk": "LAB_TEST#XN001",
+    "sk": "META",
+    "entityType": "LAB_TEST",
+    "testId": "XN001",
+    "testTypeId": "LXN001",
+    "name": "Công thức máu toàn phần",
+    "description": "Đánh giá hồng cầu, bạch cầu, tiểu cầu và các chỉ số liên quan.",
+    "price": 150000,
+    "resultTime": "2 giờ",
+    "unit": "Lần",
+    "status": "ACTIVE",
+    "dataSource": "P2TB_SAMPLE",
+    "createdAt": "2026-06-24T00:00:00.000Z",
+    "updatedAt": "2026-06-24T00:00:00.000Z"
+  },
+  {
+    "pk": "LAB_TEST#XN002",
+    "sk": "META",
+    "entityType": "LAB_TEST",
+    "testId": "XN002",
+    "testTypeId": "LXN002",
+    "name": "Đường huyết lúc đói",
+    "description": "Đo nồng độ glucose máu sau thời gian nhịn ăn.",
+    "price": 80000,
+    "resultTime": "1 giờ",
+    "unit": "Lần",
+    "status": "ACTIVE",
+    "dataSource": "P2TB_SAMPLE",
+    "createdAt": "2026-06-24T00:00:00.000Z",
+    "updatedAt": "2026-06-24T00:00:00.000Z"
+  },
+  {
+    "pk": "LAB_TEST#XN003",
+    "sk": "META",
+    "entityType": "LAB_TEST",
+    "testId": "XN003",
+    "testTypeId": "LXN002",
+    "name": "Chức năng gan",
+    "description": "Định lượng AST, ALT và một số chỉ số chức năng gan.",
+    "price": 220000,
+    "resultTime": "4 giờ",
+    "unit": "Lần",
+    "status": "ACTIVE",
+    "dataSource": "P2TB_SAMPLE",
+    "createdAt": "2026-06-24T00:00:00.000Z",
+    "updatedAt": "2026-06-24T00:00:00.000Z"
+  }
+]

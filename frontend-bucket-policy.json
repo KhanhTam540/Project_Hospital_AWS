@@ -1,0 +1,1 @@
+{"Version":"2012-10-17","Statement":[{"Sid":"AllowCloudFrontReadAccess","Effect":"Allow","Principal":{"Service":"cloudfront.amazonaws.com"},"Action":"s3:GetObject","Resource":"arn:aws:s3:::hospitaldevstack-frontendbucketefe2e19c-ronugbgqrzgm/*","Condition":{"StringEquals":{"AWS:SourceArn":"arn:aws:cloudfront::424503481059:distribution/E1KEJ6QT3MJVZ8"}}}]}
