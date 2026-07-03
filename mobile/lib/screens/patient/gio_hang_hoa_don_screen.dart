@@ -25,7 +25,10 @@ class HoaDon {
   final String noiDung;
 
   factory HoaDon.fromJson(Map<String, dynamic> json) => HoaDon(
-    maHD: json['maHD']?.toString() ?? json['maHoaDon']?.toString() ?? 'Chưa có mã hóa đơn',
+    maHD:
+        json['maHD']?.toString() ??
+        json['maHoaDon']?.toString() ??
+        'Chưa có mã hóa đơn',
     tongTien:
         double.tryParse((json['tongTien'] ?? json['soTien'] ?? 0).toString()) ??
         0,

@@ -176,14 +176,12 @@ class _QuanLyCaTrucPageScreenState extends State<QuanLyCaTrucPageScreen> {
               onPressed: () async {
                 Navigator.pop(dialogContext);
 
-                final success = await updateShift(
-                  shift['maCa']?.toString() ?? '',
-                  {
-                    'tenCa': tenCa.trim(),
-                    'thoiGianBatDau': _apiTime(batDau),
-                    'thoiGianKetThuc': _apiTime(ketThuc),
-                  },
-                );
+                final success =
+                    await updateShift(shift['maCa']?.toString() ?? '', {
+                      'tenCa': tenCa.trim(),
+                      'thoiGianBatDau': _apiTime(batDau),
+                      'thoiGianKetThuc': _apiTime(ketThuc),
+                    });
 
                 if (!mounted) {
                   return;
@@ -485,15 +483,9 @@ class _QuanLyCaTrucPageScreenState extends State<QuanLyCaTrucPageScreen> {
                         cells: [
                           DataCell(Text(shift['maCa']?.toString() ?? '-')),
                           DataCell(Text(shift['tenCa']?.toString() ?? '-')),
+                          DataCell(Text(_displayTime(shift['thoiGianBatDau']))),
                           DataCell(
-                            Text(
-                              _displayTime(shift['thoiGianBatDau']),
-                            ),
-                          ),
-                          DataCell(
-                            Text(
-                              _displayTime(shift['thoiGianKetThuc']),
-                            ),
+                            Text(_displayTime(shift['thoiGianKetThuc'])),
                           ),
                           DataCell(
                             Row(
@@ -515,8 +507,9 @@ class _QuanLyCaTrucPageScreenState extends State<QuanLyCaTrucPageScreen> {
                                     size: 16,
                                     color: Colors.red[700],
                                   ), // Sửa icon
-                                  onPressed: () =>
-                                      _handleDeleteShift(shift['maCa']?.toString() ?? ''),
+                                  onPressed: () => _handleDeleteShift(
+                                    shift['maCa']?.toString() ?? '',
+                                  ),
                                   tooltip: 'Xóa',
                                   splashRadius: 20,
                                 ),

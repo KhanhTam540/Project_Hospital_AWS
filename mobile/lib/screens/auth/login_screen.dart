@@ -98,19 +98,20 @@ class _LoginScreenState extends State<LoginScreen> {
   Future<String?> _promptForSignInStep(String stepName) async {
     final controller = TextEditingController();
     final isNewPassword = stepName == 'confirmSignInWithNewPassword';
-    final isMfaSelection = stepName == 'continueSignInWithMfaSelection' ||
+    final isMfaSelection =
+        stepName == 'continueSignInWithMfaSelection' ||
         stepName == 'continueSignInWithMfaSetupSelection';
 
     final title = isNewPassword
         ? 'Đặt mật khẩu mới'
         : isMfaSelection
-            ? 'Chọn phương thức MFA'
-            : 'Xác nhận đăng nhập';
+        ? 'Chọn phương thức MFA'
+        : 'Xác nhận đăng nhập';
     final hint = isNewPassword
         ? 'Nhập mật khẩu mới'
         : isMfaSelection
-            ? 'Nhập EMAIL, SMS hoặc TOTP'
-            : 'Nhập mã OTP/MFA';
+        ? 'Nhập EMAIL, SMS hoặc TOTP'
+        : 'Nhập mã OTP/MFA';
 
     final result = await showDialog<String>(
       context: context,
@@ -135,10 +136,8 @@ class _LoginScreenState extends State<LoginScreen> {
             child: const Text('Hủy'),
           ),
           FilledButton(
-            onPressed: () => Navigator.pop(
-              dialogContext,
-              controller.text.trim(),
-            ),
+            onPressed: () =>
+                Navigator.pop(dialogContext, controller.text.trim()),
             child: const Text('Xác nhận'),
           ),
         ],
@@ -190,9 +189,7 @@ class _LoginScreenState extends State<LoginScreen> {
               textInputAction: TextInputAction.done,
               onFieldSubmitted: (_) => _isLoading ? null : _handleLogin(),
               suffix: IconButton(
-                onPressed: () => setState(
-                  () => _showPassword = !_showPassword,
-                ),
+                onPressed: () => setState(() => _showPassword = !_showPassword),
                 icon: Icon(
                   _showPassword
                       ? Icons.visibility_rounded

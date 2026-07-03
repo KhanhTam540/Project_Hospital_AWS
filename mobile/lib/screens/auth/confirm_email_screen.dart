@@ -7,10 +7,7 @@ import '../../theme/app_theme.dart';
 import '../../widgets/auth_widgets.dart';
 
 class ConfirmEmailScreen extends StatefulWidget {
-  const ConfirmEmailScreen({
-    super.key,
-    required this.initialEmail,
-  });
+  const ConfirmEmailScreen({super.key, required this.initialEmail});
 
   final String initialEmail;
 

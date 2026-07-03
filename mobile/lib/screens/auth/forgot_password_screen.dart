@@ -7,10 +7,7 @@ import '../../theme/app_theme.dart';
 import '../../widgets/auth_widgets.dart';
 
 class ForgotPasswordScreen extends StatefulWidget {
-  const ForgotPasswordScreen({
-    super.key,
-    this.initialEmail = '',
-  });
+  const ForgotPasswordScreen({super.key, this.initialEmail = ''});
 
   final String initialEmail;
 
@@ -59,9 +56,7 @@ class _ForgotPasswordScreenState extends State<ForgotPasswordScreen> {
     setState(() => _isLoading = true);
 
     try {
-      await AuthService.instance.requestPasswordReset(
-        _emailController.text,
-      );
+      await AuthService.instance.requestPasswordReset(_emailController.text);
       if (!mounted) return;
       setState(() => _waitingForCode = true);
       _showSnackbar('Đã gửi mã xác nhận đến email.', isError: false);
@@ -89,10 +84,7 @@ class _ForgotPasswordScreenState extends State<ForgotPasswordScreen> {
       );
 
       if (!mounted) return;
-      _showSnackbar(
-        'Đặt lại mật khẩu thành công.',
-        isError: false,
-      );
+      _showSnackbar('Đặt lại mật khẩu thành công.', isError: false);
       context.go('/login');
     } on AuthException catch (error) {
       _showSnackbar(error.message);

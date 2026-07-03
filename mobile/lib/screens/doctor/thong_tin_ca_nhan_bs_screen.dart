@@ -339,7 +339,10 @@ class _ThongTinCaNhanBSScreenState extends State<ThongTinCaNhanBSScreen> {
         items:
             itemsList ??
             items
-                .map((item) => DropdownMenuItem<String>(value: item, child: Text(item)))
+                .map(
+                  (item) =>
+                      DropdownMenuItem<String>(value: item, child: Text(item)),
+                )
                 .toList(),
         onChanged: onChanged,
         validator: (v) =>

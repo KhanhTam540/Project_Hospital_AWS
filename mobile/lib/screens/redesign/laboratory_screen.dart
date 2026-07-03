@@ -59,11 +59,11 @@ class _LaboratoryScreenState extends State<LaboratoryScreen>
   }
 
   Future<void> _showResult(Map<String, dynamic> item) async {
-    final id = firstText(
-      item,
-      const ['maPhieuXN', 'labResultId', 'id'],
-      fallback: '',
-    );
+    final id = firstText(item, const [
+      'maPhieuXN',
+      'labResultId',
+      'id',
+    ], fallback: '');
     Map<String, dynamic> detail = item;
     if (id.isNotEmpty) {
       try {
@@ -75,11 +75,11 @@ class _LaboratoryScreenState extends State<LaboratoryScreen>
     if (!mounted) return;
     await showDataDetails(
       context,
-      title: firstText(
-        detail,
-        const ['tenXetNghiem', 'testName', 'maPhieuXN'],
-        fallback: 'Kết quả xét nghiệm',
-      ),
+      title: firstText(detail, const [
+        'tenXetNghiem',
+        'testName',
+        'maPhieuXN',
+      ], fallback: 'Kết quả xét nghiệm'),
       data: detail,
       labels: const {
         'maPhieuXN': 'Mã phiếu',
@@ -127,7 +127,8 @@ class _LaboratoryScreenState extends State<LaboratoryScreen>
                 children: [
                   PageHeader(
                     title: 'Kết quả xét nghiệm',
-                    subtitle: 'Theo dõi phiếu xét nghiệm và xem thông tin chi tiết.',
+                    subtitle:
+                        'Theo dõi phiếu xét nghiệm và xem thông tin chi tiết.',
                     icon: Icons.science_rounded,
                     badge: const EndpointBadge(
                       method: 'GET',
@@ -151,31 +152,21 @@ class _LaboratoryScreenState extends State<LaboratoryScreen>
                       ),
                       MetricCard(
                         label: 'Đã hoàn thành',
-                        value: '${_results.where((item) {
-                          final status = firstText(
-                            item,
-                            const ['trangThai', 'status'],
-                            fallback: '',
-                          ).toUpperCase();
-                          return status.contains('HOAN') ||
-                              status.contains('DONE') ||
-                              status.contains('COMPLETE');
-                        }).length}',
+                        value:
+                            '${_results.where((item) {
+                              final status = firstText(item, const ['trangThai', 'status'], fallback: '').toUpperCase();
+                              return status.contains('HOAN') || status.contains('DONE') || status.contains('COMPLETE');
+                            }).length}',
                         icon: Icons.task_alt_rounded,
                         color: Colors.green,
                       ),
                       MetricCard(
                         label: 'Đang xử lý',
-                        value: '${_results.where((item) {
-                          final status = firstText(
-                            item,
-                            const ['trangThai', 'status'],
-                            fallback: '',
-                          ).toUpperCase();
-                          return status.contains('CHO') ||
-                              status.contains('DANG') ||
-                              status.contains('PENDING');
-                        }).length}',
+                        value:
+                            '${_results.where((item) {
+                              final status = firstText(item, const ['trangThai', 'status'], fallback: '').toUpperCase();
+                              return status.contains('CHO') || status.contains('DANG') || status.contains('PENDING');
+                            }).length}',
                         icon: Icons.hourglass_top_rounded,
                         color: Colors.orange,
                       ),
@@ -198,31 +189,22 @@ class _LaboratoryScreenState extends State<LaboratoryScreen>
                       (item) => Padding(
                         padding: const EdgeInsets.only(bottom: 10),
                         child: DataListTile(
-                          title: firstText(
-                            item,
-                            const [
-                              'tenXetNghiem',
-                              'testName',
-                              'maPhieuXN',
-                              'labResultId',
-                            ],
-                            fallback: 'Phiếu xét nghiệm',
-                          ),
-                          subtitle: firstText(
-                            item,
-                            const [
-                              'ngayThucHien',
-                              'performedAt',
-                              'maBN',
-                              'patientId',
-                            ],
-                            fallback: 'Nhấn để xem chi tiết',
-                          ),
-                          status: firstText(
-                            item,
-                            const ['trangThai', 'status'],
-                            fallback: '',
-                          ),
+                          title: firstText(item, const [
+                            'tenXetNghiem',
+                            'testName',
+                            'maPhieuXN',
+                            'labResultId',
+                          ], fallback: 'Phiếu xét nghiệm'),
+                          subtitle: firstText(item, const [
+                            'ngayThucHien',
+                            'performedAt',
+                            'maBN',
+                            'patientId',
+                          ], fallback: 'Nhấn để xem chi tiết'),
+                          status: firstText(item, const [
+                            'trangThai',
+                            'status',
+                          ], fallback: ''),
                           icon: Icons.biotech_rounded,
                           onTap: () => _showResult(item),
                         ),

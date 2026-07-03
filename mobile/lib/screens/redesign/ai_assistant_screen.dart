@@ -49,11 +49,13 @@ class _AiAssistantScreenState extends State<AiAssistantScreen> {
 
     try {
       final response = await _service.aiChat(message);
-      final answer = firstText(
-        response,
-        const ['answer', 'reply', 'message', 'output', 'text'],
-        fallback: formatValue(response),
-      );
+      final answer = firstText(response, const [
+        'answer',
+        'reply',
+        'message',
+        'output',
+        'text',
+      ], fallback: formatValue(response));
       if (!mounted) return;
       setState(() => _messages.add(_AiMessage(text: answer, fromUser: false)));
     } catch (error) {
@@ -78,20 +80,25 @@ class _AiAssistantScreenState extends State<AiAssistantScreen> {
     if (_sending) return;
     final summaryPayload = <String, dynamic>{
       'conversation': _messages
-          .map((item) => {
-                'role': item.fromUser ? 'user' : 'assistant',
-                'content': item.text,
-              })
+          .map(
+            (item) => {
+              'role': item.fromUser ? 'user' : 'assistant',
+              'content': item.text,
+            },
+          )
           .toList(),
     };
     setState(() => _sending = true);
     try {
       final response = await _service.aiSummary(summaryPayload);
-      final answer = firstText(
-        response,
-        const ['summary', 'answer', 'reply', 'message', 'output', 'text'],
-        fallback: formatValue(response),
-      );
+      final answer = firstText(response, const [
+        'summary',
+        'answer',
+        'reply',
+        'message',
+        'output',
+        'text',
+      ], fallback: formatValue(response));
       if (!mounted) return;
       setState(
         () => _messages.add(
@@ -100,9 +107,9 @@ class _AiAssistantScreenState extends State<AiAssistantScreen> {
       );
     } catch (error) {
       if (!mounted) return;
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('Không thể tóm tắt: $error')),
-      );
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(SnackBar(content: Text('Không thể tóm tắt: $error')));
     } finally {
       if (mounted) {
         setState(() => _sending = false);
@@ -168,7 +175,9 @@ class _AiAssistantScreenState extends State<AiAssistantScreen> {
               ),
               IconButton(
                 tooltip: 'Tóm tắt cuộc trò chuyện',
-                onPressed: _messages.length <= 1 || _sending ? null : _summarize,
+                onPressed: _messages.length <= 1 || _sending
+                    ? null
+                    : _summarize,
                 icon: const Icon(Icons.summarize_rounded),
               ),
               IconButton(
@@ -200,10 +209,12 @@ class _AiAssistantScreenState extends State<AiAssistantScreen> {
                 padding: const EdgeInsets.fromLTRB(16, 20, 16, 20),
                 children: [
                   HospitalCard(
-                    backgroundColor:
-                        Theme.of(context).colorScheme.errorContainer.withValues(alpha: 0.48),
-                    borderColor:
-                        Theme.of(context).colorScheme.error.withValues(alpha: 0.25),
+                    backgroundColor: Theme.of(
+                      context,
+                    ).colorScheme.errorContainer.withValues(alpha: 0.48),
+                    borderColor: Theme.of(
+                      context,
+                    ).colorScheme.error.withValues(alpha: 0.25),
                     child: const Row(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
@@ -225,7 +236,10 @@ class _AiAssistantScreenState extends State<AiAssistantScreen> {
                     children: suggestions
                         .map(
                           (text) => ActionChip(
-                            avatar: const Icon(Icons.lightbulb_outline_rounded, size: 18),
+                            avatar: const Icon(
+                              Icons.lightbulb_outline_rounded,
+                              size: 18,
+                            ),
                             label: Text(text),
                             onPressed: _sending ? null : () => _send(text),
                           ),
@@ -252,8 +266,12 @@ class _AiAssistantScreenState extends State<AiAssistantScreen> {
                           borderRadius: BorderRadius.only(
                             topLeft: const Radius.circular(18),
                             topRight: const Radius.circular(18),
-                            bottomLeft: Radius.circular(message.fromUser ? 18 : 4),
-                            bottomRight: Radius.circular(message.fromUser ? 4 : 18),
+                            bottomLeft: Radius.circular(
+                              message.fromUser ? 18 : 4,
+                            ),
+                            bottomRight: Radius.circular(
+                              message.fromUser ? 4 : 18,
+                            ),
                           ),
                           border: message.fromUser
                               ? null
@@ -304,7 +322,8 @@ class _AiAssistantScreenState extends State<AiAssistantScreen> {
                         maxLines: 5,
                         textInputAction: TextInputAction.newline,
                         decoration: const InputDecoration(
-                          hintText: 'Nhập câu hỏi về quy trình và thông tin sức khỏe chung...',
+                          hintText:
+                              'Nhập câu hỏi về quy trình và thông tin sức khỏe chung...',
                           prefixIcon: Icon(Icons.chat_bubble_outline_rounded),
                         ),
                         onSubmitted: (_) => _send(),

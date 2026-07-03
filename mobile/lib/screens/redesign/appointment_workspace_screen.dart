@@ -14,7 +14,8 @@ class AppointmentWorkspaceScreen extends StatefulWidget {
       _AppointmentWorkspaceScreenState();
 }
 
-class _AppointmentWorkspaceScreenState extends State<AppointmentWorkspaceScreen> {
+class _AppointmentWorkspaceScreenState
+    extends State<AppointmentWorkspaceScreen> {
   final HospitalApiService _service = HospitalApiService();
   final TextEditingController _searchController = TextEditingController();
 
@@ -111,11 +112,7 @@ class _AppointmentWorkspaceScreenState extends State<AppointmentWorkspaceScreen>
       detail = item;
     }
     if (!mounted) return;
-    await showDataDetails(
-      context,
-      title: 'Lịch khám $id',
-      data: detail,
-    );
+    await showDataDetails(context, title: 'Lịch khám $id', data: detail);
   }
 
   Future<void> _cancel(Map<String, dynamic> item) async {
@@ -143,28 +140,33 @@ class _AppointmentWorkspaceScreenState extends State<AppointmentWorkspaceScreen>
     try {
       await _service.cancelAppointment(id);
       if (!mounted) return;
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Đã hủy lịch khám.')),
-      );
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(const SnackBar(content: Text('Đã hủy lịch khám.')));
       await _load();
     } catch (error) {
       if (!mounted) return;
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text(error.toString())),
-      );
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(SnackBar(content: Text(error.toString())));
     }
   }
 
   bool _canCancel(Map<String, dynamic> item) {
     final status = firstText(item, const ['status', 'trangThai']).toUpperCase();
-    return !const ['CANCELLED', 'DA_HUY', 'COMPLETED', 'HOAN_THANH']
-        .contains(status);
+    return !const [
+      'CANCELLED',
+      'DA_HUY',
+      'COMPLETED',
+      'HOAN_THANH',
+    ].contains(status);
   }
 
   @override
   Widget build(BuildContext context) {
     final auth = context.watch<AuthProvider>();
-    final canCreate = auth.role == 'BENHNHAN' ||
+    final canCreate =
+        auth.role == 'BENHNHAN' ||
         auth.role == 'ADMIN' ||
         auth.role == 'NHANSU';
     final visible = _visible;
@@ -205,7 +207,8 @@ class _AppointmentWorkspaceScreenState extends State<AppointmentWorkspaceScreen>
             ),
             MetricCard(
               label: 'Đang chờ',
-              value: '${_countStatus(const ['PENDING', 'CHO_XAC_NHAN', 'DANG_CHO'])}',
+              value:
+                  '${_countStatus(const ['PENDING', 'CHO_XAC_NHAN', 'DANG_CHO'])}',
               icon: Icons.hourglass_top_rounded,
               color: AppTheme.warning,
             ),
@@ -244,12 +247,33 @@ class _AppointmentWorkspaceScreenState extends State<AppointmentWorkspaceScreen>
           )
         else
           ...visible.map((item) {
-            final doctor = firstText(item, const ['tenBacSi', 'BacSi', 'maBS', 'doctorId']);
-            final patient = firstText(item, const ['tenBenhNhan', 'BenhNhan', 'maBN', 'patientId']);
-            final date = firstText(item, const ['ngayKham', 'appointmentDate', 'ngayHen']);
-            final time = firstText(item, const ['gioKham', 'appointmentTime', 'maCa']);
+            final doctor = firstText(item, const [
+              'tenBacSi',
+              'BacSi',
+              'maBS',
+              'doctorId',
+            ]);
+            final patient = firstText(item, const [
+              'tenBenhNhan',
+              'BenhNhan',
+              'maBN',
+              'patientId',
+            ]);
+            final date = firstText(item, const [
+              'ngayKham',
+              'appointmentDate',
+              'ngayHen',
+            ]);
+            final time = firstText(item, const [
+              'gioKham',
+              'appointmentTime',
+              'maCa',
+            ]);
             final status = firstText(item, const ['trangThai', 'status']);
-            final queue = firstText(item, const ['soThuTu', 'queueNumber'], fallback: '—');
+            final queue = firstText(item, const [
+              'soThuTu',
+              'queueNumber',
+            ], fallback: '—');
             final title = auth.role == 'BENHNHAN' ? doctor : patient;
             return Padding(
               padding: const EdgeInsets.only(bottom: 10),
@@ -288,7 +312,10 @@ class _AppointmentWorkspaceScreenState extends State<AppointmentWorkspaceScreen>
 
   int _countStatus(List<String> values) {
     return _appointments.where((item) {
-      final status = firstText(item, const ['status', 'trangThai']).toUpperCase();
+      final status = firstText(item, const [
+        'status',
+        'trangThai',
+      ]).toUpperCase();
       return values.contains(status);
     }).length;
   }
@@ -339,7 +366,8 @@ class _AppointmentFormSheetState extends State<_AppointmentFormSheet> {
     super.initState();
     _patientId = widget.auth.role == 'BENHNHAN' ? widget.auth.maBN : null;
     final tomorrow = DateTime.now().add(const Duration(days: 1));
-    _date.text = '${tomorrow.year.toString().padLeft(4, '0')}-${tomorrow.month.toString().padLeft(2, '0')}-${tomorrow.day.toString().padLeft(2, '0')}';
+    _date.text =
+        '${tomorrow.year.toString().padLeft(4, '0')}-${tomorrow.month.toString().padLeft(2, '0')}-${tomorrow.day.toString().padLeft(2, '0')}';
   }
 
   @override
@@ -361,10 +389,14 @@ class _AppointmentFormSheetState extends State<_AppointmentFormSheet> {
         break;
       }
     }
-    final departmentId = _departmentId ??
+    final departmentId =
+        _departmentId ??
         (doctor == null
             ? null
-            : firstText(doctor, const ['maKhoa', 'departmentId'], fallback: ''));
+            : firstText(doctor, const [
+                'maKhoa',
+                'departmentId',
+              ], fallback: ''));
 
     try {
       await _service.createAppointment({
@@ -385,9 +417,9 @@ class _AppointmentFormSheetState extends State<_AppointmentFormSheet> {
       Navigator.of(context).pop(true);
     } catch (error) {
       if (!mounted) return;
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text(error.toString())),
-      );
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(SnackBar(content: Text(error.toString())));
     } finally {
       if (mounted) setState(() => _saving = false);
     }
@@ -420,7 +452,10 @@ class _AppointmentFormSheetState extends State<_AppointmentFormSheet> {
                 ),
               ),
               const SizedBox(height: 18),
-              Text('Đặt lịch khám', style: Theme.of(context).textTheme.headlineMedium),
+              Text(
+                'Đặt lịch khám',
+                style: Theme.of(context).textTheme.headlineMedium,
+              ),
               const SizedBox(height: 18),
               if (selectPatient) ...[
                 DropdownButtonFormField<String>(
@@ -432,10 +467,14 @@ class _AppointmentFormSheetState extends State<_AppointmentFormSheet> {
                   items: widget.patients.map((item) {
                     final id = firstText(item, const ['maBN', 'patientId']);
                     final name = firstText(item, const ['hoTen', 'fullName']);
-                    return DropdownMenuItem(value: id, child: Text('$name · $id'));
+                    return DropdownMenuItem(
+                      value: id,
+                      child: Text('$name · $id'),
+                    );
                   }).toList(),
                   onChanged: (value) => setState(() => _patientId = value),
-                  validator: (value) => value == null || value.isEmpty ? 'Chọn bệnh nhân' : null,
+                  validator: (value) =>
+                      value == null || value.isEmpty ? 'Chọn bệnh nhân' : null,
                 ),
                 const SizedBox(height: 12),
               ],
@@ -447,7 +486,10 @@ class _AppointmentFormSheetState extends State<_AppointmentFormSheet> {
                 ),
                 items: widget.departments.map((item) {
                   final id = firstText(item, const ['maKhoa', 'departmentId']);
-                  final name = firstText(item, const ['tenKhoa', 'departmentName']);
+                  final name = firstText(item, const [
+                    'tenKhoa',
+                    'departmentName',
+                  ]);
                   return DropdownMenuItem(value: id, child: Text(name));
                 }).toList(),
                 onChanged: (value) => setState(() {
@@ -462,20 +504,35 @@ class _AppointmentFormSheetState extends State<_AppointmentFormSheet> {
                   labelText: 'Bác sĩ',
                   prefixIcon: Icon(Icons.medical_services_rounded),
                 ),
-                items: widget.doctors.where((item) {
-                  if (_departmentId == null || _departmentId!.isEmpty) return true;
-                  return firstText(item, const ['maKhoa', 'departmentId'], fallback: '') == _departmentId;
-                }).map((item) {
-                  final id = firstText(item, const ['maBS', 'doctorId']);
-                  final name = firstText(item, const ['hoTen', 'fullName']);
-                  final specialty = firstText(item, const ['chuyenMon', 'specialty'], fallback: '');
-                  return DropdownMenuItem(
-                    value: id,
-                    child: Text(specialty.isEmpty ? name : '$name · $specialty'),
-                  );
-                }).toList(),
+                items: widget.doctors
+                    .where((item) {
+                      if (_departmentId == null || _departmentId!.isEmpty) {
+                        return true;
+                      }
+                      return firstText(item, const [
+                            'maKhoa',
+                            'departmentId',
+                          ], fallback: '') ==
+                          _departmentId;
+                    })
+                    .map((item) {
+                      final id = firstText(item, const ['maBS', 'doctorId']);
+                      final name = firstText(item, const ['hoTen', 'fullName']);
+                      final specialty = firstText(item, const [
+                        'chuyenMon',
+                        'specialty',
+                      ], fallback: '');
+                      return DropdownMenuItem(
+                        value: id,
+                        child: Text(
+                          specialty.isEmpty ? name : '$name · $specialty',
+                        ),
+                      );
+                    })
+                    .toList(),
                 onChanged: (value) => setState(() => _doctorId = value),
-                validator: (value) => value == null || value.isEmpty ? 'Chọn bác sĩ' : null,
+                validator: (value) =>
+                    value == null || value.isEmpty ? 'Chọn bác sĩ' : null,
               ),
               const SizedBox(height: 12),
               TextFormField(
@@ -485,7 +542,8 @@ class _AppointmentFormSheetState extends State<_AppointmentFormSheet> {
                   prefixIcon: Icon(Icons.calendar_today_rounded),
                 ),
                 validator: (value) {
-                  if (value == null || !RegExp(r'^\d{4}-\d{2}-\d{2}$').hasMatch(value.trim())) {
+                  if (value == null ||
+                      !RegExp(r'^\d{4}-\d{2}-\d{2}$').hasMatch(value.trim())) {
                     return 'Nhập đúng định dạng YYYY-MM-DD';
                   }
                   return null;
@@ -499,7 +557,10 @@ class _AppointmentFormSheetState extends State<_AppointmentFormSheet> {
                   prefixIcon: Icon(Icons.schedule_rounded),
                 ),
                 validator: (value) {
-                  if (value == null || !RegExp(r'^([01]\d|2[0-3]):[0-5]\d$').hasMatch(value.trim())) {
+                  if (value == null ||
+                      !RegExp(
+                        r'^([01]\d|2[0-3]):[0-5]\d$',
+                      ).hasMatch(value.trim())) {
                     return 'Nhập đúng định dạng HH:mm';
                   }
                   return null;
@@ -520,7 +581,11 @@ class _AppointmentFormSheetState extends State<_AppointmentFormSheet> {
                 child: FilledButton.icon(
                   onPressed: _saving ? null : _save,
                   icon: _saving
-                      ? const SizedBox(width: 18, height: 18, child: CircularProgressIndicator(strokeWidth: 2))
+                      ? const SizedBox(
+                          width: 18,
+                          height: 18,
+                          child: CircularProgressIndicator(strokeWidth: 2),
+                        )
                       : const Icon(Icons.check_circle_rounded),
                   label: const Text('Xác nhận đặt lịch'),
                 ),
@@ -532,4 +597,3 @@ class _AppointmentFormSheetState extends State<_AppointmentFormSheet> {
     );
   }
 }
-

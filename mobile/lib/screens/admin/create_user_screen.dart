@@ -318,8 +318,10 @@ class _CreateUserScreenState extends State<CreateUserScreen> {
                     initialValue: _vaiTro.isEmpty ? null : _vaiTro,
                     items: roles
                         .map(
-                          (role) =>
-                              DropdownMenuItem<String>(value: role, child: Text(role)),
+                          (role) => DropdownMenuItem<String>(
+                            value: role,
+                            child: Text(role),
+                          ),
                         )
                         .toList(),
                     onChanged: (String? newValue) {
@@ -464,7 +466,12 @@ class _CreateUserScreenState extends State<CreateUserScreen> {
         ),
         initialValue: _maKhoa,
         items: _isLoadingKhoas
-            ? [DropdownMenuItem<String>(value: null, child: Text('Đang tải khoa...'))]
+            ? [
+                DropdownMenuItem<String>(
+                  value: null,
+                  child: Text('Đang tải khoa...'),
+                ),
+              ]
             : _khoasList
                   .map(
                     (khoa) => DropdownMenuItem<String>(

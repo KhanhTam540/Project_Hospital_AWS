@@ -82,19 +82,22 @@ class _HoSoBenhAnScreenState extends State<HoSoBenhAnScreen> {
         throw const FormatException('API hồ sơ không trả về items.');
       }
 
-      final records = items
-          .map(
-            (item) => MedicalRecordSummary.fromJson(
-              Map<String, dynamic>.from(item as Map),
-            ),
-          )
-          .where((item) => item.recordId.isNotEmpty)
-          .toList()
-        ..sort((a, b) {
-          final aDate = a.createdAt ?? DateTime.fromMillisecondsSinceEpoch(0);
-          final bDate = b.createdAt ?? DateTime.fromMillisecondsSinceEpoch(0);
-          return bDate.compareTo(aDate);
-        });
+      final records =
+          items
+              .map(
+                (item) => MedicalRecordSummary.fromJson(
+                  Map<String, dynamic>.from(item as Map),
+                ),
+              )
+              .where((item) => item.recordId.isNotEmpty)
+              .toList()
+            ..sort((a, b) {
+              final aDate =
+                  a.createdAt ?? DateTime.fromMillisecondsSinceEpoch(0);
+              final bDate =
+                  b.createdAt ?? DateTime.fromMillisecondsSinceEpoch(0);
+              return bDate.compareTo(aDate);
+            });
 
       if (!mounted) return;
       setState(() => _records = records);

@@ -182,7 +182,9 @@ class _YeuCauXNBSScreenState extends State<YeuCauXNBSScreen> {
           _selectedLoaiYeuCau = 'THONG_THUONG';
         });
       } else {
-        _showError(jsonDecode(response.body)['message'] ?? 'Lỗi tạo yêu cầu xét nghiệm.');
+        _showError(
+          jsonDecode(response.body)['message'] ?? 'Lỗi tạo yêu cầu xét nghiệm.',
+        );
       }
     } catch (e) {
       _showError('L?i k?t n?i: $e');

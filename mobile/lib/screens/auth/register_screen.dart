@@ -68,7 +68,10 @@ class _RegisterScreenState extends State<RegisterScreen> {
       }
 
       if (result.isSignUpComplete) {
-        _showSnackbar('Đăng ký thành công. Vui lòng đăng nhập.', isError: false);
+        _showSnackbar(
+          'Đăng ký thành công. Vui lòng đăng nhập.',
+          isError: false,
+        );
         context.go('/login');
         return;
       }
@@ -132,9 +135,7 @@ class _RegisterScreenState extends State<RegisterScreen> {
               obscureText: !_showPassword,
               textInputAction: TextInputAction.next,
               suffix: IconButton(
-                onPressed: () => setState(
-                  () => _showPassword = !_showPassword,
-                ),
+                onPressed: () => setState(() => _showPassword = !_showPassword),
                 icon: Icon(
                   _showPassword
                       ? Icons.visibility_rounded

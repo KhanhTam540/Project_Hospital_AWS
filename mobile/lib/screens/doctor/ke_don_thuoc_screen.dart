@@ -173,8 +173,7 @@ class _KeDonThuocScreenState extends State<KeDonThuocScreen> {
     final Map<String, String> multipartFields = {
       'maPK': _selectedMaPK!,
       'maBS': _maBS!,
-      'chiTietList':
-          chiTietJson, // Gửi chi tiết thuốc dưới dạng JSON string
+      'chiTietList': chiTietJson, // Gửi chi tiết thuốc dưới dạng JSON string
     };
 
     try {
@@ -318,8 +317,7 @@ class _KeDonThuocScreenState extends State<KeDonThuocScreen> {
                               )
                               .toList(),
                           onChanged: (v) => setState(() => _selectedThuoc = v),
-                          validator: (v) =>
-                              v == null ? 'Vui lòng chọn' : null,
+                          validator: (v) => v == null ? 'Vui lòng chọn' : null,
                         ),
                         SizedBox(height: 16),
                         TextFormField(
@@ -344,8 +342,7 @@ class _KeDonThuocScreenState extends State<KeDonThuocScreen> {
                         ),
                         SizedBox(height: 16),
                         ElevatedButton.icon(
-                          onPressed:
-                              _stageThuoc, // Sửa: gọi hàm _stageThuoc
+                          onPressed: _stageThuoc, // Sửa: gọi hàm _stageThuoc
                           icon: Icon(Icons.add),
                           label: Text('Thêm thuốc vào đơn'),
                           style: ElevatedButton.styleFrom(
@@ -373,9 +370,7 @@ class _KeDonThuocScreenState extends State<KeDonThuocScreen> {
                       onPressed: _pickImage,
                       icon: Icon(Icons.photo_library),
                       label: Text(
-                        _selectedImage == null
-                            ? 'Chọn ảnh'
-                            : 'Đổi ảnh',
+                        _selectedImage == null ? 'Chọn ảnh' : 'Đổi ảnh',
                       ),
                       style: ElevatedButton.styleFrom(
                         backgroundColor: Colors.grey[200],
@@ -417,9 +412,7 @@ class _KeDonThuocScreenState extends State<KeDonThuocScreen> {
               _thuocDaThem.isEmpty
                   ? Padding(
                       padding: const EdgeInsets.symmetric(vertical: 24.0),
-                      child: Center(
-                        child: Text('Chưa có thuốc nào được thêm'),
-                      ),
+                      child: Center(child: Text('Chưa có thuốc nào được thêm')),
                     )
                   : Card(
                       elevation: 2,

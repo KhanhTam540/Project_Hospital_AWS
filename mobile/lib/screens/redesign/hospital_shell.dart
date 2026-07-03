@@ -59,9 +59,9 @@ class HospitalShell extends StatelessWidget {
                 Text(title),
                 Text(
                   _roleLabel(auth),
-                  style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                        color: context.appMuted,
-                      ),
+                  style: Theme.of(
+                    context,
+                  ).textTheme.bodySmall?.copyWith(color: context.appMuted),
                 ),
               ],
             ),
@@ -112,10 +112,7 @@ class HospitalShell extends StatelessWidget {
     );
   }
 
-  int _selectedPrimaryIndex(
-    List<HospitalNavItem> items,
-    String currentPath,
-  ) {
+  int _selectedPrimaryIndex(List<HospitalNavItem> items, String currentPath) {
     for (var index = 0; index < items.length; index++) {
       if (HospitalNavigation.isSelected(currentPath, items[index].route)) {
         return index;
@@ -179,9 +176,8 @@ class _DesktopSidebar extends StatelessWidget {
                         const SizedBox(height: 2),
                         Text(
                           _roleLabel(auth),
-                          style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                                color: context.appMuted,
-                              ),
+                          style: Theme.of(context).textTheme.bodySmall
+                              ?.copyWith(color: context.appMuted),
                         ),
                       ],
                     ),
@@ -200,10 +196,10 @@ class _DesktopSidebar extends StatelessWidget {
                       child: Text(
                         group.key.toUpperCase(),
                         style: Theme.of(context).textTheme.labelSmall?.copyWith(
-                              color: context.appMuted,
-                              fontWeight: FontWeight.w800,
-                              letterSpacing: 0.8,
-                            ),
+                          color: context.appMuted,
+                          fontWeight: FontWeight.w800,
+                          letterSpacing: 0.8,
+                        ),
                       ),
                     ),
                     ...group.value.map(
@@ -285,9 +281,9 @@ class _MobileDrawer extends StatelessWidget {
                     ),
                     Text(
                       _roleLabel(auth),
-                      style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                            color: context.appMuted,
-                          ),
+                      style: Theme.of(
+                        context,
+                      ).textTheme.bodySmall?.copyWith(color: context.appMuted),
                     ),
                   ],
                 ),
@@ -301,10 +297,10 @@ class _MobileDrawer extends StatelessWidget {
             child: Text(
               group.key.toUpperCase(),
               style: Theme.of(context).textTheme.labelSmall?.copyWith(
-                    color: context.appMuted,
-                    fontWeight: FontWeight.w800,
-                    letterSpacing: 0.8,
-                  ),
+                color: context.appMuted,
+                fontWeight: FontWeight.w800,
+                letterSpacing: 0.8,
+              ),
             ),
           ),
           for (final item in group.value)
@@ -367,9 +363,9 @@ class _TopBar extends StatelessWidget {
                 Text(title, style: Theme.of(context).textTheme.titleLarge),
                 Text(
                   'Dữ liệu được đồng bộ từ AWS backend',
-                  style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                        color: context.appMuted,
-                      ),
+                  style: Theme.of(
+                    context,
+                  ).textTheme.bodySmall?.copyWith(color: context.appMuted),
                 ),
               ],
             ),
@@ -507,9 +503,9 @@ class _ProfileSummary extends StatelessWidget {
                     auth.email ?? _roleLabel(auth),
                     maxLines: 1,
                     overflow: TextOverflow.ellipsis,
-                    style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                          color: context.appMuted,
-                        ),
+                    style: Theme.of(
+                      context,
+                    ).textTheme.bodySmall?.copyWith(color: context.appMuted),
                   ),
                 ],
               ),
@@ -562,7 +558,9 @@ String _initials(String value) {
       .toList();
   if (parts.isEmpty) return 'HP';
   if (parts.length == 1) {
-    return parts.first.substring(0, parts.first.length >= 2 ? 2 : 1).toUpperCase();
+    return parts.first
+        .substring(0, parts.first.length >= 2 ? 2 : 1)
+        .toUpperCase();
   }
   return '${parts.first[0]}${parts.last[0]}'.toUpperCase();
 }

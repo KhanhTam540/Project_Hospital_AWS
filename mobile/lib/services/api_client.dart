@@ -136,7 +136,9 @@ class ApiClient {
         );
       }
 
-      final streamed = await request.send().timeout(const Duration(seconds: 60));
+      final streamed = await request.send().timeout(
+        const Duration(seconds: 60),
+      );
       return http.Response.fromStream(streamed);
     });
   }
@@ -212,9 +214,7 @@ class ApiClient {
     return const [];
   }
 
-  Future<http.Response> _guard(
-    Future<http.Response> Function() request,
-  ) async {
+  Future<http.Response> _guard(Future<http.Response> Function() request) async {
     try {
       final response = await request();
       return _normalizeUtf8(response);
@@ -223,9 +223,7 @@ class ApiClient {
         'Kết nối đến backend quá thời gian. Vui lòng thử lại.',
       );
     } on http.ClientException catch (error) {
-      throw ApiException(
-        'Không thể kết nối đến backend: ${error.message}',
-      );
+      throw ApiException('Không thể kết nối đến backend: ${error.message}');
     }
   }
 

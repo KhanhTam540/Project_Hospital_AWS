@@ -118,8 +118,9 @@ class AuthProvider extends ChangeNotifier {
   }
 
   void _applyProfile(Map<String, dynamic> user) {
-    _role = _text(user['maNhom'] ?? user['primaryRole'] ?? user['role'])
-        ?.toUpperCase();
+    _role = _text(
+      user['maNhom'] ?? user['primaryRole'] ?? user['role'],
+    )?.toUpperCase();
     _maTK = _text(user['maTK'] ?? user['appUserId'] ?? user['sub']);
     _maBN = _text(user['maBN'] ?? user['patientId']);
     _maBS = _text(user['maBS'] ?? user['doctorId']);

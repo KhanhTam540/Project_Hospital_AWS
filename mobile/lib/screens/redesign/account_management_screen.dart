@@ -8,7 +8,8 @@ class AccountManagementScreen extends StatefulWidget {
   const AccountManagementScreen({super.key});
 
   @override
-  State<AccountManagementScreen> createState() => _AccountManagementScreenState();
+  State<AccountManagementScreen> createState() =>
+      _AccountManagementScreenState();
 }
 
 class _AccountManagementScreenState extends State<AccountManagementScreen> {
@@ -62,14 +63,25 @@ class _AccountManagementScreenState extends State<AccountManagementScreen> {
     final query = _query.trim().toLowerCase();
     if (query.isEmpty) return _accounts;
     return _accounts.where((account) {
-      final text = account.values.map((value) => value.toString()).join(' ').toLowerCase();
+      final text = account.values
+          .map((value) => value.toString())
+          .join(' ')
+          .toLowerCase();
       return text.contains(query);
     }).toList();
   }
 
   Future<void> _changeRole(Map<String, dynamic> account) async {
-    final username = firstText(account, const ['username', 'tenDangNhap', 'email']);
-    var selected = firstText(account, const ['primaryRole', 'maNhom', 'role'], fallback: 'BENHNHAN').toUpperCase();
+    final username = firstText(account, const [
+      'username',
+      'tenDangNhap',
+      'email',
+    ]);
+    var selected = firstText(account, const [
+      'primaryRole',
+      'maNhom',
+      'role',
+    ], fallback: 'BENHNHAN').toUpperCase();
 
     final result = await showDialog<String>(
       context: context,
@@ -82,7 +94,10 @@ class _AccountManagementScreenState extends State<AccountManagementScreen> {
                 mainAxisSize: MainAxisSize.min,
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  Text(username, style: Theme.of(context).textTheme.titleMedium),
+                  Text(
+                    username,
+                    style: Theme.of(context).textTheme.titleMedium,
+                  ),
                   const SizedBox(height: 16),
                   DropdownButtonFormField<String>(
                     initialValue: selected,
@@ -91,10 +106,19 @@ class _AccountManagementScreenState extends State<AccountManagementScreen> {
                       prefixIcon: Icon(Icons.admin_panel_settings_rounded),
                     ),
                     items: const [
-                      DropdownMenuItem(value: 'ADMIN', child: Text('Quản trị viên')),
+                      DropdownMenuItem(
+                        value: 'ADMIN',
+                        child: Text('Quản trị viên'),
+                      ),
                       DropdownMenuItem(value: 'BACSI', child: Text('Bác sĩ')),
-                      DropdownMenuItem(value: 'NHANSU', child: Text('Nhân sự y tế')),
-                      DropdownMenuItem(value: 'BENHNHAN', child: Text('Bệnh nhân')),
+                      DropdownMenuItem(
+                        value: 'NHANSU',
+                        child: Text('Nhân sự y tế'),
+                      ),
+                      DropdownMenuItem(
+                        value: 'BENHNHAN',
+                        child: Text('Bệnh nhân'),
+                      ),
                     ],
                     onChanged: (value) {
                       if (value != null) setDialogState(() => selected = value);
@@ -122,25 +146,31 @@ class _AccountManagementScreenState extends State<AccountManagementScreen> {
     try {
       await _service.updateAccountRole(username, result);
       if (!mounted) return;
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Đã cập nhật phân quyền.')),
-      );
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(const SnackBar(content: Text('Đã cập nhật phân quyền.')));
       await _load();
     } catch (error) {
       if (!mounted) return;
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text(error.toString())),
-      );
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(SnackBar(content: Text(error.toString())));
     }
   }
 
   Future<void> _disable(Map<String, dynamic> account) async {
-    final username = firstText(account, const ['username', 'tenDangNhap', 'email']);
+    final username = firstText(account, const [
+      'username',
+      'tenDangNhap',
+      'email',
+    ]);
     final confirmed = await showDialog<bool>(
       context: context,
       builder: (context) => AlertDialog(
         title: const Text('Vô hiệu hóa tài khoản?'),
-        content: Text('Tài khoản $username sẽ không thể đăng nhập sau thao tác này.'),
+        content: Text(
+          'Tài khoản $username sẽ không thể đăng nhập sau thao tác này.',
+        ),
         actions: [
           TextButton(
             onPressed: () => Navigator.of(context).pop(false),
@@ -165,9 +195,9 @@ class _AccountManagementScreenState extends State<AccountManagementScreen> {
       await _load();
     } catch (error) {
       if (!mounted) return;
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text(error.toString())),
-      );
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(SnackBar(content: Text(error.toString())));
     }
   }
 
@@ -231,9 +261,18 @@ class _AccountManagementScreenState extends State<AccountManagementScreen> {
           )
         else
           ...visible.map((account) {
-            final name = firstText(account, const ['hoTen', 'fullName', 'email', 'username']);
+            final name = firstText(account, const [
+              'hoTen',
+              'fullName',
+              'email',
+              'username',
+            ]);
             final email = firstText(account, const ['email', 'username']);
-            final role = firstText(account, const ['primaryRole', 'maNhom', 'role']);
+            final role = firstText(account, const [
+              'primaryRole',
+              'maNhom',
+              'role',
+            ]);
             final enabled = account['enabled'] != false;
             return Padding(
               padding: const EdgeInsets.only(bottom: 10),
@@ -251,12 +290,16 @@ class _AccountManagementScreenState extends State<AccountManagementScreen> {
                     }
                   },
                   itemBuilder: (context) => const [
-                    PopupMenuItem(value: 'details', child: Text('Xem chi tiết')),
+                    PopupMenuItem(
+                      value: 'details',
+                      child: Text('Xem chi tiết'),
+                    ),
                     PopupMenuItem(value: 'role', child: Text('Đổi vai trò')),
                     PopupMenuItem(value: 'disable', child: Text('Vô hiệu hóa')),
                   ],
                 ),
-                onTap: () => showDataDetails(context, title: name, data: account),
+                onTap: () =>
+                    showDataDetails(context, title: name, data: account),
               ),
             );
           }),

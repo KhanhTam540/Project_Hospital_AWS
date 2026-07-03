@@ -87,11 +87,20 @@ class _ClinicalHubScreenState extends State<ClinicalHubScreen>
             controller: controller,
             isScrollable: true,
             tabs: const [
-              Tab(icon: Icon(Icons.health_and_safety_rounded), text: 'Theo bệnh nhân'),
+              Tab(
+                icon: Icon(Icons.health_and_safety_rounded),
+                text: 'Theo bệnh nhân',
+              ),
               Tab(icon: Icon(Icons.folder_shared_rounded), text: 'Bệnh án'),
-              Tab(icon: Icon(Icons.medical_information_rounded), text: 'Phiếu khám'),
+              Tab(
+                icon: Icon(Icons.medical_information_rounded),
+                text: 'Phiếu khám',
+              ),
               Tab(icon: Icon(Icons.queue_rounded), text: 'Hàng đợi'),
-              Tab(icon: Icon(Icons.medication_liquid_rounded), text: 'Đơn thuốc'),
+              Tab(
+                icon: Icon(Icons.medication_liquid_rounded),
+                text: 'Đơn thuốc',
+              ),
             ],
           ),
         ),

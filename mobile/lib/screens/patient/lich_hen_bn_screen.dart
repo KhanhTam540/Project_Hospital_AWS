@@ -10,10 +10,7 @@ import '../../widgets/app_components.dart';
 import 'patient_bottom_nav_bar.dart';
 
 class Khoa {
-  const Khoa({
-    required this.maKhoa,
-    required this.tenKhoa,
-  });
+  const Khoa({required this.maKhoa, required this.tenKhoa});
 
   final String maKhoa;
   final String tenKhoa;
@@ -99,11 +96,11 @@ class LichHenModel {
   String get ngayText => DateFormat('dd/MM/yyyy').format(ngayKham);
 
   bool get canCancel => !const {
-        'CANCELLED',
-        'COMPLETED',
-        'DA_HUY',
-        'HOAN_THANH',
-      }.contains(trangThai);
+    'CANCELLED',
+    'COMPLETED',
+    'DA_HUY',
+    'HOAN_THANH',
+  }.contains(trangThai);
 }
 
 class LichHenBNScreen extends StatefulWidget {
@@ -195,19 +192,20 @@ class _LichHenBNScreenState extends State<LichHenBNScreen> {
           .map((item) => BacSi.fromJson(Map<String, dynamic>.from(item as Map)))
           .where((item) => item.maBS.isNotEmpty)
           .toList();
-      final appointments = appointmentData
-          .map(
-            (item) => LichHenModel.fromJson(
-              Map<String, dynamic>.from(item as Map),
-            ),
-          )
-          .where((item) => item.maLich.isNotEmpty)
-          .toList()
-        ..sort((a, b) {
-          final dateComparison = b.ngayKham.compareTo(a.ngayKham);
-          if (dateComparison != 0) return dateComparison;
-          return b.gioKham.compareTo(a.gioKham);
-        });
+      final appointments =
+          appointmentData
+              .map(
+                (item) => LichHenModel.fromJson(
+                  Map<String, dynamic>.from(item as Map),
+                ),
+              )
+              .where((item) => item.maLich.isNotEmpty)
+              .toList()
+            ..sort((a, b) {
+              final dateComparison = b.ngayKham.compareTo(a.ngayKham);
+              if (dateComparison != 0) return dateComparison;
+              return b.gioKham.compareTo(a.gioKham);
+            });
 
       if (!mounted) return;
       setState(() {
@@ -240,8 +238,11 @@ class _LichHenBNScreenState extends State<LichHenBNScreen> {
       initialDate: _selectedDate.isBefore(now)
           ? now.add(const Duration(days: 1))
           : _selectedDate,
-      firstDate: DateTime(now.year, now.month, now.day)
-          .add(const Duration(days: 1)),
+      firstDate: DateTime(
+        now.year,
+        now.month,
+        now.day,
+      ).add(const Duration(days: 1)),
       lastDate: now.add(const Duration(days: 180)),
       locale: const Locale('vi', 'VN'),
     );
@@ -452,7 +453,8 @@ class _LichHenBNScreenState extends State<LichHenBNScreen> {
               onChanged: _isSubmitting
                   ? null
                   : (value) => setState(() => _selectedDoctorId = value),
-              validator: (value) => value == null ? 'Vui lòng chọn bác sĩ' : null,
+              validator: (value) =>
+                  value == null ? 'Vui lòng chọn bác sĩ' : null,
             ),
             const SizedBox(height: 14),
             OutlinedButton.icon(
@@ -564,13 +566,21 @@ class _LichHenBNScreenState extends State<LichHenBNScreen> {
     switch (value) {
       case 'CONFIRMED':
       case 'DA_XAC_NHAN':
-        return const _StatusInfo('Đã xác nhận', Icons.verified_outlined, AppTheme.teal);
+        return const _StatusInfo(
+          'Đã xác nhận',
+          Icons.verified_outlined,
+          AppTheme.teal,
+        );
       case 'COMPLETED':
       case 'HOAN_THANH':
         return const _StatusInfo('Hoàn thành', Icons.task_alt, Colors.green);
       case 'CANCELLED':
       case 'DA_HUY':
-        return const _StatusInfo('Đã hủy', Icons.cancel_outlined, AppTheme.danger);
+        return const _StatusInfo(
+          'Đã hủy',
+          Icons.cancel_outlined,
+          AppTheme.danger,
+        );
       default:
         return const _StatusInfo('Chờ xác nhận', Icons.schedule, Colors.orange);
     }

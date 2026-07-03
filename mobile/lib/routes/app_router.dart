@@ -56,9 +56,7 @@ bool _canAccess(AuthProvider auth, String path) {
   }
 
   if (role == 'BENHNHAN') {
-    return const <String>{
-      '/billing',
-    }.contains(path);
+    return const <String>{'/billing'}.contains(path);
   }
 
   if (role == 'NHANSU') {
@@ -110,10 +108,7 @@ GoRouter createAppRouter(AuthProvider auth) {
         path: '/',
         redirect: (context, state) => auth.isAuthenticated ? '/home' : '/login',
       ),
-      GoRoute(
-        path: '/login',
-        builder: (context, state) => const LoginScreen(),
-      ),
+      GoRoute(path: '/login', builder: (context, state) => const LoginScreen()),
       GoRoute(
         path: '/register',
         builder: (context, state) => const RegisterScreen(),
@@ -146,28 +141,23 @@ GoRouter createAppRouter(AuthProvider auth) {
               alias.startsWith('/chat') ? '/ai' : '/home',
         ),
       ShellRoute(
-        builder: (context, state, child) => HospitalShell(
-          currentPath: state.uri.path,
-          child: child,
-        ),
+        builder: (context, state, child) =>
+            HospitalShell(currentPath: state.uri.path, child: child),
         routes: [
           GoRoute(
             path: '/home',
-            pageBuilder: (context, state) => const NoTransitionPage(
-              child: DashboardScreen(),
-            ),
+            pageBuilder: (context, state) =>
+                const NoTransitionPage(child: DashboardScreen()),
           ),
           GoRoute(
             path: '/accounts',
-            pageBuilder: (context, state) => const NoTransitionPage(
-              child: AccountManagementScreen(),
-            ),
+            pageBuilder: (context, state) =>
+                const NoTransitionPage(child: AccountManagementScreen()),
           ),
           GoRoute(
             path: '/patients',
-            pageBuilder: (context, state) => const NoTransitionPage(
-              child: PatientDirectoryScreen(),
-            ),
+            pageBuilder: (context, state) =>
+                const NoTransitionPage(child: PatientDirectoryScreen()),
           ),
           GoRoute(
             path: '/doctors',
@@ -195,57 +185,48 @@ GoRouter createAppRouter(AuthProvider auth) {
           ),
           GoRoute(
             path: '/appointments',
-            pageBuilder: (context, state) => const NoTransitionPage(
-              child: AppointmentWorkspaceScreen(),
-            ),
+            pageBuilder: (context, state) =>
+                const NoTransitionPage(child: AppointmentWorkspaceScreen()),
           ),
           GoRoute(
             path: '/schedules',
-            pageBuilder: (context, state) => const NoTransitionPage(
-              child: ScheduleScreen(),
-            ),
+            pageBuilder: (context, state) =>
+                const NoTransitionPage(child: ScheduleScreen()),
           ),
           GoRoute(
             path: '/clinical',
-            pageBuilder: (context, state) => const NoTransitionPage(
-              child: ClinicalHubScreen(),
-            ),
+            pageBuilder: (context, state) =>
+                const NoTransitionPage(child: ClinicalHubScreen()),
           ),
           GoRoute(
             path: '/pharmacy',
-            pageBuilder: (context, state) => const NoTransitionPage(
-              child: PharmacyScreen(),
-            ),
+            pageBuilder: (context, state) =>
+                const NoTransitionPage(child: PharmacyScreen()),
           ),
           GoRoute(
             path: '/laboratory',
-            pageBuilder: (context, state) => const NoTransitionPage(
-              child: LaboratoryScreen(),
-            ),
+            pageBuilder: (context, state) =>
+                const NoTransitionPage(child: LaboratoryScreen()),
           ),
           GoRoute(
             path: '/billing',
-            pageBuilder: (context, state) => const NoTransitionPage(
-              child: BillingScreen(),
-            ),
+            pageBuilder: (context, state) =>
+                const NoTransitionPage(child: BillingScreen()),
           ),
           GoRoute(
             path: '/ai',
-            pageBuilder: (context, state) => const NoTransitionPage(
-              child: AiAssistantScreen(),
-            ),
+            pageBuilder: (context, state) =>
+                const NoTransitionPage(child: AiAssistantScreen()),
           ),
           GoRoute(
             path: '/profile',
-            pageBuilder: (context, state) => const NoTransitionPage(
-              child: ProfileScreen(),
-            ),
+            pageBuilder: (context, state) =>
+                const NoTransitionPage(child: ProfileScreen()),
           ),
           GoRoute(
             path: '/api-catalog',
-            pageBuilder: (context, state) => const NoTransitionPage(
-              child: ApiCatalogScreen(),
-            ),
+            pageBuilder: (context, state) =>
+                const NoTransitionPage(child: ApiCatalogScreen()),
           ),
         ],
       ),

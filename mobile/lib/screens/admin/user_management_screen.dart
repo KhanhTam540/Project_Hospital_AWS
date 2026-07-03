@@ -1,10 +1,11 @@
-// lib/screens/admin/user_management_screen.dart
 import 'dart:convert';
+
 import 'package:flutter/material.dart';
-import 'package:go_router/go_router.dart';
 import 'package:font_awesome_flutter/font_awesome_flutter.dart';
-import 'package:provider/provider.dart'; // Thêm import
-import '../../auth/auth_provider.dart'; // Thêm import
+import 'package:go_router/go_router.dart';
+import 'package:provider/provider.dart';
+
+import '../../auth/auth_provider.dart';
 import '../../models/user_model.dart';
 import '../../services/api_client.dart';
 
@@ -16,14 +17,14 @@ class UserManagementScreen extends StatefulWidget {
 }
 
 class _UserManagementScreenState extends State<UserManagementScreen> {
-  // (Giữ nguyên phần state, initState, _fetchUsers, _groupUsers, _handleEdit, _handleDelete)
   bool _isLoading = true;
   String _error = '';
-  Map<String, List<UserModel>> _groupedUsers = {
-    'ADMIN': [],
-    'BACSI': [],
-    'NHANSU': [],
-    'BENHNHAN': [],
+
+  final Map<String, List<UserModel>> _groupedUsers = {
+    'ADMIN': <UserModel>[],
+    'BACSI': <UserModel>[],
+    'NHANSU': <UserModel>[],
+    'BENHNHAN': <UserModel>[],
   };
 
   @override
@@ -32,392 +33,288 @@ class _UserManagementScreenState extends State<UserManagementScreen> {
     _fetchUsers();
   }
 
+  String _apiError(dynamic decoded, String fallback) {
+    if (decoded is Map<String, dynamic>) {
+      final error = decoded['error'];
+      if (error is Map && error['message'] != null) {
+        return error['message'].toString();
+      }
+      if (decoded['message'] != null) {
+        return decoded['message'].toString();
+      }
+    }
+    return fallback;
+  }
+
+  List<UserModel> _decodeUsers(String responseBody) {
+    final decoded = jsonDecode(responseBody);
+    if (decoded is! Map) return const <UserModel>[];
+
+    final body = Map<String, dynamic>.from(decoded);
+    final rawData = body['data'];
+    final data = rawData is Map
+        ? Map<String, dynamic>.from(rawData)
+        : <String, dynamic>{};
+
+    // Core API: { success: true, data: { users: [...], count: n } }
+    final rawUsers = data['users'];
+    if (rawUsers is! List) return const <UserModel>[];
+
+    return rawUsers
+        .whereType<Map>()
+        .map((item) => UserModel.fromJson(Map<String, dynamic>.from(item)))
+        .toList();
+  }
+
   Future<void> _fetchUsers() async {
-    setState(() {
-      _isLoading = true;
-      _error = '';
-    });
+    if (mounted) {
+      setState(() {
+        _isLoading = true;
+        _error = '';
+      });
+    }
+
     try {
       final response = await ApiClient().get('/tai-khoan');
+      if (!mounted) return;
 
-      if (response.statusCode == 200) {
-        final body = jsonDecode(response.body);
-        final List<dynamic> data = body['data'];
-        final users = data.map((json) => UserModel.fromJson(json)).toList();
-        _groupUsers(users);
+      if (response.statusCode >= 200 && response.statusCode < 300) {
+        _groupUsers(_decodeUsers(response.body));
       } else {
-        final errorBody = jsonDecode(response.body);
+        final decoded = jsonDecode(response.body);
         setState(() {
-          _error = errorBody['message'] ?? 'Không thể tải dữ liệu';
+          _error = _apiError(decoded, 'Không thể tải danh sách tài khoản');
         });
       }
-    } catch (e) {
+    } catch (error) {
+      if (!mounted) return;
       setState(() {
-        _error = 'Lỗi kết nối: $e';
+        _error = 'Lỗi kết nối: $error';
       });
     } finally {
-      setState(() {
-        _isLoading = false;
-      });
+      if (mounted) {
+        setState(() {
+          _isLoading = false;
+        });
+      }
     }
   }
 
   void _groupUsers(List<UserModel> users) {
-    _groupedUsers = {'ADMIN': [], 'BACSI': [], 'NHANSU': [], 'BENHNHAN': []};
-    for (var user in users) {
-      if (_groupedUsers.containsKey(user.maNhom)) {
-        _groupedUsers[user.maNhom]!.add(user);
-      }
+    for (final list in _groupedUsers.values) {
+      list.clear();
     }
+
+    for (final user in users) {
+      final role = user.maNhom.toUpperCase();
+      (_groupedUsers[role] ?? _groupedUsers['BENHNHAN']!).add(user);
+    }
+
+    setState(() {});
   }
 
   void _handleEdit(UserModel user) {
     context.go('/admin/account/create', extra: user);
   }
 
-  Future<void> _handleDelete(String maTK) async {
-    bool? confirm = await showDialog(
+  Future<void> _handleDelete(UserModel user) async {
+    final confirmed = await showDialog<bool>(
       context: context,
-      builder: (ctx) => AlertDialog(
-        title: Text('Xác nhận xoá'),
-        content: Text(
-          'Bạn có chắc chắn muốn xoá tài khoản này? Mọi dữ liệu liên quan sẽ bị mất.',
-        ),
+      builder: (dialogContext) => AlertDialog(
+        title: const Text('Xác nhận xóa'),
+        content: Text('Bạn có chắc muốn xóa tài khoản ${user.username}?'),
         actions: [
           TextButton(
-            onPressed: () => Navigator.of(ctx).pop(false),
-            child: Text('Huỷ'),
+            onPressed: () => Navigator.of(dialogContext).pop(false),
+            child: const Text('Hủy'),
           ),
-          TextButton(
-            onPressed: () => Navigator.of(ctx).pop(true),
-            child: Text('Xoá', style: TextStyle(color: Colors.red)),
+          FilledButton(
+            style: FilledButton.styleFrom(backgroundColor: Colors.red),
+            onPressed: () => Navigator.of(dialogContext).pop(true),
+            child: const Text('Xóa'),
           ),
         ],
       ),
     );
 
-    if (confirm != true) return;
+    if (confirmed != true) return;
 
     try {
-      final response = await ApiClient().delete('/tai-khoan/$maTK');
+      final encodedUsername = Uri.encodeComponent(user.username);
+      final response = await ApiClient().delete('/tai-khoan/$encodedUsername');
       if (!mounted) return;
-      if (response.statusCode == 200) {
+
+      if (response.statusCode >= 200 && response.statusCode < 300) {
+        for (final list in _groupedUsers.values) {
+          list.removeWhere((item) => item.username == user.username);
+        }
+        setState(() {});
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
-            content: Text('Đã xoá tài khoản $maTK'),
+            content: Text('Đã xóa tài khoản ${user.username}'),
             backgroundColor: Colors.green,
           ),
         );
-        _fetchUsers();
+        await _fetchUsers();
       } else {
-        final errorBody = jsonDecode(response.body);
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text('Lỗi: ${errorBody['message']}'),
-            backgroundColor: Colors.red,
-          ),
-        );
+        final decoded = jsonDecode(response.body);
+        throw Exception(_apiError(decoded, 'Không thể xóa tài khoản'));
       }
-    } catch (e) {
+    } catch (error) {
       if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('Lỗi kết nối: $e'), backgroundColor: Colors.red),
+        SnackBar(content: Text('Lỗi: $error'), backgroundColor: Colors.red),
       );
     }
+  }
+
+  Future<void> _logout() async {
+    await context.read<AuthProvider>().logout();
+    if (!mounted) return;
+    context.go('/login');
   }
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: Colors.grey[100],
+      backgroundColor: const Color(0xFFF4F6F8),
       appBar: AppBar(
-        title: Text('Quản lý tài khoản'),
-        backgroundColor: Color(0xFF2C3E50), // Thống nhất màu
+        title: const Text('Quản lý tài khoản'),
+        backgroundColor: const Color(0xFF2C3E50),
+        foregroundColor: Colors.white,
         actions: [
-          // THÊM NÚT HOME
           IconButton(
-            icon: FaIcon(FontAwesomeIcons.house, color: Colors.white, size: 20),
             tooltip: 'Trang chủ',
             onPressed: () => context.go('/admin'),
+            icon: const FaIcon(FontAwesomeIcons.house, size: 19),
           ),
           IconButton(
-            icon: Icon(Icons.add_circle_outline, color: Colors.white, size: 26),
-            tooltip: 'Tạo tài khoản mới',
+            tooltip: 'Tạo tài khoản',
             onPressed: () => context.go('/admin/account/create'),
+            icon: const Icon(Icons.person_add_alt_1),
           ),
           IconButton(
-            icon: Icon(Icons.refresh, color: Colors.white, size: 26),
-            tooltip: 'Tải lại',
+            tooltip: 'Làm mới',
             onPressed: _fetchUsers,
+            icon: const Icon(Icons.refresh),
           ),
-          // THÊM NÚT ĐĂNG XUẤT
           IconButton(
-            icon: FaIcon(
-              FontAwesomeIcons.rightFromBracket,
-              color: Colors.white,
-              size: 20,
-            ),
             tooltip: 'Đăng xuất',
-            onPressed: () async {
-              await Provider.of<AuthProvider>(context, listen: false).logout();
-              if (!context.mounted) return;
-              context.go('/login');
-            },
+            onPressed: _logout,
+            icon: const FaIcon(FontAwesomeIcons.rightFromBracket, size: 19),
           ),
         ],
       ),
-      body: _isLoading
-          ? Center(child: CircularProgressIndicator())
-          : _error.isNotEmpty
-          ? Center(
-              child: Text(_error, style: TextStyle(color: Colors.red)),
-            )
-          : ListView(
-              padding: EdgeInsets.all(16),
-              children: [
-                _buildUserSection(
-                  '🟦 Quản trị viên (ADMIN)',
-                  _groupedUsers['ADMIN']!,
-                  _buildAdminColumns(),
-                  _buildAdminRows,
-                ),
-                _buildUserSection(
-                  '🟩 Bác sĩ (BACSI)',
-                  _groupedUsers['BACSI']!,
-                  _buildBacSiColumns(),
-                  _buildBacSiRows,
-                ),
-                _buildUserSection(
-                  '🟨 Nhân viên y tế (NHANSU)',
-                  _groupedUsers['NHANSU']!,
-                  _buildNhanSuColumns(),
-                  _buildNhanSuRows,
-                ),
-                _buildUserSection(
-                  '🟧 Bệnh nhân (BENHNHAN)',
-                  _groupedUsers['BENHNHAN']!,
-                  _buildBenhNhanColumns(),
-                  _buildBenhNhanRows,
-                ),
-              ],
-            ),
+      body: _buildBody(),
     );
   }
 
-  // --- WIDGETS CON ---
-  // (Giữ nguyên _buildUserSection, _buildCommonColumns, _buildActionsColumn, _buildActionsCell, _buildTrangThaiCell, và 4 nhóm hàm cho các vai trò)
-  // ...
-  Widget _buildUserSection(
-    String title,
-    List<UserModel> users,
-    List<DataColumn> columns,
-    List<DataRow> Function(List<UserModel>) rowBuilder,
-  ) {
-    return Card(
-      elevation: 3,
-      margin: EdgeInsets.only(bottom: 20),
-      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-      child: Padding(
-        padding: const EdgeInsets.all(12.0),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Text(
-              title,
-              style: Theme.of(context).textTheme.titleLarge?.copyWith(
-                fontWeight: FontWeight.bold,
-                color: Color(0xFF34495E),
+  Widget _buildBody() {
+    if (_isLoading) {
+      return const Center(child: CircularProgressIndicator());
+    }
+
+    if (_error.isNotEmpty) {
+      return Center(
+        child: Padding(
+          padding: const EdgeInsets.all(24),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              const Icon(Icons.error_outline, color: Colors.red, size: 48),
+              const SizedBox(height: 12),
+              Text(_error, textAlign: TextAlign.center),
+              const SizedBox(height: 16),
+              FilledButton.icon(
+                onPressed: _fetchUsers,
+                icon: const Icon(Icons.refresh),
+                label: const Text('Thử lại'),
               ),
-            ),
-            SizedBox(height: 12),
-            users.isEmpty
-                ? Center(
-                    child: Padding(
-                      padding: const EdgeInsets.all(8.0),
-                      child: Text(
-                        'Không có tài khoản nào.',
-                        style: TextStyle(fontStyle: FontStyle.italic),
-                      ),
-                    ),
-                  )
-                : SingleChildScrollView(
-                    scrollDirection: Axis.horizontal,
-                    child: DataTable(
-                      columns: columns,
-                      rows: rowBuilder(users),
-                      columnSpacing: 20,
-                      dataRowMinHeight: 48,
-                      dataRowMaxHeight: 64,
-                      headingRowColor: WidgetStateProperty.all(
-                        Colors.grey[50],
-                      ),
-                    ),
-                  ),
-          ],
+            ],
+          ),
         ),
+      );
+    }
+
+    final total = _groupedUsers.values.fold<int>(
+      0,
+      (sum, users) => sum + users.length,
+    );
+
+    if (total == 0) {
+      return const Center(child: Text('Chưa có tài khoản nào.'));
+    }
+
+    return RefreshIndicator(
+      onRefresh: _fetchUsers,
+      child: ListView(
+        padding: const EdgeInsets.all(16),
+        children: [
+          _buildRoleSection(
+            'ADMIN',
+            'Quản trị viên',
+            Icons.admin_panel_settings,
+          ),
+          _buildRoleSection('BACSI', 'Bác sĩ', Icons.medical_services),
+          _buildRoleSection('NHANSU', 'Nhân sự', Icons.badge),
+          _buildRoleSection('BENHNHAN', 'Bệnh nhân', Icons.personal_injury),
+        ],
       ),
     );
   }
 
-  List<DataColumn> _buildCommonColumns() {
-    return [
-      DataColumn(label: Text('Mã TK')),
-      DataColumn(label: Text('Tên đăng nhập')),
-      DataColumn(label: Text('Email')),
-      DataColumn(label: Text('Trạng thái')),
-    ];
+  Widget _buildRoleSection(String role, String label, IconData icon) {
+    final users = _groupedUsers[role] ?? const <UserModel>[];
+
+    return Card(
+      margin: const EdgeInsets.only(bottom: 14),
+      clipBehavior: Clip.antiAlias,
+      child: ExpansionTile(
+        initiallyExpanded: role == 'ADMIN',
+        leading: CircleAvatar(child: Icon(icon)),
+        title: Text(
+          '$label (${users.length})',
+          style: const TextStyle(fontWeight: FontWeight.bold),
+        ),
+        children: users.isEmpty
+            ? const [
+                Padding(
+                  padding: EdgeInsets.all(20),
+                  child: Text('Chưa có tài khoản trong nhóm này.'),
+                ),
+              ]
+            : users.map(_buildUserTile).toList(),
+      ),
+    );
   }
 
-  DataColumn _buildActionsColumn() {
-    return DataColumn(label: Text('Thao tác'));
-  }
-
-  DataCell _buildActionsCell(UserModel user) {
-    return DataCell(
-      Row(
-        mainAxisSize: MainAxisSize.min, // Giữ cho các nút gần nhau
+  Widget _buildUserTile(UserModel user) {
+    return ListTile(
+      leading: Icon(
+        user.trangThai ? Icons.check_circle : Icons.block,
+        color: user.trangThai ? Colors.green : Colors.grey,
+      ),
+      title: Text(
+        user.hoTen?.isNotEmpty == true ? user.hoTen! : user.username,
+        style: const TextStyle(fontWeight: FontWeight.w600),
+      ),
+      subtitle: Text('${user.username}\n${user.email ?? 'Không có email'}'),
+      isThreeLine: true,
+      trailing: Wrap(
+        spacing: 2,
         children: [
           IconButton(
-            icon: Icon(Icons.edit, color: Colors.orange[700]),
             tooltip: 'Sửa',
-            iconSize: 20, // Giảm kích thước
-            splashRadius: 20,
             onPressed: () => _handleEdit(user),
+            icon: const Icon(Icons.edit, color: Colors.orange),
           ),
           IconButton(
-            icon: Icon(Icons.delete, color: Colors.red[700]),
-            tooltip: 'Xoá',
-            iconSize: 20,
-            splashRadius: 20,
-            onPressed: () => _handleDelete(user.maTK),
+            tooltip: 'Xóa',
+            onPressed: () => _handleDelete(user),
+            icon: const Icon(Icons.delete, color: Colors.red),
           ),
         ],
       ),
     );
-  }
-
-  DataCell _buildTrangThaiCell(bool trangThai) {
-    return DataCell(
-      Icon(
-        trangThai ? Icons.check_circle : Icons.cancel,
-        color: trangThai ? Colors.green : Colors.grey,
-        size: 20,
-      ),
-    );
-  }
-
-  // 1. ADMIN
-  List<DataColumn> _buildAdminColumns() {
-    return [..._buildCommonColumns(), _buildActionsColumn()];
-  }
-
-  List<DataRow> _buildAdminRows(List<UserModel> users) {
-    return users
-        .map(
-          (user) => DataRow(
-            cells: [
-              DataCell(Text(user.maTK)),
-              DataCell(Text(user.tenDangNhap)),
-              DataCell(Text(user.email ?? '-')),
-              _buildTrangThaiCell(user.trangThai),
-              _buildActionsCell(user),
-            ],
-          ),
-        )
-        .toList();
-  }
-
-  // 2. BÁC SĨ
-  List<DataColumn> _buildBacSiColumns() {
-    return [
-      ..._buildCommonColumns(),
-      DataColumn(label: Text('Họ tên')),
-      DataColumn(label: Text('Khoa')),
-      DataColumn(label: Text('Chuyên môn')),
-      DataColumn(label: Text('Chức vụ')),
-      _buildActionsColumn(),
-    ];
-  }
-
-  List<DataRow> _buildBacSiRows(List<UserModel> users) {
-    return users
-        .map(
-          (user) => DataRow(
-            cells: [
-              DataCell(Text(user.maTK)),
-              DataCell(Text(user.tenDangNhap)),
-              DataCell(Text(user.email ?? '-')),
-              _buildTrangThaiCell(user.trangThai),
-              DataCell(Text(user.hoTen ?? '-')),
-              DataCell(Text(user.tenKhoa ?? user.maKhoa ?? '-')),
-              DataCell(Text(user.chuyenMon ?? '-')),
-              DataCell(Text(user.chucVu ?? '-')),
-              _buildActionsCell(user),
-            ],
-          ),
-        )
-        .toList();
-  }
-
-  // 3. NHÂN SỰ
-  List<DataColumn> _buildNhanSuColumns() {
-    return [
-      ..._buildCommonColumns(),
-      DataColumn(label: Text('Họ tên')),
-      DataColumn(label: Text('Khoa')),
-      DataColumn(label: Text('Loại NS')),
-      DataColumn(label: Text('Cấp bậc')),
-      _buildActionsColumn(),
-    ];
-  }
-
-  List<DataRow> _buildNhanSuRows(List<UserModel> users) {
-    return users
-        .map(
-          (user) => DataRow(
-            cells: [
-              DataCell(Text(user.maTK)),
-              DataCell(Text(user.tenDangNhap)),
-              DataCell(Text(user.email ?? '-')),
-              _buildTrangThaiCell(user.trangThai),
-              DataCell(Text(user.hoTen ?? '-')),
-              DataCell(Text(user.tenKhoa ?? user.maKhoa ?? '-')),
-              DataCell(Text(user.loaiNS ?? '-')),
-              DataCell(Text(user.capBac ?? '-')),
-              _buildActionsCell(user),
-            ],
-          ),
-        )
-        .toList();
-  }
-
-  // 4. BỆNH NHÂN
-  List<DataColumn> _buildBenhNhanColumns() {
-    return [
-      ..._buildCommonColumns(),
-      DataColumn(label: Text('Họ tên')),
-      DataColumn(label: Text('SĐT')),
-      DataColumn(label: Text('BHYT')),
-      _buildActionsColumn(),
-    ];
-  }
-
-  List<DataRow> _buildBenhNhanRows(List<UserModel> users) {
-    return users
-        .map(
-          (user) => DataRow(
-            cells: [
-              DataCell(Text(user.maTK)),
-              DataCell(Text(user.tenDangNhap)),
-              DataCell(Text(user.email ?? '-')),
-              _buildTrangThaiCell(user.trangThai),
-              DataCell(Text(user.hoTen ?? '-')),
-              DataCell(Text(user.soDienThoai ?? '-')),
-              DataCell(Text(user.bhyt ?? '-')),
-              _buildActionsCell(user),
-            ],
-          ),
-        )
-        .toList();
   }
 }

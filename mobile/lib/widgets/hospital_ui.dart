@@ -27,15 +27,17 @@ class HospitalPage extends StatelessWidget {
         final horizontal = constraints.maxWidth >= 1000
             ? 32.0
             : constraints.maxWidth >= 700
-                ? 24.0
-                : 16.0;
+            ? 24.0
+            : 16.0;
         return Align(
           alignment: Alignment.topCenter,
           child: ConstrainedBox(
             constraints: const BoxConstraints(maxWidth: 1220),
             child: ListView(
               physics: const AlwaysScrollableScrollPhysics(),
-              padding: padding ?? EdgeInsets.fromLTRB(horizontal, 22, horizontal, 120),
+              padding:
+                  padding ??
+                  EdgeInsets.fromLTRB(horizontal, 22, horizontal, 120),
               children: children,
             ),
           ),
@@ -104,10 +106,7 @@ class PageHeader extends StatelessWidget {
                     style: Theme.of(context).textTheme.headlineMedium,
                   ),
                 ),
-                if (badge != null) ...[
-                  const SizedBox(width: 10),
-                  badge!,
-                ],
+                if (badge != null) ...[const SizedBox(width: 10), badge!],
               ],
             ),
             const SizedBox(height: 5),
@@ -251,9 +250,9 @@ class MetricCard extends StatelessWidget {
                     caption!,
                     maxLines: 1,
                     overflow: TextOverflow.ellipsis,
-                    style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                          color: context.appMuted,
-                        ),
+                    style: Theme.of(
+                      context,
+                    ).textTheme.bodySmall?.copyWith(color: context.appMuted),
                   ),
                 ],
               ],
@@ -284,7 +283,8 @@ class ResponsiveGrid extends StatelessWidget {
     return LayoutBuilder(
       builder: (context, constraints) {
         final count = (constraints.maxWidth / minItemWidth).floor().clamp(1, 4);
-        final itemWidth = (constraints.maxWidth - (count - 1) * spacing) / count;
+        final itemWidth =
+            (constraints.maxWidth - (count - 1) * spacing) / count;
         return Wrap(
           spacing: spacing,
           runSpacing: spacing,
@@ -560,10 +560,7 @@ class EmptyState extends StatelessWidget {
                 style: Theme.of(context).textTheme.bodyMedium,
               ),
             ),
-            if (action != null) ...[
-              const SizedBox(height: 16),
-              action!,
-            ],
+            if (action != null) ...[const SizedBox(height: 16), action!],
           ],
         ),
       ),
@@ -599,11 +596,7 @@ class ErrorState extends StatelessWidget {
 }
 
 class EndpointBadge extends StatelessWidget {
-  const EndpointBadge({
-    super.key,
-    required this.method,
-    required this.path,
-  });
+  const EndpointBadge({super.key, required this.method, required this.path});
 
   final String method;
   final String path;
@@ -755,16 +748,16 @@ class KeyValueGrid extends StatelessWidget {
                     Text(
                       labels[entry.key] ?? humanizeKey(entry.key),
                       style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                            color: context.appMuted,
-                            fontWeight: FontWeight.w700,
-                          ),
+                        color: context.appMuted,
+                        fontWeight: FontWeight.w700,
+                      ),
                     ),
                     const SizedBox(height: 5),
                     SelectableText(
                       formatValue(entry.value),
                       style: Theme.of(context).textTheme.bodyLarge?.copyWith(
-                            fontWeight: FontWeight.w600,
-                          ),
+                        fontWeight: FontWeight.w600,
+                      ),
                     ),
                   ],
                 ),
@@ -830,12 +823,16 @@ Future<void> showDataDetails(
                           onPressed: () async {
                             await Clipboard.setData(
                               ClipboardData(
-                                text: const JsonEncoder.withIndent('  ').convert(data),
+                                text: const JsonEncoder.withIndent(
+                                  '  ',
+                                ).convert(data),
                               ),
                             );
                             if (context.mounted) {
                               ScaffoldMessenger.of(context).showSnackBar(
-                                const SnackBar(content: Text('Đã sao chép dữ liệu.')),
+                                const SnackBar(
+                                  content: Text('Đã sao chép dữ liệu.'),
+                                ),
                               );
                             }
                           },
@@ -865,7 +862,11 @@ Future<void> showDataDetails(
   );
 }
 
-String firstText(Map<String, dynamic> data, List<String> keys, {String fallback = '—'}) {
+String firstText(
+  Map<String, dynamic> data,
+  List<String> keys, {
+  String fallback = '—',
+}) {
   for (final key in keys) {
     final value = data[key];
     if (value == null) continue;
@@ -900,7 +901,10 @@ String formatValue(Object? value) {
 
 String humanizeKey(String key) {
   final spaced = key
-      .replaceAllMapped(RegExp(r'([a-z0-9])([A-Z])'), (match) => '${match[1]} ${match[2]}')
+      .replaceAllMapped(
+        RegExp(r'([a-z0-9])([A-Z])'),
+        (match) => '${match[1]} ${match[2]}',
+      )
       .replaceAll('_', ' ')
       .trim();
   if (spaced.isEmpty) return key;

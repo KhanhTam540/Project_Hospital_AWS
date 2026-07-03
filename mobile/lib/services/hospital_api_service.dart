@@ -55,13 +55,16 @@ class HospitalApiService {
     final response = await _api.get('/tai-khoan');
     final value = _api.dataOf(response);
     if (value is List) {
-      final items = value.whereType<Map>().map(Map<String, dynamic>.from).toList();
+      final items = value
+          .whereType<Map>()
+          .map(Map<String, dynamic>.from)
+          .toList();
       int countRole(String role) => items.where((item) {
-            final current = (item['primaryRole'] ?? item['maNhom'] ?? item['role'])
-                ?.toString()
-                .toUpperCase();
-            return current == role;
-          }).length;
+        final current = (item['primaryRole'] ?? item['maNhom'] ?? item['role'])
+            ?.toString()
+            .toUpperCase();
+        return current == role;
+      }).length;
       return {
         'admin': countRole('ADMIN'),
         'doctor': countRole('BACSI'),
@@ -74,10 +77,7 @@ class HospitalApiService {
     return summary is Map ? Map<String, dynamic>.from(summary) : const {};
   }
 
-  Future<Map<String, dynamic>> updateAccountRole(
-    String username,
-    String role,
-  ) {
+  Future<Map<String, dynamic>> updateAccountRole(String username, String role) {
     return putObject('/tai-khoan/${Uri.encodeComponent(username)}', {
       'role': role,
       'maNhom': role,
@@ -88,8 +88,7 @@ class HospitalApiService {
     return deleteObject('/tai-khoan/${Uri.encodeComponent(username)}');
   }
 
-  Future<List<Map<String, dynamic>>> patients() =>
-      getCollection('/benhnhan');
+  Future<List<Map<String, dynamic>>> patients() => getCollection('/benhnhan');
 
   Future<Map<String, dynamic>> patient(String patientId) =>
       getObject('/benhnhan/${Uri.encodeComponent(patientId)}');
@@ -97,9 +96,8 @@ class HospitalApiService {
   Future<Map<String, dynamic>> patientCore(String patientId) =>
       getObject('/patients/${Uri.encodeComponent(patientId)}');
 
-  Future<Map<String, dynamic>> patientByAccount(String accountId) => getObject(
-        '/benhnhan/findByMaTK/${Uri.encodeComponent(accountId)}',
-      );
+  Future<Map<String, dynamic>> patientByAccount(String accountId) =>
+      getObject('/benhnhan/findByMaTK/${Uri.encodeComponent(accountId)}');
 
   Future<Map<String, dynamic>> createPatient(Map<String, dynamic> body) =>
       postObject('/patients', body);
@@ -107,8 +105,7 @@ class HospitalApiService {
   Future<Map<String, dynamic>> updatePatient(
     String patientId,
     Map<String, dynamic> body,
-  ) =>
-      putObject('/patients/${Uri.encodeComponent(patientId)}', body);
+  ) => putObject('/patients/${Uri.encodeComponent(patientId)}', body);
 
   Future<List<Map<String, dynamic>>> doctors() => getCollection('/bacsi');
   Future<List<Map<String, dynamic>>> staff() => getCollection('/nhansu');
@@ -128,38 +125,29 @@ class HospitalApiService {
       );
     }
     if (doctorId != null && doctorId.isNotEmpty) {
-      return getCollection(
-        '/lichkham/bacsi/${Uri.encodeComponent(doctorId)}',
-      );
+      return getCollection('/lichkham/bacsi/${Uri.encodeComponent(doctorId)}');
     }
     return getCollection('/lichkham');
   }
 
-  Future<Map<String, dynamic>> appointment(String appointmentId) => getObject(
-        '/lichkham/${Uri.encodeComponent(appointmentId)}',
-      );
+  Future<Map<String, dynamic>> appointment(String appointmentId) =>
+      getObject('/lichkham/${Uri.encodeComponent(appointmentId)}');
 
-  Future<Map<String, dynamic>> createAppointment(
-    Map<String, dynamic> body,
-  ) =>
+  Future<Map<String, dynamic>> createAppointment(Map<String, dynamic> body) =>
       postObject('/lichkham', body);
 
   Future<Map<String, dynamic>> cancelAppointment(String appointmentId) =>
       deleteObject('/lichkham/${Uri.encodeComponent(appointmentId)}');
 
   Future<List<Map<String, dynamic>>> records(String patientId) => getCollection(
-        '/patients/${Uri.encodeComponent(patientId)}/records',
-        nestedKeys: const ['items', 'records'],
-      );
+    '/patients/${Uri.encodeComponent(patientId)}/records',
+    nestedKeys: const ['items', 'records'],
+  );
 
   Future<Map<String, dynamic>> createRecord(
     String patientId,
     Map<String, dynamic> body,
-  ) =>
-      postObject(
-        '/patients/${Uri.encodeComponent(patientId)}/records',
-        body,
-      );
+  ) => postObject('/patients/${Uri.encodeComponent(patientId)}/records', body);
 
   Future<List<Map<String, dynamic>>> examinations(String patientId) =>
       getCollection(
@@ -170,11 +158,10 @@ class HospitalApiService {
   Future<Map<String, dynamic>> createExamination(
     String patientId,
     Map<String, dynamic> body,
-  ) =>
-      postObject(
-        '/patients/${Uri.encodeComponent(patientId)}/examinations',
-        body,
-      );
+  ) => postObject(
+    '/patients/${Uri.encodeComponent(patientId)}/examinations',
+    body,
+  );
 
   Future<List<Map<String, dynamic>>> prescriptions(String patientId) =>
       getCollection(
@@ -185,11 +172,10 @@ class HospitalApiService {
   Future<Map<String, dynamic>> createPrescription(
     String patientId,
     Map<String, dynamic> body,
-  ) =>
-      postObject(
-        '/patients/${Uri.encodeComponent(patientId)}/prescriptions',
-        body,
-      );
+  ) => postObject(
+    '/patients/${Uri.encodeComponent(patientId)}/prescriptions',
+    body,
+  );
 
   Future<List<Map<String, dynamic>>> documents(String patientId) =>
       getCollection(
@@ -229,14 +215,12 @@ class HospitalApiService {
     }
   }
 
-  Future<Map<String, dynamic>> completeUpload(String documentId) => postObject(
-        '/medical/complete-upload',
-        {'documentId': documentId},
-      );
+  Future<Map<String, dynamic>> completeUpload(String documentId) =>
+      postObject('/medical/complete-upload', {'documentId': documentId});
 
   Future<Map<String, dynamic>> downloadUrl(String documentId) => getObject(
-        '/medical/download-url?documentId=${Uri.encodeQueryComponent(documentId)}',
-      );
+    '/medical/download-url?documentId=${Uri.encodeQueryComponent(documentId)}',
+  );
 
   Future<List<Map<String, dynamic>>> labResults({String? patientId}) {
     final suffix = patientId == null || patientId.isEmpty
@@ -245,9 +229,8 @@ class HospitalApiService {
     return getCollection('/phieuxetnghiem$suffix');
   }
 
-  Future<Map<String, dynamic>> labResult(String labResultId) => getObject(
-        '/phieuxetnghiem/${Uri.encodeComponent(labResultId)}',
-      );
+  Future<Map<String, dynamic>> labResult(String labResultId) =>
+      getObject('/phieuxetnghiem/${Uri.encodeComponent(labResultId)}');
 
   Future<List<Map<String, dynamic>>> medicines() => getCollection('/thuoc');
   Future<List<Map<String, dynamic>>> medicineUnits() =>
@@ -265,12 +248,9 @@ class HospitalApiService {
       getCollection('/yeucauxetnghiem');
 
   Future<Map<String, dynamic>> aiChat(String message) => postObject(
-        '/ai/chat',
-        {
-          'message': message,
-          'context': 'Hospital P2TB mobile application',
-        },
-      );
+    '/ai/chat',
+    {'message': message, 'context': 'Hospital P2TB mobile application'},
+  );
 
   Future<Map<String, dynamic>> aiSummary(Map<String, dynamic> context) =>
       postObject('/ai/summary', {

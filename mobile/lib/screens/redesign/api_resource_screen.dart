@@ -7,10 +7,7 @@ import '../../services/hospital_api_service.dart';
 import '../../widgets/hospital_ui.dart';
 
 class ApiResourceScreen extends StatefulWidget {
-  const ApiResourceScreen({
-    super.key,
-    required this.definition,
-  });
+  const ApiResourceScreen({super.key, required this.definition});
 
   final ApiResourceDefinition definition;
 
@@ -64,7 +61,10 @@ class _ApiResourceScreenState extends State<ApiResourceScreen> {
     final query = _query.trim().toLowerCase();
     if (query.isEmpty) return _items;
     return _items.where((item) {
-      final haystack = item.values.map((value) => value.toString()).join(' ').toLowerCase();
+      final haystack = item.values
+          .map((value) => value.toString())
+          .join(' ')
+          .toLowerCase();
       return haystack.contains(query);
     }).toList();
   }

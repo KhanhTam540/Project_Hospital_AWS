@@ -56,7 +56,9 @@ class _BillingScreenState extends State<BillingScreen> {
   @override
   Widget build(BuildContext context) {
     final auth = context.watch<AuthProvider>();
-    final ownLabel = auth.role == 'BENHNHAN' ? 'Hóa đơn của tôi' : 'Quản lý hóa đơn';
+    final ownLabel = auth.role == 'BENHNHAN'
+        ? 'Hóa đơn của tôi'
+        : 'Quản lý hóa đơn';
 
     return HospitalPage(
       onRefresh: _load,
@@ -80,7 +82,10 @@ class _BillingScreenState extends State<BillingScreen> {
           children: [
             MetricCard(
               label: 'Tổng hóa đơn',
-              value: _stat(const ['tongSo', 'totalCount'], fallback: '${_invoices.length}'),
+              value: _stat(const [
+                'tongSo',
+                'totalCount',
+              ], fallback: '${_invoices.length}'),
               icon: Icons.receipt_rounded,
             ),
             MetricCard(
@@ -105,8 +110,12 @@ class _BillingScreenState extends State<BillingScreen> {
         ),
         const SizedBox(height: 18),
         HospitalCard(
-          backgroundColor: Theme.of(context).colorScheme.primaryContainer.withValues(alpha: 0.42),
-          borderColor: Theme.of(context).colorScheme.primary.withValues(alpha: 0.22),
+          backgroundColor: Theme.of(
+            context,
+          ).colorScheme.primaryContainer.withValues(alpha: 0.42),
+          borderColor: Theme.of(
+            context,
+          ).colorScheme.primary.withValues(alpha: 0.22),
           child: const Row(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
@@ -141,29 +150,28 @@ class _BillingScreenState extends State<BillingScreen> {
             (item) => Padding(
               padding: const EdgeInsets.only(bottom: 10),
               child: DataListTile(
-                title: firstText(
-                  item,
-                  const ['maHD', 'invoiceId', 'noiDung'],
-                  fallback: 'Hóa đơn',
-                ),
-                subtitle: firstText(
-                  item,
-                  const ['ngayLap', 'createdAt', 'tongTien', 'totalAmount'],
-                  fallback: 'Nhấn để xem chi tiết',
-                ),
-                status: firstText(
-                  item,
-                  const ['trangThai', 'status'],
-                  fallback: '',
-                ),
+                title: firstText(item, const [
+                  'maHD',
+                  'invoiceId',
+                  'noiDung',
+                ], fallback: 'Hóa đơn'),
+                subtitle: firstText(item, const [
+                  'ngayLap',
+                  'createdAt',
+                  'tongTien',
+                  'totalAmount',
+                ], fallback: 'Nhấn để xem chi tiết'),
+                status: firstText(item, const [
+                  'trangThai',
+                  'status',
+                ], fallback: ''),
                 icon: Icons.receipt_rounded,
                 onTap: () => showDataDetails(
                   context,
-                  title: firstText(
-                    item,
-                    const ['maHD', 'invoiceId'],
-                    fallback: 'Chi tiết hóa đơn',
-                  ),
+                  title: firstText(item, const [
+                    'maHD',
+                    'invoiceId',
+                  ], fallback: 'Chi tiết hóa đơn'),
                   data: item,
                   labels: const {
                     'maHD': 'Mã hóa đơn',

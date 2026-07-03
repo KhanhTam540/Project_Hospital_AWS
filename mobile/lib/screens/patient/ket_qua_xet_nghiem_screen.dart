@@ -33,25 +33,24 @@ class LabResultModel {
   factory LabResultModel.fromJson(Map<String, dynamic> json) {
     return LabResultModel(
       id: (json['maPhieuXN'] ?? json['labResultId'] ?? '').toString(),
-      testName: (json['XetNghiem']?['tenXN'] ??
-              json['testName'] ??
-              'Xét nghiệm')
-          .toString(),
-      categoryName: (json['XetNghiem']?['LoaiXetNghiem']?['tenLoai'] ??
-              json['categoryName'] ??
-              'Tổng quát')
-          .toString(),
+      testName:
+          (json['XetNghiem']?['tenXN'] ?? json['testName'] ?? 'Xét nghiệm')
+              .toString(),
+      categoryName:
+          (json['XetNghiem']?['LoaiXetNghiem']?['tenLoai'] ??
+                  json['categoryName'] ??
+                  'Tổng quát')
+              .toString(),
       performedAt: DateTime.tryParse(
         (json['ngayThucHien'] ?? json['performedAt'] ?? '').toString(),
       ),
       resultText: (json['ketQua'] ?? json['resultText'] ?? '').toString(),
-      referenceRange:
-          (json['khoangThamChieu'] ?? json['referenceRange'] ?? '').toString(),
-      unit: (json['donVi'] ?? json['unit'] ?? '').toString(),
-      staffName: (json['NhanSuYTe']?['hoTen'] ??
-              json['staffName'] ??
-              'Kỹ thuật viên')
+      referenceRange: (json['khoangThamChieu'] ?? json['referenceRange'] ?? '')
           .toString(),
+      unit: (json['donVi'] ?? json['unit'] ?? '').toString(),
+      staffName:
+          (json['NhanSuYTe']?['hoTen'] ?? json['staffName'] ?? 'Kỹ thuật viên')
+              .toString(),
       status: (json['trangThai'] ?? json['status'] ?? 'COMPLETED')
           .toString()
           .toUpperCase(),
@@ -69,8 +68,7 @@ class KetQuaXetNghiemScreen extends StatefulWidget {
   const KetQuaXetNghiemScreen({super.key});
 
   @override
-  State<KetQuaXetNghiemScreen> createState() =>
-      _KetQuaXetNghiemScreenState();
+  State<KetQuaXetNghiemScreen> createState() => _KetQuaXetNghiemScreenState();
 }
 
 class _KetQuaXetNghiemScreenState extends State<KetQuaXetNghiemScreen> {
@@ -99,19 +97,20 @@ class _KetQuaXetNghiemScreenState extends State<KetQuaXetNghiemScreen> {
         throw const FormatException('API không trả về danh sách xét nghiệm.');
       }
 
-      final results = data
-          .map(
-            (item) => LabResultModel.fromJson(
-              Map<String, dynamic>.from(item as Map),
-            ),
-          )
-          .where((item) => item.id.isNotEmpty)
-          .toList()
-        ..sort((left, right) {
-          final leftDate = left.performedAt ?? DateTime(1970);
-          final rightDate = right.performedAt ?? DateTime(1970);
-          return rightDate.compareTo(leftDate);
-        });
+      final results =
+          data
+              .map(
+                (item) => LabResultModel.fromJson(
+                  Map<String, dynamic>.from(item as Map),
+                ),
+              )
+              .where((item) => item.id.isNotEmpty)
+              .toList()
+            ..sort((left, right) {
+              final leftDate = left.performedAt ?? DateTime(1970);
+              final rightDate = right.performedAt ?? DateTime(1970);
+              return rightDate.compareTo(leftDate);
+            });
 
       if (!mounted) return;
       setState(() => _results = results);
