@@ -1,0 +1,31 @@
+[
+  {
+    "pk": "STAFF#NS001",
+    "sk": "PROFILE",
+    "entityType": "STAFF",
+    "staffId": "NS001",
+    "fullName": "Nguyễn Thị Hương",
+    "role": "NHANSU",
+    "staffType": "TIEP_DON",
+    "departmentId": "KHOA_NOI",
+    "status": "ACTIVE",
+    "dataSource": "P2TB_SAMPLE",
+    "createdAt": "2026-06-24T00:00:00.000Z",
+    "updatedAt": "2026-06-24T00:00:00.000Z",
+    "accountUserId": "USER003"
+  },
+  {
+    "pk": "STAFF#NS002",
+    "sk": "PROFILE",
+    "entityType": "STAFF",
+    "staffId": "NS002",
+    "fullName": "Trần Minh Anh",
+    "role": "NHANSU",
+    "staffType": "DIEU_DUONG",
+    "departmentId": "KHOA_NGOAI",
+    "status": "ACTIVE",
+    "dataSource": "P2TB_SAMPLE",
+    "createdAt": "2026-06-24T00:00:00.000Z",
+    "updatedAt": "2026-06-24T00:00:00.000Z"
+  }
+]

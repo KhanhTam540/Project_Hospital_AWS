@@ -1,0 +1,28 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <!-- CSP: cho phép Vite HMR (ws://5173) và API backend (4000) khi dev local -->
+    <meta 
+      http-equiv="Content-Security-Policy" 
+      content="
+        default-src 'self' https:;
+        script-src 'self' 'unsafe-inline' 'unsafe-eval' https:;
+        style-src 'self' 'unsafe-inline' https:;
+        img-src 'self' data: https: blob:;
+        font-src 'self' data: https:;
+        connect-src 'self' https: wss: ws:
+          http://localhost:5173 http://localhost:4000
+          ws://localhost:5173 ws://localhost:4000
+          http://127.0.0.1:5173 http://127.0.0.1:4000
+          ws://127.0.0.1:5173 ws://127.0.0.1:4000;
+      "
+    >
+    <title>Hospital P2TB</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  </head>
+  <body>
+    <div id="root"></div>
+    <script type="module" src="/src/main.jsx"></script>
+  </body>
+</html>
