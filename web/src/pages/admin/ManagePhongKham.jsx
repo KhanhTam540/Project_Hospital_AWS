@@ -1,4 +1,5 @@
 import React, { useEffect, useState } from "react";
+import AdminPagination, { useAdminPagination } from "../../components/admin/AdminPagination";
 import axios from "../../api/axiosClient";
 import toast from "react-hot-toast";
 import { MapPin, Search, Edit, Trash2, Plus, X, Save, Phone, Mail } from "lucide-react";
@@ -95,6 +96,11 @@ function ManagePhongKham() {
       p.maPKN?.toLowerCase().includes(search.toLowerCase()) ||
       p.diaChi?.toLowerCase().includes(search.toLowerCase())
   );
+
+  const pagination = useAdminPagination(filtered, {
+    initialPageSize: 10,
+    resetKey: search,
+  });
 
   if (loading) {
     return (
@@ -236,7 +242,7 @@ function ManagePhongKham() {
                 </td>
               </tr>
             ) : (
-              filtered.map((p) => (
+              pagination.pageItems.map((p) => (
                 <tr key={p.maPKN} className="hover:bg-teal-50/50">
                   <td className="px-4 py-3">
                     <span className="px-2 py-0.5 bg-teal-100 text-teal-800 rounded text-xs font-bold">
@@ -295,6 +301,7 @@ function ManagePhongKham() {
             )}
           </tbody>
         </table>
+        <AdminPagination pagination={pagination} itemLabel="phòng khám" />
       </div>
     </div>
   );

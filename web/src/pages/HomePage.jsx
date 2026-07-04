@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
+import axios from '../api/axiosClient';
 import { 
   Phone, Calendar, Clock, MapPin, Search, Menu, X, 
   ChevronRight, ArrowRight, Star, ShieldCheck, Activity, 
@@ -76,8 +77,8 @@ const DoctorCard = ({ img, name, specialty }) => (
   </div>
 );
 
-const NewsCard = ({ img, title, date, desc }) => (
-  <Link to="/patient/tintuc" className="bg-white rounded-xl overflow-hidden shadow-sm border border-gray-100 hover:shadow-md transition-all group cursor-pointer block">
+const NewsCard = ({ img, title, date, desc, newsId }) => (
+  <Link to={newsId ? `/patient/tintuc?maTin=${encodeURIComponent(newsId)}` : '/patient/tintuc'} className="bg-white rounded-xl overflow-hidden shadow-sm border border-gray-100 hover:shadow-md transition-all group cursor-pointer block">
     <div className="h-48 overflow-hidden">
       <img src={img} alt={title} className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500" onError={handleImageError} />
     </div>
@@ -104,6 +105,56 @@ const HomePage = () => {
   const navigate = useNavigate();
   const [isScrolled, setIsScrolled] = useState(false);
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
+  const [departments, setDepartments] = useState([]);
+  const [doctors, setDoctors] = useState([]);
+  const [news, setNews] = useState([]);
+  const [homeLoading, setHomeLoading] = useState(true);
+  const [homeError, setHomeError] = useState('');
+
+  useEffect(() => {
+    let mounted = true;
+
+    const extractArray = (response) => {
+      const value = response?.data?.data ?? response?.data;
+      return Array.isArray(value) ? value : [];
+    };
+
+    const loadHomeData = async () => {
+      setHomeLoading(true);
+      setHomeError('');
+
+      try {
+        const [departmentResponse, doctorResponse, newsResponse] =
+          await Promise.all([
+            axios.get('/public/khoa'),
+            axios.get('/public/bacsi', { params: { limit: 8 } }),
+            axios.get('/public/tintuc', { params: { limit: 6 } }),
+          ]);
+
+        if (!mounted) return;
+        setDepartments(extractArray(departmentResponse));
+        setDoctors(extractArray(doctorResponse));
+        setNews(extractArray(newsResponse));
+      } catch (error) {
+        console.error('Không thể tải dữ liệu trang chủ', error);
+        if (!mounted) return;
+        setDepartments([]);
+        setDoctors([]);
+        setNews([]);
+        setHomeError(
+          error?.response?.data?.error?.message ||
+            'Không thể tải dữ liệu mới nhất từ bệnh viện.',
+        );
+      } finally {
+        if (mounted) setHomeLoading(false);
+      }
+    };
+
+    loadHomeData();
+    return () => {
+      mounted = false;
+    };
+  }, []);
 
   useEffect(() => {
     const handleScroll = () => setIsScrolled(window.scrollY > 50);
@@ -354,80 +405,82 @@ const HomePage = () => {
       {/* 5. Services Section */}
       <section id="services" className="py-20 bg-white">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <SectionTitle 
-            title="Chuyên Khoa Nổi Bật" 
-            subtitle="Dịch vụ y tế toàn diện" 
+          <SectionTitle
+            title="Chuyên Khoa Nổi Bật"
+            subtitle="Dữ liệu cập nhật từ bệnh viện"
           />
-          
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
-            <ServiceCard 
-              icon={Heart} 
-              title="Khoa Tim Mạch" 
-              desc="Chẩn đoán và điều trị các bệnh lý tim mạch với công nghệ tiên tiến nhất."
-            />
-            <ServiceCard 
-              icon={User} 
-              title="Khoa Nhi" 
-              desc="Chăm sóc sức khỏe toàn diện cho trẻ em với không gian thân thiện."
-            />
-            <ServiceCard 
-              icon={Activity} 
-              title="Xét Nghiệm" 
-              desc="Hệ thống phòng Lab đạt chuẩn ISO, trả kết quả nhanh chóng và chính xác."
-            />
-            <ServiceCard 
-              icon={Stethoscope} 
-              title="Khám Tổng Quát" 
-              desc="Các gói khám sức khỏe định kỳ cá nhân và doanh nghiệp linh hoạt."
-            />
-            <ServiceCard 
-              icon={ShieldCheck} 
-              title="Sản Phụ Khoa" 
-              desc="Đồng hành cùng mẹ bầu trong suốt thai kỳ với sự tận tâm."
-            />
-            <ServiceCard 
-              icon={MapPin} 
-              title="Chẩn Đoán Hình Ảnh" 
-              desc="Máy chụp MRI, CT Scanner thế hệ mới hỗ trợ chẩn đoán chính xác."
-            />
-          </div>
 
-          <div className="text-center mt-12">
-            <a href="#services" className="btn btn-secondary px-8 py-3 rounded-full inline-block">Xem tất cả chuyên khoa</a>
-          </div>
+          {homeError && (
+            <div className="mb-8 rounded-xl border border-amber-200 bg-amber-50 px-4 py-3 text-center text-sm text-amber-800">
+              {homeError}
+            </div>
+          )}
+
+          {homeLoading ? (
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
+              {Array.from({ length: 6 }, (_, index) => (
+                <div key={index} className="h-56 animate-pulse rounded-2xl bg-slate-100" />
+              ))}
+            </div>
+          ) : departments.length > 0 ? (
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
+              {departments.slice(0, 9).map((department, index) => {
+                const icons = [Heart, User, Activity, Stethoscope, ShieldCheck, MapPin];
+                return (
+                  <ServiceCard
+                    key={department.maKhoa || index}
+                    icon={icons[index % icons.length]}
+                    title={department.tenKhoa || 'Chuyên khoa'}
+                    desc={department.moTa || 'Dịch vụ khám và điều trị chuyên sâu của bệnh viện.'}
+                  />
+                );
+              })}
+            </div>
+          ) : (
+            <div className="rounded-2xl border border-dashed border-slate-300 bg-slate-50 p-10 text-center text-slate-500">
+              Chưa có chuyên khoa đang hoạt động.
+            </div>
+          )}
         </div>
       </section>
 
       {/* 6. Doctors Section */}
       <section id="doctors" className="py-20 bg-gray-50">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <SectionTitle 
-            title="Đội Ngũ Chuyên Gia" 
-            subtitle="Bác sĩ đầu ngành" 
+          <SectionTitle
+            title="Đội Ngũ Chuyên Gia"
+            subtitle="Bác sĩ đang công tác"
           />
-          
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
-            <DoctorCard 
-              img={HOMEPAGE_IMAGES.doctors[0]}
-              name="BS.CKII Trần Văn A" 
-              specialty="Trưởng khoa Tim Mạch" 
-            />
-            <DoctorCard 
-              img={HOMEPAGE_IMAGES.doctors[1]}
-              name="ThS.BS Nguyễn Thị B" 
-              specialty="Khoa Nhi" 
-            />
-            <DoctorCard 
-              img={HOMEPAGE_IMAGES.doctors[2]}
-              name="TS.BS Lê Văn C" 
-              specialty="Khoa Thần Kinh" 
-            />
-            <DoctorCard 
-              img={HOMEPAGE_IMAGES.doctors[3]}
-              name="BS.CKI Phạm Thị D" 
-              specialty="Sản Phụ Khoa" 
-            />
-          </div>
+
+          {homeLoading ? (
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
+              {Array.from({ length: 4 }, (_, index) => (
+                <div key={index} className="h-80 animate-pulse rounded-2xl bg-slate-200" />
+              ))}
+            </div>
+          ) : doctors.length > 0 ? (
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
+              {doctors.slice(0, 8).map((doctor, index) => (
+                <DoctorCard
+                  key={doctor.maBS || index}
+                  img={
+                    doctor.hinhAnh ||
+                    HOMEPAGE_IMAGES.doctors[index % HOMEPAGE_IMAGES.doctors.length]
+                  }
+                  name={doctor.hoTen || 'Bác sĩ'}
+                  specialty={
+                    doctor.chuyenMon ||
+                    doctor.Khoa?.tenKhoa ||
+                    'Bác sĩ chuyên khoa'
+                  }
+                />
+              ))}
+            </div>
+          ) : (
+            <div className="rounded-2xl border border-dashed border-slate-300 bg-white p-10 text-center text-slate-500">
+              Chưa có bác sĩ đang hoạt động để hiển thị.
+            </div>
+          )}
         </div>
       </section>
 
@@ -455,36 +508,47 @@ const HomePage = () => {
       {/* 8. News Section */}
       <section id="news" className="py-20 bg-white">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-           <div className="flex justify-between items-end mb-12">
-             <div className="text-left">
-                <span className="text-primary-600 font-bold tracking-wider uppercase text-sm mb-2 block">Cẩm nang y tế</span>
-                <h2 className="text-3xl font-bold text-slate-900">Tin Tức Mới Nhất</h2>
-             </div>
-             <Link to="/patient/tintuc" className="hidden md:flex items-center gap-1 text-primary-600 font-semibold hover:gap-2 transition-all">
-               Xem tất cả <ArrowRight size={18}/>
-             </Link>
-           </div>
+          <div className="flex justify-between items-end mb-12">
+            <div className="text-left">
+              <span className="text-primary-600 font-bold tracking-wider uppercase text-sm mb-2 block">Cẩm nang y tế</span>
+              <h2 className="text-3xl font-bold text-slate-900">Tin Tức Mới Nhất</h2>
+            </div>
+            <Link to="/patient/tintuc" className="hidden md:flex items-center gap-1 text-primary-600 font-semibold hover:gap-2 transition-all">
+              Xem tất cả <ArrowRight size={18}/>
+            </Link>
+          </div>
 
-           <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
-              <NewsCard 
-                img={HOMEPAGE_IMAGES.news[0]}
-                title="5 Cách phòng ngừa bệnh cúm mùa hiệu quả"
-                date="25/11/2025"
-                desc="Thời điểm giao mùa là lúc virus cúm hoạt động mạnh. Hãy cùng tìm hiểu các biện pháp bảo vệ sức khỏe cho gia đình..."
-              />
-              <NewsCard 
-                img={HOMEPAGE_IMAGES.news[1]}
-                title="Khám sức khỏe định kỳ: Bao lâu một lần?"
-                date="24/11/2025"
-                desc="Khám sức khỏe tổng quát giúp phát hiện sớm các nguy cơ tiềm ẩn. Các chuyên gia khuyến cáo tần suất khám phù hợp..."
-              />
-              <NewsCard 
-                img={HOMEPAGE_IMAGES.news[2]}
-                title="Chế độ dinh dưỡng cho người bệnh tiểu đường"
-                date="22/11/2025"
-                desc="Xây dựng thực đơn khoa học là chìa khóa vàng trong việc kiểm soát đường huyết và ngăn ngừa biến chứng..."
-              />
-           </div>
+          {homeLoading ? (
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
+              {Array.from({ length: 3 }, (_, index) => (
+                <div key={index} className="h-96 animate-pulse rounded-xl bg-slate-100" />
+              ))}
+            </div>
+          ) : news.length > 0 ? (
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
+              {news.slice(0, 6).map((item, index) => (
+                <NewsCard
+                  key={item.maTin || index}
+                  newsId={item.maTin}
+                  img={
+                    item.hinhAnh ||
+                    HOMEPAGE_IMAGES.news[index % HOMEPAGE_IMAGES.news.length]
+                  }
+                  title={item.tieuDe || 'Tin tức bệnh viện'}
+                  date={
+                    item.ngayDang
+                      ? new Date(item.ngayDang).toLocaleDateString('vi-VN')
+                      : ''
+                  }
+                  desc={item.tomTat || item.noiDung || 'Thông tin mới nhất từ bệnh viện.'}
+                />
+              ))}
+            </div>
+          ) : (
+            <div className="rounded-2xl border border-dashed border-slate-300 bg-slate-50 p-10 text-center text-slate-500">
+              Chưa có tin tức đang được xuất bản.
+            </div>
+          )}
         </div>
       </section>
 

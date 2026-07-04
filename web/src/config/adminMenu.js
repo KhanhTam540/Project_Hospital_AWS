@@ -13,10 +13,8 @@ import {
   ClipboardList,
   BarChart3,
   Clock,
-  Activity,
   MessageSquare,
   Newspaper,
-  UserCheck,
 } from "lucide-react";
 
 /** Base path cho khu vực quản trị */
@@ -37,7 +35,6 @@ export const adminMenuSections = [
       { path: "taikhoan", label: "Danh sách tài khoản", icon: Users },
       { path: "taikhoan/tao-moi", label: "Tạo tài khoản", icon: UserPlus },
       { path: "taikhoan/phan-quyen", label: "Phân quyền", icon: Shield },
-      { path: "taikhoan/duyet-dang-ky", label: "Duyệt đăng ký", icon: UserCheck },
     ],
   },
   {
@@ -45,7 +42,6 @@ export const adminMenuSections = [
     items: [
       { path: "bacsi", label: "Bác sĩ", icon: Stethoscope },
       { path: "nhansu", label: "Nhân viên y tế", icon: UserCog },
-      { path: "nhansu/troly", label: "Trợ lý bác sĩ", icon: Activity },
       { path: "nhansu/catruc", label: "Ca trực", icon: Clock },
     ],
   },

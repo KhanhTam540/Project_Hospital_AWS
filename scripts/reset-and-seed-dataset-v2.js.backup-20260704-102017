@@ -1,0 +1,376 @@
+'use strict';
+
+const fs = require('node:fs');
+const path = require('node:path');
+const {
+  CloudFormationClient,
+  DescribeStacksCommand,
+} = require('@aws-sdk/client-cloudformation');
+const { DynamoDBClient } = require('@aws-sdk/client-dynamodb');
+const {
+  BatchWriteCommand,
+  DynamoDBDocumentClient,
+  ScanCommand,
+} = require('@aws-sdk/lib-dynamodb');
+const {
+  AdminAddUserToGroupCommand,
+  AdminCreateUserCommand,
+  AdminDeleteUserCommand,
+  AdminGetUserCommand,
+  AdminSetUserPasswordCommand,
+  CognitoIdentityProviderClient,
+  CreateGroupCommand,
+  DescribeUserPoolCommand,
+} = require('@aws-sdk/client-cognito-identity-provider');
+const { buildDataset, DATA_SOURCE } = require('./dataset-v2-builder');
+
+const projectRoot = path.resolve(__dirname, '..');
+const KNOWN_DATA_SOURCES = new Set([
+  'P2TB_SAMPLE',
+  'P2TB_DATASET_V2',
+  'DATASET_V2',
+]);
+
+const DEMO_USERS = Object.freeze([
+  { key: 'admin', email: 'admin.dataset@example.com', group: 'ADMIN', name: 'Quản trị viên Dataset' },
+  { key: 'doctor1', email: 'doctor.noi.dataset@example.com', group: 'BACSI', name: 'BS. Nguyễn Minh An' },
+  { key: 'doctor2', email: 'doctor.ngoai.dataset@example.com', group: 'BACSI', name: 'BS. Trần Thu Bình' },
+  { key: 'doctor3', email: 'doctor.nhi.dataset@example.com', group: 'BACSI', name: 'BS. Lê Hoàng Chi' },
+  { key: 'staffReception', email: 'reception.dataset@example.com', group: 'NHANSU', name: 'Nguyễn Thị Tiếp Nhận' },
+  { key: 'staffNurse', email: 'nurse.dataset@example.com', group: 'NHANSU', name: 'Trần Minh Điều Dưỡng' },
+  { key: 'staffLab', email: 'lab.dataset@example.com', group: 'NHANSU', name: 'Phạm Thị Xét Nghiệm' },
+  { key: 'patient1', email: 'patient.an.dataset@example.com', group: 'BENHNHAN', name: 'Nguyễn Văn An', cccd: '079203000001' },
+  { key: 'patient2', email: 'patient.binh.dataset@example.com', group: 'BENHNHAN', name: 'Trần Thị Bình', cccd: '079203000002' },
+  { key: 'patient3', email: 'patient.chau.dataset@example.com', group: 'BENHNHAN', name: 'Lê Minh Châu', cccd: '079203000003' },
+  { key: 'patient4', email: 'patient.dung.dataset@example.com', group: 'BENHNHAN', name: 'Phạm Quốc Dũng', cccd: '079203000004' },
+  { key: 'patient5', email: 'patient.em.dataset@example.com', group: 'BENHNHAN', name: 'Võ Ngọc Em', cccd: '079203000005' },
+]);
+
+function parseArgs(argv) {
+  const result = {};
+  for (let index = 0; index < argv.length; index += 1) {
+    const token = argv[index];
+    if (!token.startsWith('--')) continue;
+    const name = token.slice(2);
+    const next = argv[index + 1];
+    if (!next || next.startsWith('--')) {
+      result[name] = true;
+    } else {
+      result[name] = next;
+      index += 1;
+    }
+  }
+  return result;
+}
+
+function chunk(items, size) {
+  const result = [];
+  for (let index = 0; index < items.length; index += size) {
+    result.push(items.slice(index, index + size));
+  }
+  return result;
+}
+
+function sleep(milliseconds) {
+  return new Promise((resolve) => setTimeout(resolve, milliseconds));
+}
+
+function timestampForFile() {
+  return new Date().toISOString().replace(/[:.]/g, '-');
+}
+
+function validatePassword(password) {
+  if (!password || password.length < 12) {
+    throw new Error('DATASET_DEMO_PASSWORD must contain at least 12 characters');
+  }
+  if (!/[a-z]/.test(password) || !/[A-Z]/.test(password) || !/\d/.test(password) || !/[^A-Za-z0-9]/.test(password)) {
+    throw new Error('DATASET_DEMO_PASSWORD must include uppercase, lowercase, number and symbol');
+  }
+}
+
+async function readStackOutputs({ region, stackName }) {
+  const client = new CloudFormationClient({ region });
+  const response = await client.send(new DescribeStacksCommand({ StackName: stackName }));
+  const stack = response.Stacks?.[0];
+  if (!stack) throw new Error(`Stack ${stackName} was not found`);
+  const outputs = Object.fromEntries((stack.Outputs || []).map((item) => [item.OutputKey, item.OutputValue]));
+  return { stack, outputs };
+}
+
+async function scanAll(ddb, tableName) {
+  const items = [];
+  let exclusiveStartKey;
+  do {
+    const response = await ddb.send(new ScanCommand({
+      TableName: tableName,
+      ExclusiveStartKey: exclusiveStartKey,
+    }));
+    items.push(...(response.Items || []));
+    exclusiveStartKey = response.LastEvaluatedKey;
+  } while (exclusiveStartKey);
+  return items;
+}
+
+async function batchDelete(ddb, tableName, items) {
+  let deleted = 0;
+  for (const group of chunk(items, 25)) {
+    let pending = group.map((item) => ({ DeleteRequest: { Key: { pk: item.pk, sk: item.sk } } }));
+    for (let attempt = 1; pending.length && attempt <= 10; attempt += 1) {
+      const response = await ddb.send(new BatchWriteCommand({ RequestItems: { [tableName]: pending } }));
+      pending = response.UnprocessedItems?.[tableName] || [];
+      if (pending.length) await sleep(Math.min(200 * 2 ** attempt, 5000));
+    }
+    if (pending.length) throw new Error(`Unable to delete ${pending.length} DynamoDB items`);
+    deleted += group.length;
+    console.log(`Deleted ${deleted}/${items.length} items`);
+  }
+}
+
+async function batchPut(ddb, tableName, items) {
+  let written = 0;
+  for (const group of chunk(items, 25)) {
+    let pending = group.map((item) => ({ PutRequest: { Item: item } }));
+    for (let attempt = 1; pending.length && attempt <= 10; attempt += 1) {
+      const response = await ddb.send(new BatchWriteCommand({ RequestItems: { [tableName]: pending } }));
+      pending = response.UnprocessedItems?.[tableName] || [];
+      if (pending.length) await sleep(Math.min(200 * 2 ** attempt, 5000));
+    }
+    if (pending.length) throw new Error(`Unable to write ${pending.length} DynamoDB items`);
+    written += group.length;
+    console.log(`Seeded ${written}/${items.length} items`);
+  }
+}
+
+async function ensureGroup(cognito, userPoolId, groupName) {
+  try {
+    await cognito.send(new CreateGroupCommand({
+      UserPoolId: userPoolId,
+      GroupName: groupName,
+      Description: `Hospital dataset group ${groupName}`,
+    }));
+    console.log(`Created Cognito group ${groupName}`);
+  } catch (error) {
+    if (error?.name !== 'GroupExistsException') throw error;
+  }
+}
+
+async function recreateDemoUser(cognito, userPoolId, user, password) {
+  try {
+    await cognito.send(new AdminDeleteUserCommand({ UserPoolId: userPoolId, Username: user.email }));
+    console.log(`Deleted old demo user ${user.email}`);
+  } catch (error) {
+    if (error?.name !== 'UserNotFoundException') throw error;
+  }
+
+  const attributes = [
+    { Name: 'email', Value: user.email },
+    { Name: 'email_verified', Value: 'true' },
+    { Name: 'name', Value: user.name },
+  ];
+  if (user.cccd) attributes.push({ Name: 'custom:cccd', Value: user.cccd });
+
+  await cognito.send(new AdminCreateUserCommand({
+    UserPoolId: userPoolId,
+    Username: user.email,
+    UserAttributes: attributes,
+    MessageAction: 'SUPPRESS',
+  }));
+  await cognito.send(new AdminSetUserPasswordCommand({
+    UserPoolId: userPoolId,
+    Username: user.email,
+    Password: password,
+    Permanent: true,
+  }));
+  await cognito.send(new AdminAddUserToGroupCommand({
+    UserPoolId: userPoolId,
+    Username: user.email,
+    GroupName: user.group,
+  }));
+  const response = await cognito.send(new AdminGetUserCommand({
+    UserPoolId: userPoolId,
+    Username: user.email,
+  }));
+  const attributesMap = Object.fromEntries((response.UserAttributes || []).map((item) => [item.Name, item.Value]));
+  const sub = attributesMap.sub;
+  if (!sub) throw new Error(`Cognito user ${user.email} does not have sub`);
+  console.log(`Created demo user ${user.email} -> ${user.group}`);
+  return { ...user, sub };
+}
+
+function validateUniqueKeys(items) {
+  const seen = new Set();
+  const duplicates = [];
+  for (const item of items) {
+    if (!item.pk || !item.sk || !item.entityType || !item.dataSource) {
+      throw new Error(`Invalid dataset item: ${JSON.stringify(item)}`);
+    }
+    const key = `${item.pk}|${item.sk}`;
+    if (seen.has(key)) duplicates.push(key);
+    seen.add(key);
+  }
+  if (duplicates.length) throw new Error(`Duplicate dataset keys:\n${duplicates.join('\n')}`);
+}
+
+async function verifySeed(ddb, tableName, expectedItems) {
+  const all = await scanAll(ddb, tableName);
+  const seeded = all.filter((item) => item.dataSource === DATA_SOURCE);
+  const expectedKeys = new Set(expectedItems.map((item) => `${item.pk}|${item.sk}`));
+  const actualKeys = new Set(seeded.map((item) => `${item.pk}|${item.sk}`));
+  const missing = [...expectedKeys].filter((key) => !actualKeys.has(key));
+  if (missing.length) throw new Error(`Seed verification failed; missing ${missing.length} keys:\n${missing.slice(0, 20).join('\n')}`);
+  return seeded;
+}
+
+async function main() {
+  const args = parseArgs(process.argv.slice(2));
+  const mode = String(args.mode || 'sample').toLowerCase();
+  if (!['sample', 'full'].includes(mode)) throw new Error('--mode must be sample or full');
+
+  const requiredConfirmation = mode === 'full' ? 'RESET-HOSPITAL-DATA' : 'RESET-SAMPLE-DATA';
+  if (String(args.confirmation || '') !== requiredConfirmation) {
+    throw new Error(`Refusing reset. Pass --confirmation ${requiredConfirmation}`);
+  }
+
+  const password = process.env.DATASET_DEMO_PASSWORD || args.password;
+  validatePassword(password);
+
+  const region = process.env.AWS_REGION || process.env.AWS_DEFAULT_REGION || args.region || 'ap-southeast-1';
+  const stackName = process.env.STACK_NAME || args.stack || 'HospitalDevStack';
+  const { stack, outputs } = await readStackOutputs({ region, stackName });
+  const tableName = process.env.TABLE_NAME || outputs.TableName;
+  const userPoolId = process.env.USER_POOL_ID || outputs.UserPoolId;
+  if (!tableName) throw new Error('Missing TableName CloudFormation output');
+  if (!userPoolId) throw new Error('Missing UserPoolId CloudFormation output');
+  if (!['CREATE_COMPLETE', 'UPDATE_COMPLETE'].includes(stack.StackStatus)) {
+    throw new Error(`Stack status ${stack.StackStatus} is not safe for dataset reset`);
+  }
+
+  console.log(`Stack     : ${stackName}`);
+  console.log(`Region    : ${region}`);
+  console.log(`Table     : ${tableName}`);
+  console.log(`User pool : ${userPoolId}`);
+  console.log(`Mode      : ${mode}`);
+
+  const ddb = DynamoDBDocumentClient.from(new DynamoDBClient({ region }), {
+    marshallOptions: { removeUndefinedValues: true },
+  });
+  const cognito = new CognitoIdentityProviderClient({ region });
+
+  const pool = await cognito.send(new DescribeUserPoolCommand({ UserPoolId: userPoolId }));
+  const cccdAttribute = (pool.UserPool?.SchemaAttributes || []).find((item) => item.Name === 'custom:cccd' || item.Name === 'cccd');
+  if (!cccdAttribute) {
+    throw new Error('Cognito User Pool does not contain custom:cccd. Deploy the unified CCCD stack changes first.');
+  }
+
+  const allBefore = await scanAll(ddb, tableName);
+  const selectedForDelete = mode === 'full'
+    ? allBefore
+    : allBefore.filter((item) => KNOWN_DATA_SOURCES.has(String(item.dataSource || '')));
+
+  const backupDirectory = path.join(projectRoot, 'backups', 'dataset-reset', timestampForFile());
+  fs.mkdirSync(backupDirectory, { recursive: true });
+  fs.writeFileSync(path.join(backupDirectory, 'dynamodb-items.json'), JSON.stringify(allBefore, null, 2), 'utf8');
+  fs.writeFileSync(path.join(backupDirectory, 'reset-plan.json'), JSON.stringify({
+    generatedAt: new Date().toISOString(),
+    mode,
+    stackName,
+    region,
+    tableName,
+    userPoolId,
+    totalBefore: allBefore.length,
+    selectedForDelete: selectedForDelete.length,
+    demoUsers: DEMO_USERS.map(({ key, email, group, cccd }) => ({ key, email, group, cccd: cccd || null })),
+  }, null, 2), 'utf8');
+  console.log(`Backup    : ${backupDirectory}`);
+
+  for (const groupName of ['ADMIN', 'BACSI', 'NHANSU', 'BENHNHAN']) {
+    await ensureGroup(cognito, userPoolId, groupName);
+  }
+
+  // IMPORTANT: clear the old application data BEFORE recreating Cognito users.
+  // The PreSignUp trigger validates custom:cccd against DynamoDB. If old
+  // UNIQUE#CCCD locks or PATIENT profiles still exist, AdminCreateUser for a
+  // demo patient is rejected with CCCD_ALREADY_EXISTS.
+  let oldDataDeleted = false;
+
+  try {
+    if (selectedForDelete.length) {
+      console.log(
+        `Deleting ${selectedForDelete.length} old DynamoDB items before recreating Cognito demo users...`,
+      );
+      await batchDelete(ddb, tableName, selectedForDelete);
+      oldDataDeleted = true;
+    } else {
+      console.log('No matching DynamoDB items to delete');
+    }
+
+    const identities = [];
+    for (const user of DEMO_USERS) {
+      identities.push(
+        await recreateDemoUser(cognito, userPoolId, user, password),
+      );
+    }
+
+    const dataset = buildDataset({ identities });
+    validateUniqueKeys(dataset.items);
+    fs.writeFileSync(
+      path.join(backupDirectory, 'new-dataset.json'),
+      JSON.stringify(dataset, null, 2),
+      'utf8',
+    );
+    await batchPut(ddb, tableName, dataset.items);
+    const seeded = await verifySeed(ddb, tableName, dataset.items);
+
+    const counts = {};
+    for (const item of seeded) counts[item.entityType] = (counts[item.entityType] || 0) + 1;
+    fs.writeFileSync(path.join(backupDirectory, 'seed-summary.json'), JSON.stringify({
+      dataSource: DATA_SOURCE,
+      generatedAt: dataset.generatedAt,
+      baseDate: dataset.baseDate,
+      itemCount: seeded.length,
+      counts,
+      demoAccounts: DEMO_USERS.map(({ email, group, cccd }) => ({ email, group, cccd: cccd || null })),
+    }, null, 2), 'utf8');
+
+    console.table(counts);
+    console.log(`Seeded ${seeded.length} items successfully.`);
+    console.log('Demo accounts:');
+    console.table(DEMO_USERS.map(({ email, group, cccd }) => ({ email, group, cccd: cccd || '' })));
+    console.log('Password: value from DATASET_DEMO_PASSWORD (not written to disk).');
+    console.log(`Backup and generated dataset: ${backupDirectory}`);
+  } catch (error) {
+    // A full reset is destructive. Restore the DynamoDB snapshot automatically
+    // if the process fails after deleting the old items. Cognito demo users may
+    // have been partially recreated, but rerunning this corrected script safely
+    // normalizes all of them.
+    if (oldDataDeleted) {
+      console.error('Reset failed after deleting old data. Restoring DynamoDB backup...');
+      try {
+        const currentItems = await scanAll(ddb, tableName);
+        const currentSelected = mode === 'full'
+          ? currentItems
+          : currentItems.filter((item) => KNOWN_DATA_SOURCES.has(String(item.dataSource || '')));
+
+        if (currentSelected.length) {
+          await batchDelete(ddb, tableName, currentSelected);
+        }
+
+        const restoreItems = mode === 'full' ? allBefore : selectedForDelete;
+        if (restoreItems.length) {
+          await batchPut(ddb, tableName, restoreItems);
+        }
+        console.error(`DynamoDB backup restored from ${backupDirectory}`);
+      } catch (restoreError) {
+        console.error('Automatic DynamoDB restore failed:', restoreError?.stack || restoreError);
+        console.error(`Manual backup file: ${path.join(backupDirectory, 'dynamodb-items.json')}`);
+      }
+    }
+    throw error;
+  }
+
+}
+
+main().catch((error) => {
+  console.error('Dataset reset failed:', error?.stack || error);
+  process.exitCode = 1;
+});

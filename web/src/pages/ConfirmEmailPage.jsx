@@ -64,7 +64,17 @@ function ConfirmEmailPage() {
         },
       });
     } catch (error) {
-      toast.error(error?.message || "Mã xác nhận không hợp lệ hoặc đã hết hạn.");
+      const message = String(
+        error?.message || "Mã xác nhận không hợp lệ hoặc đã hết hạn.",
+      );
+
+      if (message.toUpperCase().includes("CCCD")) {
+        toast.error(
+          "CCCD đã được sử dụng bởi tài khoản khác. Vui lòng kiểm tra lại hoặc liên hệ bệnh viện.",
+        );
+      } else {
+        toast.error(message);
+      }
     } finally {
       setLoading(false);
     }

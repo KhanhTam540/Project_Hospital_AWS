@@ -1,7 +1,11 @@
-import axios from "../../api/axiosClient";
+import {
+  createExaminationForRecord,
+  getDoctorMedicalRecords,
+  getExaminationsByRecord,
+  getPatientExaminations,
+} from "../bacsi/doctorWorkflowService";
 
-export const getPhieuByBacSi = (maBS) => axios.get(`/phieukham/bacsi/${maBS}`);
-export const getAllPhieuKham = () => axios.get("/phieukham");
-export const createPhieuKham = (data) => axios.post("/phieukham", data);
-export const updatePhieuKham = (id, data) => axios.put(`/phieukham/${id}`, data);
-export const deletePhieuKham = (id) => axios.delete(`/phieukham/${id}`);
+export const getHoSoBenhAnChoBacSi = getDoctorMedicalRecords;
+export const getPhieuKhamTheoHoSo = getExaminationsByRecord;
+export const getPhieuKhamTheoBenhNhan = getPatientExaminations;
+export const createPhieuKhamTheoHoSo = createExaminationForRecord;

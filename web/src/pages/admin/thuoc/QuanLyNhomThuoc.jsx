@@ -1,4 +1,5 @@
 import React, { useEffect, useState, useMemo } from "react";
+import AdminPagination, { useAdminPagination } from "../../../components/admin/AdminPagination";
 import {
   getAllNhomThuoc,
   getOneNhomThuoc,
@@ -88,6 +89,11 @@ const QuanLyNhomThuoc = () => {
         item.moTa?.toLowerCase().includes(search.toLowerCase())
     );
   }, [list, search]);
+
+  const pagination = useAdminPagination(filtered, {
+    initialPageSize: 10,
+    resetKey: search,
+  });
 
   if (loading) {
     return (
@@ -215,7 +221,7 @@ const QuanLyNhomThuoc = () => {
                 </tr>
               </thead>
               <tbody className="divide-y divide-gray-200">
-                {filtered.map((item) => (
+                {pagination.pageItems.map((item) => (
                   <tr key={item.maNhom} className="hover:bg-teal-50 transition-colors">
                     <td className="px-6 py-4 font-medium text-gray-800">
                       <span className="px-3 py-1 bg-teal-100 text-teal-800 rounded-full text-xs font-semibold">
@@ -247,6 +253,7 @@ const QuanLyNhomThuoc = () => {
               </tbody>
             </table>
           </div>
+          <AdminPagination pagination={pagination} itemLabel="nhóm thuốc" />
         </div>
       )}
     </div>

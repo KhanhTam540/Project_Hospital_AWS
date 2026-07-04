@@ -66,15 +66,6 @@
       "diagnosis": "Rối loạn giấc ngủ",
       "treatment": "Điều chỉnh sinh hoạt và theo dõi",
       "note": "Tái khám nếu triệu chứng kéo dài"
-    },
-    {
-      "recordId": "HS003",
-      "patientId": "BN001",
-      "doctorId": "BS001",
-      "symptoms": "Ho khan",
-      "diagnosis": "Theo dõi viêm đường hô hấp",
-      "treatment": "Uống đủ nước và dùng thuốc theo đơn",
-      "note": "Theo dõi thân nhiệt"
     }
   ],
   "examinations": [
@@ -186,7 +177,7 @@
     {
       "labResultId": "PXN002",
       "patientId": "BN001",
-      "recordId": "HS003",
+      "recordId": "HS001",
       "testId": "XN_CRP",
       "testName": "CRP định lượng",
       "categoryId": "HOA_SINH",

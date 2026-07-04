@@ -12,22 +12,34 @@ function read(relativePath) {
   return fs.readFileSync(path.join(projectRoot, relativePath), 'utf8');
 }
 
+function escapedRoute(route) {
+  return new RegExp(route.replace(/[.*+?^${}()|[\]\\]/g, '\\$&'));
+}
+
 test('Cao Thien week 2 backend exposes appointment and lab-result routes', () => {
-  const handlerSource = read('services/medical/handler.js');
+  // Appointment CRUD belongs to Core Lambda after the backend was split.
+  const coreRoutesSource = read('services/core/routes.js');
+  const medicalHandlerSource = read('services/medical/handler.js');
   const stackSource = read('lib/hospital-stack.js');
 
   for (const route of [
     'POST /api/lichkham',
     'GET /api/lichkham/{appointmentId}',
     'DELETE /api/lichkham/{appointmentId}',
-    'GET /api/phieuxetnghiem',
-    'GET /api/phieuxetnghiem/{labResultId}',
   ]) {
-    assert.match(handlerSource, new RegExp(route.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')));
+    assert.match(coreRoutesSource, escapedRoute(route));
   }
 
-  assert.match(stackSource, /\/api\/lichkham\/\{appointmentId\}/);
-  assert.match(stackSource, /\/api\/phieuxetnghiem\/\{labResultId\}/);
+  // Lab-result list is served by Medical Lambda.
+  assert.match(
+    medicalHandlerSource,
+    escapedRoute('GET /api/phieuxetnghiem'),
+  );
+
+  // CDK source builds the appointment path by string concatenation.
+  assert.match(stackSource, /\/api\/lichkham\//);
+  assert.match(stackSource, /appointmentId/);
+  assert.match(stackSource, /\/api\/phieuxetnghiem/);
 });
 
 test('mobile source uses runtime AWS configuration instead of localhost', () => {

@@ -1,299 +1,329 @@
-import React, { useEffect, useState } from "react";
-import {
-  getPhieuByBacSi,
-  createPhieuKham,
-  deletePhieuKham, // Sẽ bị chặn bởi backend
-} from "../../../services/kham/phieukhamService";
-import axios from "../../../api/axiosClient";
+import React, { useCallback, useEffect, useMemo, useState } from "react";
 import dayjs from "dayjs";
-import utc from "dayjs/plugin/utc";
-import timezone from "dayjs/plugin/timezone";
-import toast from "react-hot-toast"; // Thêm toast
+import toast from "react-hot-toast";
 
-dayjs.extend(utc);
-dayjs.extend(timezone);
+import {
+  createPhieuKhamTheoHoSo,
+  getHoSoBenhAnChoBacSi,
+  getPhieuKhamTheoHoSo,
+} from "../../../services/kham/phieukhamService";
+import { getApiErrorMessage } from "../../../utils/apiResponse";
+import MedicalRecordSearchSelect from "../../../components/doctor/MedicalRecordSearchSelect";
+
+const EMPTY_FORM = {
+  trieuChung: "",
+  chuanDoan: "",
+  dieuTri: "",
+  loiDan: "",
+};
 
 const PhieuKhamPage = () => {
-  const maBS = localStorage.getItem("maTK"); // maBS = maTK
-  const [list, setList] = useState([]);
-  const [loading, setLoading] = useState(false);
-  const [form, setForm] = useState({
-    maHSBA: "",
-    maBN: "",
-    trieuChung: "",
-    chuanDoan: "",
-    loiDan: "",
-  });
-  
-  // SỬA 1: Dùng File Object thay vì Base64
-  const [selectedFile, setSelectedFile] = useState(null); 
-  const [fileName, setFileName] = useState(""); 
+  const [records, setRecords] = useState([]);
+  const [selectedRecordId, setSelectedRecordId] = useState("");
+  const [examinations, setExaminations] = useState([]);
+  const [form, setForm] = useState(EMPTY_FORM);
+  const [loadingRecords, setLoadingRecords] = useState(true);
+  const [loadingExaminations, setLoadingExaminations] = useState(false);
+  const [saving, setSaving] = useState(false);
 
-  const [hoSoList, setHoSoList] = useState([]);
-  const [benhNhanList, setBenhNhanList] = useState([]);
-  // ---
+  const selectedRecord = useMemo(
+    () => records.find((item) => item.recordId === selectedRecordId) || null,
+    [records, selectedRecordId],
+  );
 
-  useEffect(() => {
-    if (maBS) {
-      loadData();
-    }
-  }, [maBS]);
-
-  const loadData = async () => {
-    setLoading(true);
+  const loadRecords = useCallback(async () => {
+    setLoadingRecords(true);
     try {
-      // API này (getByBacSi) đã được sửa ở backend để đọc từ blockchain
-      const res = await getPhieuByBacSi(maBS); 
-      // FIX: Sử dụng URL đầy đủ để xem file (nếu p.file là đường dẫn path)
-      const formattedList = (res.data.data || []).map(p => ({
-          ...p,
-          file: p.file && p.file.startsWith('/uploads/') ? `${import.meta.env.VITE_API_BASE_URL || 'http://localhost:4000'}${p.file}` : p.file
-      }));
-      setList(formattedList);
-      
-      const hs = await axios.get("/hsba");
-      const bn = await axios.get("/benhnhan");
-      
-      setHoSoList(hs.data.data || []);
-      setBenhNhanList(bn.data.data || []);
-    } catch (err) {
-      toast.error("Lỗi khi tải dữ liệu: " + (err.response?.data?.message || err.message));
+      const items = await getHoSoBenhAnChoBacSi();
+      setRecords(items);
+      setSelectedRecordId((current) =>
+        current && items.some((item) => item.recordId === current)
+          ? current
+          : "",
+      );
+    } catch (error) {
+      setRecords([]);
+      setSelectedRecordId("");
+      toast.error(
+        getApiErrorMessage(error, "Không thể tải danh sách hồ sơ bệnh án"),
+      );
     } finally {
-      setLoading(false);
+      setLoadingRecords(false);
     }
-  };
+  }, []);
 
-  const handleChange = (e) => setForm({ ...form, [e.target.name]: e.target.value });
-
-  const handleHoSoChange = (e) => {
-    const selectedMaHSBA = e.target.value;
-
-    if (!selectedMaHSBA) {
-      setForm({ ...form, maHSBA: "", maBN: "" });
+  const loadExaminations = useCallback(async (record) => {
+    if (!record) {
+      setExaminations([]);
       return;
     }
 
-    const selectedHoSo = hoSoList.find(h => h.maHSBA === selectedMaHSBA);
-
-    if (selectedHoSo) {
-      setForm({
-        ...form,
-        maHSBA: selectedMaHSBA,
-        maBN: selectedHoSo.maBN, 
-      });
-    }
-  };
-
-  // SỬA 2: Hàm xử lý chọn file (chỉ lưu đối tượng File)
-  const handleFileChange = (e) => {
-    const file = e.target.files[0];
-    if (file) {
-      setFileName(file.name);
-      setSelectedFile(file); // Lưu file object
-    } else {
-        setFileName("");
-        setSelectedFile(null); // Reset file
-    }
-  };
-
-
-
-  const handleCreate = async () => {
-    if (!form.maHSBA || !form.maBN || !form.trieuChung || !form.chuanDoan) {
-      return toast.error("Vui lòng điền đủ thông tin (HSBA, Triệu chứng, Chẩn đoán).");
-    }
-    
-
-    const formData = new FormData();
-    formData.append("maHSBA", form.maHSBA);
-    formData.append("maBN", form.maBN);
-    formData.append("maBS", maBS);
-    formData.append("trieuChung", form.trieuChung);
-    formData.append("chuanDoan", form.chuanDoan);
-    formData.append("loiDan", form.loiDan);
-    
-    if (selectedFile) {
-        formData.append("file", selectedFile);
-    }
-
+    setLoadingExaminations(true);
     try {
-      // Gửi FormData
-      await createPhieuKham(formData, {
-          headers: {
-              'Content-Type': 'multipart/form-data',
-          },
-      });
-      toast.success("Đã lưu phiếu khám vào chuỗi khối!");
-      
-      // Reset form
-      setForm({
-        maHSBA: "",
-        maBN: "",
-        trieuChung: "",
-        chuanDoan: "",
-        loiDan: "",
-      });
-      setFileName("");
-      setSelectedFile(null);
-      
-      await loadData();
-      
-    } catch(err) {
-      toast.error("Lỗi khi lưu: " + (err.response?.data?.error || err.response?.data?.message || err.message));
+      const items = await getPhieuKhamTheoHoSo(record);
+      setExaminations(items);
+    } catch (error) {
+      setExaminations([]);
+      toast.error(
+        getApiErrorMessage(
+          error,
+          "Không thể tải danh sách phiếu khám của hồ sơ đã chọn",
+        ),
+      );
+    } finally {
+      setLoadingExaminations(false);
     }
+  }, []);
+
+  useEffect(() => {
+    loadRecords();
+  }, [loadRecords]);
+
+  useEffect(() => {
+    setForm(EMPTY_FORM);
+    loadExaminations(selectedRecord);
+  }, [selectedRecord, loadExaminations]);
+
+  const handleChange = (event) => {
+    const { name, value } = event.target;
+    setForm((current) => ({ ...current, [name]: value }));
   };
 
- 
+  const handleSubmit = async (event) => {
+    event.preventDefault();
+
+    if (!selectedRecord) {
+      toast.error("Vui lòng chọn hồ sơ bệnh án");
+      return;
+    }
+    if (!form.trieuChung.trim() || !form.chuanDoan.trim()) {
+      toast.error("Vui lòng nhập triệu chứng và chẩn đoán");
+      return;
+    }
+
+    setSaving(true);
+    try {
+      await createPhieuKhamTheoHoSo(selectedRecord, {
+        symptoms: form.trieuChung,
+        diagnosis: form.chuanDoan,
+        treatment: form.dieuTri,
+        advice: form.loiDan,
+      });
+
+      toast.success("Đã lập phiếu khám thành công");
+      setForm(EMPTY_FORM);
+      await loadExaminations(selectedRecord);
+    } catch (error) {
+      toast.error(getApiErrorMessage(error, "Không thể lập phiếu khám"));
+    } finally {
+      setSaving(false);
+    }
+  };
 
   return (
-    <div className="p-4 space-y-6">
-      <h2 className="text-xl font-bold text-blue-700">📋 Quản lý phiếu khám bệnh (Blockchain)</h2>
-
-      {/* SỬA 4: Form gửi FormData (thêm onSubmit) */}
-      <form onSubmit={(e) => {e.preventDefault(); handleCreate();}} className="grid grid-cols-1 md:grid-cols-6 gap-4 bg-white p-4 shadow rounded-lg">
-        
-        <select
-          name="maHSBA"
-          value={form.maHSBA}
-          onChange={handleHoSoChange} 
-          className="border border-gray-300 rounded px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-400"
-          required
+    <div className="space-y-6 p-4 md:p-6">
+      <div className="flex flex-wrap items-start justify-between gap-3">
+        <div>
+          <h1 className="text-2xl font-bold text-slate-800">
+            Lập phiếu khám bệnh
+          </h1>
+          <p className="mt-1 text-sm text-slate-500">
+            Chọn hồ sơ bệnh án trước khi nhập thông tin khám.
+          </p>
+        </div>
+        <button
+          type="button"
+          onClick={loadRecords}
+          disabled={loadingRecords}
+          className="rounded-lg border border-slate-300 bg-white px-4 py-2 text-sm font-semibold text-slate-700 hover:bg-slate-50 disabled:opacity-50"
         >
-          <option value="">-- Chọn hồ sơ --</option>
-          {hoSoList.map((h) => (
-            <option key={h.maHSBA} value={h.maHSBA}>
-              {h.maHSBA} ({h.BenhNhan?.hoTen || h.maBN})
-            </option>
-          ))}
-        </select>
+          Tải lại hồ sơ
+        </button>
+      </div>
 
-        <select
-          name="maBN"
-          value={form.maBN}
-          onChange={handleChange}
-          disabled={true} 
-          className="border border-gray-300 rounded px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-400 bg-gray-100"
-        >
-          <option value="">-- Bệnh nhân (tự động) --</option>
-          {benhNhanList.map((bn) => (
-            <option key={bn.maBN} value={bn.maBN}>{bn.hoTen}</option>
-          ))}
-        </select>
+      <section className="rounded-xl border border-slate-200 bg-white p-5 shadow-sm">
+        <MedicalRecordSearchSelect
+          records={records}
+          value={selectedRecordId}
+          onChange={(recordId) => setSelectedRecordId(recordId)}
+          loading={loadingRecords}
+          disabled={loadingRecords}
+          label="Tra cứu hồ sơ bằng CCCD"
+          placeholder="Nhập đúng 12 số CCCD của bệnh nhân"
+        />
 
-        <input
-          name="trieuChung"
-          value={form.trieuChung}
-          onChange={handleChange}
-          placeholder="Triệu chứng"
-          className="border border-gray-300 rounded px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-400"
-          required
-        />
-        <input
-          name="chuanDoan"
-          value={form.chuanDoan}
-          onChange={handleChange}
-          placeholder="Chẩn đoán"
-          className="border border-gray-300 rounded px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-400"
-          required
-        />
-        <input
-          name="loiDan"
-          value={form.loiDan}
-          onChange={handleChange}
-          placeholder="Lời dặn"
-          className="border border-gray-300 rounded px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-400"
-        />
-        
-        {/* SỬA 5: Input file */}
-        <div className="col-span-3">
-             <label htmlFor="file-upload-pk" className="block text-sm font-medium text-gray-700 mb-1">
-                 Tải ảnh đính kèm (Tùy chọn)
-             </label>
-             <input
-                id="file-upload-pk"
-                type="file"
-                accept="image/*"
-                onChange={handleFileChange}
-                className="block w-full text-sm text-gray-500 file:mr-4 file:py-2 file:px-4 file:rounded-full file:border-0 file:text-sm file:font-semibold file:bg-blue-50 file:text-blue-700 hover:file:bg-blue-100"
-              />
-              {fileName && <p className="text-xs text-green-600 mt-1">Đã chọn: {fileName}</p>}
+        {!loadingRecords && records.length === 0 && (
+          <p className="mt-3 rounded-lg bg-amber-50 px-3 py-2 text-sm text-amber-700">
+            Chưa có bệnh nhân nào đã cập nhật CCCD hợp lệ.
+          </p>
+        )}
+
+        {selectedRecord && (
+          <div className="mt-4 grid gap-3 rounded-lg bg-slate-50 p-4 text-sm md:grid-cols-4">
+            <div>
+              <span className="text-slate-500">Mã hồ sơ</span>
+              <p className="font-semibold text-slate-800">
+                {selectedRecord.displayRecordId || selectedRecord.recordId}
+              </p>
+            </div>
+            <div>
+              <span className="text-slate-500">Bệnh nhân</span>
+              <p className="font-semibold text-slate-800">
+                {selectedRecord.patientName || selectedRecord.patientId}
+              </p>
+            </div>
+            <div>
+              <span className="text-slate-500">Mã bệnh nhân</span>
+              <p className="font-semibold text-slate-800">
+                {selectedRecord.patientId}
+              </p>
+            </div>
+            <div>
+              <span className="text-slate-500">CCCD</span>
+              <p className="font-semibold text-slate-800">
+                {selectedRecord.cccd || "Chưa cập nhật"}
+              </p>
+            </div>
+          </div>
+        )}
+      </section>
+
+      <form
+        onSubmit={handleSubmit}
+        className="rounded-xl border border-slate-200 bg-white p-5 shadow-sm"
+      >
+        <div className="grid gap-4 md:grid-cols-2">
+          <div className="md:col-span-2">
+            <label className="mb-1 block text-sm font-medium text-slate-700">
+              Triệu chứng <span className="text-red-500">*</span>
+            </label>
+            <textarea
+              name="trieuChung"
+              value={form.trieuChung}
+              onChange={handleChange}
+              rows={3}
+              disabled={!selectedRecord || saving}
+              className="w-full rounded-lg border border-slate-300 px-3 py-2 focus:border-blue-500 focus:outline-none focus:ring-2 focus:ring-blue-200 disabled:bg-slate-100"
+              placeholder="Nhập triệu chứng của bệnh nhân"
+            />
+          </div>
+
+          <div>
+            <label className="mb-1 block text-sm font-medium text-slate-700">
+              Chẩn đoán <span className="text-red-500">*</span>
+            </label>
+            <textarea
+              name="chuanDoan"
+              value={form.chuanDoan}
+              onChange={handleChange}
+              rows={3}
+              disabled={!selectedRecord || saving}
+              className="w-full rounded-lg border border-slate-300 px-3 py-2 focus:border-blue-500 focus:outline-none focus:ring-2 focus:ring-blue-200 disabled:bg-slate-100"
+              placeholder="Nhập chẩn đoán"
+            />
+          </div>
+
+          <div>
+            <label className="mb-1 block text-sm font-medium text-slate-700">
+              Điều trị
+            </label>
+            <textarea
+              name="dieuTri"
+              value={form.dieuTri}
+              onChange={handleChange}
+              rows={3}
+              disabled={!selectedRecord || saving}
+              className="w-full rounded-lg border border-slate-300 px-3 py-2 focus:border-blue-500 focus:outline-none focus:ring-2 focus:ring-blue-200 disabled:bg-slate-100"
+              placeholder="Nhập hướng điều trị"
+            />
+          </div>
+
+          <div className="md:col-span-2">
+            <label className="mb-1 block text-sm font-medium text-slate-700">
+              Lời dặn
+            </label>
+            <textarea
+              name="loiDan"
+              value={form.loiDan}
+              onChange={handleChange}
+              rows={2}
+              disabled={!selectedRecord || saving}
+              className="w-full rounded-lg border border-slate-300 px-3 py-2 focus:border-blue-500 focus:outline-none focus:ring-2 focus:ring-blue-200 disabled:bg-slate-100"
+              placeholder="Nhập lời dặn dành cho bệnh nhân"
+            />
+          </div>
         </div>
 
-        <button
-          type="submit"
-          className="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded shadow col-span-3"
-        >
-          ➕ Lưu
-        </button>
+        <div className="mt-5 flex justify-end">
+          <button
+            type="submit"
+            disabled={!selectedRecord || saving}
+            className="rounded-lg bg-blue-600 px-5 py-2.5 font-semibold text-white hover:bg-blue-700 disabled:cursor-not-allowed disabled:bg-slate-400"
+          >
+            {saving ? "Đang lưu..." : "Lập phiếu khám"}
+          </button>
+        </div>
       </form>
 
-      {/* Danh sách */}
-      <div className="overflow-auto bg-white shadow rounded-lg">
-        {loading ? (
-          <div className="p-8 text-center text-gray-500">
-            <p>Đang tải dữ liệu...</p>
-          </div>
-        ) : list.length === 0 ? (
-          <div className="p-8 text-center text-gray-500">
-            <p className="text-lg">Chưa có phiếu khám nào.</p>
-            <p className="text-sm mt-2">Vui lòng tạo phiếu khám mới ở trên.</p>
-          </div>
+      <section className="overflow-hidden rounded-xl border border-slate-200 bg-white shadow-sm">
+        <div className="border-b border-slate-200 px-5 py-4">
+          <h2 className="font-semibold text-slate-800">
+            Phiếu khám thuộc hồ sơ đang chọn
+          </h2>
+        </div>
+
+        {!selectedRecord ? (
+          <p className="p-6 text-center text-slate-500">
+            Chọn hồ sơ bệnh án để xem danh sách phiếu khám.
+          </p>
+        ) : loadingExaminations ? (
+          <p className="p-6 text-center text-slate-500">
+            Đang tải phiếu khám...
+          </p>
+        ) : examinations.length === 0 ? (
+          <p className="p-6 text-center text-slate-500">
+            Hồ sơ này chưa có phiếu khám.
+          </p>
         ) : (
-          <table className="min-w-full text-sm table-auto">
-            <thead className="bg-gray-100 text-left">
-              <tr>
-                <th className="px-4 py-2">Mã PK</th>
-                <th className="px-4 py-2">HSBA</th>
-                <th className="px-4 py-2">Bệnh nhân</th>
-                <th className="px-4 py-2">Triệu chứng</th>
-                <th className="px-4 py-2">Chẩn đoán</th>
-                <th className="px-4 py-2">Lời dặn</th>
-                <th className="px-4 py-2">Trạng thái</th>
-                <th className="px-4 py-2">Ngày</th>
-                <th className="px-4 py-2">File</th>
-                <th className="px-4 py-2 text-center">Hành động</th>
-              </tr>
-            </thead>
-            <tbody>
-              {list.map((p) => (
-                <tr key={p.maPK} className="border-t hover:bg-gray-50">
-                  <td className="px-4 py-2">{p.maPK}</td>
-                  <td className="px-4 py-2">{p.maHSBA}</td>
-                  <td className="px-4 py-2">
-                    {benhNhanList.find(bn => bn.maBN === p.maBN)?.hoTen || p.maBN}
-                  </td>
-                  <td className="px-4 py-2">{p.trieuChung}</td>
-                  <td className="px-4 py-2">{p.chuanDoan}</td>
-                  <td className="px-4 py-2">{p.loiDan}</td>
-                  <td className="px-4 py-2">{p.trangThai}</td>
-                  <td className="px-4 py-2">
-                    {/* Dữ liệu 'ngayKham' giờ là timestamp của khối */}
-                    {dayjs(p.ngayKham).tz("Asia/Ho_Chi_Minh").format("YYYY-MM-DD HH:mm")}
-                  </td>
-                  <td className="px-4 py-2">
-                    {/* SỬA 6: Hiển thị file dưới dạng URL Path */}
-                    {p.file ? <a href={p.file} target="_blank" className="text-blue-600 hover:underline">Xem file</a> : "-"}
-                  </td>
-                  <td className="px-4 py-2 space-x-2 text-center">
-                    <button
-                      onClick={() => toast.error("Không thể SỬA khối đã lưu trên Blockchain!")}
-                      className="text-gray-400 cursor-not-allowed"
-                    >
-                      Sửa
-                    </button>
-                    <button
-                      onClick={() => handleDelete(p.maPK)}
-                      className="text-red-600 hover:underline"
-                    >
-                      Xoá
-                    </button>
-                  </td>
+          <div className="overflow-x-auto">
+            <table className="min-w-full text-sm">
+              <thead className="bg-slate-50 text-left text-slate-600">
+                <tr>
+                  <th className="px-4 py-3">Mã phiếu</th>
+                  <th className="px-4 py-3">Ngày khám</th>
+                  <th className="px-4 py-3">Triệu chứng</th>
+                  <th className="px-4 py-3">Chẩn đoán</th>
+                  <th className="px-4 py-3">Trạng thái</th>
                 </tr>
-              ))}
-            </tbody>
-          </table>
+              </thead>
+              <tbody>
+                {examinations.map((item) => (
+                  <tr
+                    key={item.examinationId}
+                    className="border-t border-slate-100"
+                  >
+                    <td className="px-4 py-3 font-mono text-xs">
+                      {item.examinationId}
+                    </td>
+                    <td className="px-4 py-3">
+                      {item.createdAt
+                        ? dayjs(item.createdAt).format("DD/MM/YYYY HH:mm")
+                        : "-"}
+                    </td>
+                    <td className="max-w-xs px-4 py-3">
+                      {item.symptoms || "-"}
+                    </td>
+                    <td className="max-w-xs px-4 py-3">
+                      {item.diagnosis || "-"}
+                    </td>
+                    <td className="px-4 py-3">{item.status || "-"}</td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
         )}
-      </div>
+      </section>
     </div>
   );
 };

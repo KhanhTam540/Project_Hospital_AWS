@@ -42,6 +42,7 @@ function verifyReferences(items) {
   const patients = new Set(items.filter((i) => i.entityType === 'PATIENT').map((i) => i.patientId));
   const records = new Set(items.filter((i) => i.entityType === 'MEDICAL_RECORD').map((i) => i.recordId));
   const medicines = new Set(items.filter((i) => i.entityType === 'MEDICINE').map((i) => i.medicineId));
+  const labTestTypes = new Set(items.filter((i) => i.entityType === 'LAB_TEST_TYPE').map((i) => i.testTypeId));
 
   for (const item of items) {
     if (!item.pk || !item.sk || !item.entityType) {
@@ -73,6 +74,14 @@ function verifyReferences(items) {
     if (item.entityType === 'PRESCRIPTION_ITEM' && !medicines.has(item.medicineId)) {
       errors.push(`${itemKey(item)} references missing medicine ${item.medicineId}`);
     }
+
+    if (item.entityType === 'LAB_TEST' && !labTestTypes.has(item.testTypeId)) {
+      errors.push(`${itemKey(item)} references missing lab test type ${item.testTypeId}`);
+    }
+
+    if (item.entityType === 'FEEDBACK' && !patients.has(item.patientId)) {
+      errors.push(`${itemKey(item)} references missing patient ${item.patientId}`);
+    }
   }
 
   if (byKey.size !== items.length) errors.push('Duplicate pk/sk combinations were detected');
@@ -99,6 +108,10 @@ async function main() {
     'MEDICINE',
     'PRESCRIPTION',
     'PRESCRIPTION_ITEM',
+    'LAB_TEST_TYPE',
+    'LAB_TEST',
+    'NEWS',
+    'FEEDBACK',
   ];
 
   const errors = verifyReferences(items);

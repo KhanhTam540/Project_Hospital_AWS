@@ -1,14 +1,67 @@
 import axios from "../../api/axiosClient";
 
-export const getHoSoByBenhNhan = (maBN) => axios.get(`/hsba/benhnhan/${maBN}`);
+const unwrapData = (response) => response?.data?.data ?? response?.data ?? null;
 
-export const getChiTietHoSo = (maHSBA) => axios.get(`/hsba/chitiet/${maHSBA}`);
+export const getHoSoByBenhNhan = (maBN) =>
+  axios.get(`/hsba/benhnhan/${encodeURIComponent(maBN)}`);
 
-// ✅ HÀM NÀY ĐÃ ĐÚNG (gửi `ngayKiemTra` qua params)
-export const verifyChain = (maHSBA, ngayKiemTra) => {
-  return axios.get(`/hsba/verify/${maHSBA}`, {
-    params: {
-      ngay: ngayKiemTra // ví dụ: ngay: "2025-11-14"
+export const getHoSoTongHop = (maBN) =>
+  axios.get(`/hsba/benhnhan/${encodeURIComponent(maBN)}/tong-hop`);
+
+export const getChiTietHoSo = (maHSBA) =>
+  axios.get(`/hsba/${encodeURIComponent(maHSBA)}`);
+
+export const getBenhNhanByTaiKhoan = (maTK) =>
+  axios.get(`/benhnhan/findByMaTK/${encodeURIComponent(maTK)}`);
+
+export const resolvePatientId = async () => {
+  const storedUser = (() => {
+    try {
+      return JSON.parse(localStorage.getItem("user") || "{}");
+    } catch {
+      return {};
     }
-  });
+  })();
+
+  const directPatientId =
+    localStorage.getItem("maBN") ||
+    storedUser.maBN ||
+    storedUser.patientId ||
+    null;
+
+  if (directPatientId) return directPatientId;
+
+  const accountId =
+    localStorage.getItem("maTK") ||
+    storedUser.maTK ||
+    storedUser.userId ||
+    storedUser.username ||
+    null;
+
+  if (!accountId) return null;
+
+  const response = await getBenhNhanByTaiKhoan(accountId);
+  const patient = unwrapData(response);
+  const patientId = patient?.maBN || patient?.patientId || null;
+
+  if (patientId) {
+    localStorage.setItem("maBN", patientId);
+    localStorage.setItem(
+      "user",
+      JSON.stringify({
+        ...storedUser,
+        maBN: patientId,
+        patientId,
+      }),
+    );
+  }
+
+  return patientId;
 };
+
+export const verifyChain = (maHSBA, ngayKiemTra) =>
+  axios.get(`/hsba/verify/${encodeURIComponent(maHSBA)}`, {
+    params: {
+      ngay: ngayKiemTra,
+    },
+  });

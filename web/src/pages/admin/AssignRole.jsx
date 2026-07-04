@@ -1,4 +1,5 @@
 import React, { useCallback, useEffect, useState } from "react";
+import AdminPagination, { useAdminPagination } from "../../components/admin/AdminPagination";
 import toast from "react-hot-toast";
 import { RefreshCw, Save, ShieldCheck } from "lucide-react";
 import axios from "../../api/axiosClient";
@@ -61,6 +62,11 @@ function AssignRole() {
   useEffect(() => {
     fetchUsers();
   }, [fetchUsers]);
+
+  const pagination = useAdminPagination(users, {
+    initialPageSize: 10,
+    resetKey: String(users.length),
+  });
 
   const handleChange = (username, role) => {
     setUpdatedRoles((current) => ({ ...current, [username]: role }));
@@ -146,7 +152,7 @@ function AssignRole() {
                 </td>
               </tr>
             ) : (
-              users.map((user) => {
+              pagination.pageItems.map((user) => {
                 const nextRole = updatedRoles[user.username] || user.maNhom;
                 const changed = nextRole !== user.maNhom;
                 const saving = savingUsername === user.username;
@@ -196,6 +202,10 @@ function AssignRole() {
           </tbody>
         </table>
       </div>
+
+      {!loading && users.length > 0 && (
+        <AdminPagination pagination={pagination} itemLabel="tài khoản" className="mt-4 rounded-xl border border-slate-200" />
+      )}
     </div>
   );
 }

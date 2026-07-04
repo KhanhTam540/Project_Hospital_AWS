@@ -1,4 +1,5 @@
 import React, { useEffect, useState } from "react";
+import AdminPagination, { useAdminPagination } from "../../components/admin/AdminPagination";
 import axios from "../../api/axiosClient";
 import toast from "react-hot-toast";
 import { Building2, Search, Edit, Trash2, Plus, X, Save } from 'lucide-react';
@@ -81,6 +82,11 @@ const ManageKhoa = ({ embedded = false }) => {
       k.maKhoa?.toLowerCase().includes(search.toLowerCase()) ||
       k.moTa?.toLowerCase().includes(search.toLowerCase())
   );
+
+  const pagination = useAdminPagination(filtered, {
+    initialPageSize: 10,
+    resetKey: search,
+  });
 
   if (loading) {
     return (
@@ -227,7 +233,7 @@ const ManageKhoa = ({ embedded = false }) => {
                 </tr>
               </thead>
               <tbody className="divide-y divide-gray-200">
-                {filtered.map((khoa) => (
+                {pagination.pageItems.map((khoa) => (
                   <tr key={khoa.maKhoa} className="hover:bg-indigo-50 transition-colors">
                     <td className="px-6 py-4 font-medium text-gray-800">
                       <span className="px-3 py-1 bg-indigo-100 text-indigo-800 rounded-full text-xs font-semibold">
@@ -259,6 +265,10 @@ const ManageKhoa = ({ embedded = false }) => {
               </tbody>
             </table>
           </div>
+
+          {filtered.length > 0 && (
+            <AdminPagination pagination={pagination} itemLabel="khoa" />
+          )}
         </div>
       )}
     </div>

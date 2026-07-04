@@ -404,15 +404,26 @@ export const cognitoSignUp = async ({
   email,
   password,
   name,
+  cccd,
 }) => {
   const normalizedEmail =
     String(email || "")
       .trim()
       .toLowerCase();
 
+  const normalizedCitizenId = String(cccd || "")
+    .replace(/\D/g, "")
+    .slice(0, 12);
+
   if (!normalizedEmail) {
     throw new Error(
       "Vui lòng nhập email.",
+    );
+  }
+
+  if (!/^\d{12}$/.test(normalizedCitizenId)) {
+    throw new Error(
+      "CCCD phải gồm đúng 12 chữ số.",
     );
   }
 
@@ -427,6 +438,8 @@ export const cognitoSignUp = async ({
         name:
           name?.trim() ||
           normalizedEmail.split("@")[0],
+
+        "custom:cccd": normalizedCitizenId,
       },
     },
   });

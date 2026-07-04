@@ -8,8 +8,10 @@ import {
   getMyHoaDon,
   getThanhToan,
   deleteItemGioHang,
+  createThanhToan,
 } from "../../../services/hoadon_BN/hoadonService";
 import axios from "../../../api/axiosClient";
+import { getCurrentPatientProfile } from "../../../services/benhnhan/patientWorkflowService";
 
 import {
   getAllThuoc,
@@ -27,6 +29,7 @@ const GioHangThanhToanPage = () => {
   const [chiTietThanhToan, setChiTietThanhToan] = useState([]);
   const [lichChoThanhToan, setLichChoThanhToan] = useState([]);
   const [lichDaHuy, setLichDaHuy] = useState([]);
+  const [patientProfile, setPatientProfile] = useState(null);
   
   // Tab state cho hóa đơn
   const [activeTab, setActiveTab] = useState('pending'); // 'pending' hoặc 'history'
@@ -51,12 +54,15 @@ const GioHangThanhToanPage = () => {
   const [formTT, setFormTT] = useState({
     maHD: "",
     soTien: "",
-    phuongThuc: "VNPAY",
+    phuongThuc: "BANK_TRANSFER",
   });
 
   // ✅ Load dữ liệu ban đầu
   useEffect(() => {
     if (maBN) {
+      getCurrentPatientProfile()
+        .then(({ patient }) => setPatientProfile(patient))
+        .catch(() => setPatientProfile(null));
       const reload = searchParams.get("reload");
       // Nếu có flag reload, không load giỏ hàng (vì đã chuyển thành hóa đơn)
       if (reload !== "true") {
@@ -170,6 +176,79 @@ const GioHangThanhToanPage = () => {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [searchParams, maBN]);
   
+
+  const getPaymentRecordId = async () => {
+    const fromProfile =
+      patientProfile?.cccd ||
+      patientProfile?.citizenId ||
+      patientProfile?.medicalRecordId ||
+      null;
+    if (fromProfile) return fromProfile;
+
+    try {
+      const { patient } = await getCurrentPatientProfile();
+      setPatientProfile(patient);
+      return patient?.cccd || patient?.citizenId || patient?.medicalRecordId || null;
+    } catch (error) {
+      console.warn("Không thể tải CCCD để gắn hóa đơn vào hồ sơ bệnh án", error);
+      return null;
+    }
+  };
+
+  const normalizeAppointmentTimeBase = (lich) => {
+    const value =
+      lich.thoiGianTao ||
+      lich.createdAt ||
+      lich.ngayTao ||
+      lich.updatedAt ||
+      lich.appointmentDateTime ||
+      null;
+    const parsed = value ? new Date(value) : null;
+    return parsed && !Number.isNaN(parsed.getTime()) ? parsed : null;
+  };
+
+  const createInvoiceForAppointment = async (lich) => {
+    const appointmentId = lich.maLich || lich.appointmentId;
+    if (!appointmentId) {
+      throw new Error("Không xác định được mã lịch hẹn");
+    }
+
+    const recordId = await getPaymentRecordId();
+    const doctorName = lich.BacSi?.hoTen || lich.doctorName || lich.maBS || "Bác sĩ";
+    const appointmentDate = lich.ngayKham || lich.appointmentDate || "";
+    const appointmentTime = lich.gioKham || lich.appointmentTime || "";
+    const amount = Number(lich.soTien || lich.tongTien || lich.fee || 200000);
+
+    const response = await axios.post("/hoadon", {
+      maBN,
+      patientId: maBN,
+      maHSBA: recordId,
+      medicalRecordId: recordId,
+      appointmentId,
+      maLich: appointmentId,
+      tongTien: amount,
+      totalAmount: amount,
+      noiDung: `Phí khám lịch hẹn ${appointmentId}`,
+      description: `Phí khám lịch hẹn ${appointmentId}`,
+      items: [
+        {
+          maDichVu: `APPOINTMENT_${appointmentId}`,
+          serviceId: `APPOINTMENT_${appointmentId}`,
+          tenDichVu: `Phí khám ${doctorName} - ${appointmentDate} ${appointmentTime}`,
+          serviceName: `Phí khám ${doctorName} - ${appointmentDate} ${appointmentTime}`,
+          loaiDichVu: "APPOINTMENT",
+          serviceType: "APPOINTMENT",
+          soLuong: 1,
+          quantity: 1,
+          donGia: amount,
+          unitPrice: amount,
+        },
+      ],
+    });
+
+    return response?.data?.data || response?.data;
+  };
+
   const loadLichDaHuy = async () => {
     try {
       const res = await axios.get(`/lichkham/benhnhan/${maBN}`);
@@ -392,22 +471,63 @@ const GioHangThanhToanPage = () => {
       alert("⚠️ Vui lòng chọn hóa đơn");
       return;
     }
-    
-    const selectedHD = hoaDonList.find(hd => hd.maHD === formTT.maHD);
-    if (selectedHD && selectedHD.trangThai === 'DA_HUY') {
+
+    const selectedHD = hoaDonList.find((hd) => hd.maHD === formTT.maHD);
+    if (!selectedHD) {
+      return alert("❌ Không tìm thấy hóa đơn đã chọn.");
+    }
+
+    if (selectedHD.trangThai === 'DA_HUY') {
       return alert("❌ Hóa đơn này đã bị hủy. Không thể thanh toán.");
     }
-    
-    if (selectedHD && selectedHD.trangThai === 'DA_THANH_TOAN') {
+
+    if (selectedHD.trangThai === 'DA_THANH_TOAN') {
       return alert("✅ Hóa đơn này đã được thanh toán rồi.");
     }
-    
-    if (formTT.soTien <= 0) {
+
+    if (Number(formTT.soTien) <= 0) {
       return alert("⚠️ Số tiền không hợp lệ");
     }
 
+    const isDemoPayment = ['BANK_TRANSFER', 'CASH'].includes(formTT.phuongThuc);
+    const confirmMessage = isDemoPayment
+      ? `Xác nhận thanh toán demo hóa đơn ${formTT.maHD} với số tiền ${parseInt(formTT.soTien).toLocaleString()}đ?`
+      : `Chuyển sang cổng ${formTT.phuongThuc} để thanh toán hóa đơn ${formTT.maHD}?`;
+
+    if (!window.confirm(confirmMessage)) return;
+
     setSubmitting(true);
     try {
+      if (isDemoPayment) {
+        const res = await createThanhToan({
+          maHD: formTT.maHD,
+          soTien: formTT.soTien,
+          phuongThuc: formTT.phuongThuc,
+          ghiChu: 'Thanh toán demo từ cổng bệnh nhân',
+        });
+
+        const invoice = res.data?.data?.invoice || res.data?.invoice;
+        const payment = res.data?.data?.payment || res.data?.payment;
+
+        if (invoice) {
+          setHoaDonList((current) =>
+            current.map((item) =>
+              item.maHD === invoice.maHD ? { ...item, ...invoice } : item,
+            ),
+          );
+        }
+        if (payment) {
+          setChiTietThanhToan((current) => [payment, ...current]);
+        }
+
+        await loadHoaDon(true);
+        await handleXemChiTiet(formTT.maHD);
+        await loadLichChoThanhToan();
+        setActiveTab('history');
+        alert("✅ Thanh toán demo thành công. Hóa đơn đã chuyển sang Đã thanh toán và sẽ được ghi hash vào blockchain.");
+        return;
+      }
+
       const res = await axios.post("/payment/create-url", {
         maHD: formTT.maHD,
         phuongThuc: formTT.phuongThuc,
@@ -417,21 +537,53 @@ const GioHangThanhToanPage = () => {
         window.location.href = res.data.paymentUrl;
       } else {
         alert("❌ Lỗi tạo link thanh toán: " + (res.data.message || "Lỗi không xác định"));
-        setSubmitting(false);
       }
     } catch (err) {
       console.error("Lỗi thanh toán:", err);
-      alert("❌ Không thể kết nối đến cổng thanh toán: " + (err.response?.data?.message || err.message));
+      alert("❌ Không thể thanh toán: " + (err.response?.data?.message || err.message));
+    } finally {
       setSubmitting(false);
     }
   };
 
-  const handleThanhToanLich = async (maHD) => {
-    setFormTT({ ...formTT, maHD });
-    setTimeout(() => {
-      document.getElementById('payment-section')?.scrollIntoView({ behavior: 'smooth' });
-    }, 100);
+  const handleThanhToanLich = async (maHD, lich = null) => {
+    setSubmitting(true);
+    try {
+      let invoiceId = maHD;
+      let selected = invoiceId ? hoaDonList.find((hd) => hd.maHD === invoiceId) : null;
+
+      if (!invoiceId && lich) {
+        const created = await createInvoiceForAppointment(lich);
+        invoiceId = created?.maHD || created?.invoiceId;
+        selected = created;
+        if (!invoiceId) {
+          throw new Error("Không tạo được hóa đơn cho lịch hẹn");
+        }
+        await loadHoaDon(true);
+      }
+
+      if (!invoiceId) {
+        throw new Error("Lịch hẹn này chưa có hóa đơn và không thể tự tạo hóa đơn");
+      }
+
+      setFormTT((current) => ({
+        ...current,
+        maHD: invoiceId,
+        soTien: selected?.tongTien || selected?.totalAmount || current.soTien || '',
+      }));
+      await handleXemChiTiet(invoiceId);
+      setActiveTab(selected?.trangThai === 'DA_THANH_TOAN' ? 'history' : 'pending');
+      setTimeout(() => {
+        document.getElementById('payment-section')?.scrollIntoView({ behavior: 'smooth' });
+      }, 100);
+    } catch (error) {
+      console.error("Không thể chuẩn bị thanh toán lịch hẹn", error);
+      alert("❌ Không thể tạo/chọn hóa đơn cho lịch hẹn: " + (error.response?.data?.message || error.message));
+    } finally {
+      setSubmitting(false);
+    }
   };
+
 
   // Tính tổng tiền giỏ hàng
   const tongTienGioHang = gioHang.reduce((sum, item) => sum + parseFloat(item.thanhTien || 0), 0);
@@ -460,11 +612,11 @@ const GioHangThanhToanPage = () => {
             </h3>
             <div className="grid gap-4 md:grid-cols-2">
               {lichChoThanhToan.map((lich) => {
-                const thoiGianTao = new Date(lich.thoiGianTao);
+                const thoiGianTao = normalizeAppointmentTimeBase(lich);
                 const now = new Date();
-                const diffMs = now - thoiGianTao;
-                const diffMins = Math.floor(diffMs / 60000);
-                const remainingMins = Math.max(0, 15 - diffMins);
+                const diffMs = thoiGianTao ? now - thoiGianTao : 0;
+                const diffMins = thoiGianTao ? Math.floor(diffMs / 60000) : 0;
+                const remainingMins = thoiGianTao ? Math.max(0, 15 - diffMins) : null;
                 
                 return (
                   <div key={lich.maLich} className="bg-white p-5 rounded-xl border-2 border-yellow-300 shadow-md">
@@ -478,17 +630,16 @@ const GioHangThanhToanPage = () => {
                         <div className={`text-sm font-bold mt-3 px-3 py-1 rounded-full inline-block ${
                           remainingMins > 5 ? 'bg-red-100 text-red-700' : 'bg-orange-100 text-orange-700'
                         }`}>
-                          ⚠️ Còn {remainingMins} phút để thanh toán
+                          ⚠️ {remainingMins === null ? "Đang chờ thanh toán" : `Còn ${remainingMins} phút để thanh toán`}
                         </div>
                       </div>
-                      {lich.maHD && (
-                        <button
-                          onClick={() => handleThanhToanLich(lich.maHD)}
-                          className="ml-4 bg-yellow-500 hover:bg-yellow-600 text-white font-bold px-6 py-3 rounded-xl transition shadow-lg hover:shadow-xl"
-                        >
-                          💳 Thanh toán
-                        </button>
-                      )}
+                      <button
+                        onClick={() => handleThanhToanLich(lich.maHD, lich)}
+                        disabled={submitting}
+                        className="ml-4 bg-yellow-500 hover:bg-yellow-600 text-white font-bold px-6 py-3 rounded-xl transition shadow-lg hover:shadow-xl disabled:opacity-60 disabled:cursor-not-allowed"
+                      >
+                        💳 {lich.maHD ? 'Thanh toán' : 'Tạo hóa đơn'}
+                      </button>
                     </div>
                   </div>
                 );
@@ -716,7 +867,7 @@ const GioHangThanhToanPage = () => {
                                   ? 'border-blue-500 bg-blue-50' 
                                   : 'border-yellow-200 hover:border-yellow-300 hover:shadow-md'
                               }`}
-                              onClick={() => handleMaHDChange(hd.maHD)}
+                              onClick={() => handleThanhToanLich(hd.maHD)}
                             >
                               <div className="flex justify-between items-start mb-2">
                                 <span className="font-bold text-blue-600">{hd.maHD}</span>
@@ -822,8 +973,10 @@ const GioHangThanhToanPage = () => {
                     onChange={(e) => setFormTT({...formTT, phuongThuc: e.target.value})} 
                     className="w-full px-4 py-3 border-2 border-gray-300 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-blue-500 text-lg"
                   >
-                    <option value="VNPAY">💳 Ví VNPAY</option>
-                    <option value="MOMO">📱 Ví MoMo</option>
+                    <option value="BANK_TRANSFER">🏦 Chuyển khoản demo</option>
+                    <option value="CASH">💵 Tiền mặt demo</option>
+                    <option value="VNPAY">💳 Ví VNPAY Sandbox</option>
+                    <option value="MOMO">📱 Ví MoMo Sandbox</option>
                   </select>
                 </div>
               </div>
@@ -843,7 +996,9 @@ const GioHangThanhToanPage = () => {
                   ? 'Vui lòng chọn hóa đơn'
                   : formTT.maHD && hoaDonList.find(h => h.maHD === formTT.maHD)?.trangThai === 'DA_HUY'
                   ? '❌ Hóa đơn đã bị hủy'
-                  : '🚀 THANH TOÁN NGAY'}
+                  : formTT.phuongThuc === 'BANK_TRANSFER' || formTT.phuongThuc === 'CASH'
+                  ? '✅ XÁC NHẬN THANH TOÁN DEMO'
+                  : '🚀 THANH TOÁN ONLINE'}
               </button>
             </div>
 

@@ -1,906 +1,887 @@
-import React, { useEffect, useState } from "react";
-// Sửa 1: Import axios
-import axios from "../../../api/axiosClient"; 
-// SỬA QUAN TRỌNG: Đảm bảo import hàm verifyChain
-import { getHoSoByBenhNhan, getChiTietHoSo, verifyChain } from "../../../services/hoso_BN/hsbaService";
+import React, { useEffect, useMemo, useState } from "react";
 import dayjs from "dayjs";
+import {
+  CalendarDays,
+  Check,
+  ChevronDown,
+  ClipboardList,
+  Clock3,
+  Database,
+  ExternalLink,
+  FileHeart,
+  FileText,
+  FlaskConical,
+  HeartPulse,
+  LoaderCircle,
+  Pill,
+  RefreshCw,
+  Search,
+  ShieldAlert,
+  ShieldCheck,
+  Stethoscope,
+  UserRound,
+} from "lucide-react";
+import {
+  getHoSoTongHop,
+  resolvePatientId,
+} from "../../../services/hoso_BN/hsbaService";
+import { verifyMedicalLedger } from "../../../services/medical/ledgerService";
 
-const HoSoBenhAnPage = () => {
-  const [list, setList] = useState([]);
-  const maBN = localStorage.getItem("maBN"); 
-  const [isLoading, setIsLoading] = useState(false);
-  const [selectedDetails, setSelectedDetails] = useState(null); 
-  const [isLoadingModal, setIsLoadingModal] = useState(false); 
-  
-  const [bacSiList, setBacSiList] = useState([]);
-  // Sửa 2: Thêm state cho danh sách nhân sự
-  const [nhanSuList, setNhanSuList] = useState([]); 
+const FILTERS = [
+  {
+    key: "PHIEU_KHAM",
+    label: "Phiếu khám",
+    icon: Stethoscope,
+    active: "bg-blue-600 border-blue-600 text-white shadow-blue-200",
+    idle: "bg-white border-blue-200 text-blue-700 hover:bg-blue-50",
+  },
+  {
+    key: "DON_THUOC",
+    label: "Đơn thuốc",
+    icon: Pill,
+    active: "bg-violet-600 border-violet-600 text-white shadow-violet-200",
+    idle: "bg-white border-violet-200 text-violet-700 hover:bg-violet-50",
+  },
+  {
+    key: "XET_NGHIEM",
+    label: "Xét nghiệm",
+    icon: FlaskConical,
+    active: "bg-amber-500 border-amber-500 text-white shadow-amber-200",
+    idle: "bg-white border-amber-200 text-amber-700 hover:bg-amber-50",
+  },
+  {
+    key: "LICH_KHAM",
+    label: "Lịch khám",
+    icon: CalendarDays,
+    active: "bg-emerald-600 border-emerald-600 text-white shadow-emerald-200",
+    idle: "bg-white border-emerald-200 text-emerald-700 hover:bg-emerald-50",
+  },
+];
 
-  useEffect(() => {
-    fetchData();
-    fetchBacSiData(); 
-    fetchNhanSuData(); // Sửa 3: Gọi hàm tải danh sách nhân sự
-  }, [maBN]); 
-
-  const fetchData = async () => {
-    if (!maBN) return; 
-    setIsLoading(true);
-    try {
-      const res = await getHoSoByBenhNhan(maBN);
-      setList(res.data.data || []);
-    } catch (err) {
-      console.error("❌ Lỗi khi gọi API hồ sơ:", err);
-    } finally {
-      setIsLoading(false);
-    }
-  };
-
-  const fetchBacSiData = async () => {
-    try {
-      const res = await axios.get("/bacsi");
-      setBacSiList(res.data.data || []);
-    } catch (err) {
-      console.error("❌ Lỗi tải danh sách bác sĩ:", err);
-    }
-  };
-
-  // Sửa 4: Hàm mới để tải danh sách nhân sự
-  const fetchNhanSuData = async () => {
-    try {
-      const res = await axios.get("/nhansu");
-      setNhanSuList(res.data.data || []);
-    } catch (err) {
-      console.error("❌ Lỗi tải danh sách nhân sự:", err);
-    }
-  };
-
-  const handleViewDetails = async (maHSBA) => {
-    setIsLoadingModal(true);
-    setSelectedDetails(true); 
-    try {
-      const res = await getChiTietHoSo(maHSBA);
-      setSelectedDetails(res.data.data); 
-    } catch (err) {
-      console.error("❌ Lỗi tải chi tiết:", err);
-      alert("Lỗi: " + (err.response?.data?.message || "Không thể tải chi tiết hồ sơ."));
-      setSelectedDetails(null); 
-    } finally {
-      setIsLoadingModal(false);
-    }
-  };
-
-  if (isLoading) {
-    return (
-      <div className="min-h-screen bg-gradient-to-br from-blue-50 to-indigo-50 flex items-center justify-center p-6">
-        <div className="text-center">
-          <div className="inline-block animate-spin rounded-full h-16 w-16 border-t-4 border-b-4 border-blue-600 mb-4"></div>
-          <p className="text-lg font-semibold text-gray-700">Đang tải dữ liệu hồ sơ...</p>
-        </div>
-      </div>
-    );
-  }
-  
-  if (selectedDetails) {
-    return (
-      <ModalChiTiet 
-        data={selectedDetails} 
-        isLoading={isLoadingModal}
-        onClose={() => setSelectedDetails(null)}
-        bacSiList={bacSiList} 
-        nhanSuList={nhanSuList}
-      />
-    );
-  }
-
-  return (
-    <div className="min-h-screen bg-gradient-to-br from-blue-50 via-white to-indigo-50 p-6">
-      {/* Header Section */}
-      <div className="mb-8">
-        <div className="flex items-center gap-4 mb-4">
-          <div className="bg-gradient-to-r from-blue-600 to-indigo-600 p-4 rounded-xl shadow-lg">
-            <span className="text-4xl">📋</span>
-          </div>
-          <div>
-            <h1 className="text-3xl font-bold text-gray-800 mb-2">Hồ Sơ Bệnh Án</h1>
-            <p className="text-gray-600 flex items-center gap-2">
-              <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-blue-100 text-blue-800">
-                🔒 Blockchain Secured
-              </span>
-              <span>Quản lý và theo dõi lịch sử khám chữa bệnh</span>
-            </p>
-          </div>
-        </div>
-      </div>
-
-      {/* Hồ sơ bệnh án - Mỗi bệnh nhân chỉ có 1 hồ sơ */}
-      {list.length === 0 ? (
-        <div className="bg-white rounded-xl shadow-lg p-12 text-center">
-          <div className="inline-block bg-gray-100 p-6 rounded-full mb-4">
-            <span className="text-6xl">📋</span>
-          </div>
-          <h3 className="text-xl font-semibold text-gray-700 mb-2">Chưa có hồ sơ bệnh án</h3>
-          <p className="text-gray-500">Hồ sơ bệnh án của bạn sẽ được hiển thị tại đây sau khi khám bệnh.</p>
-        </div>
-      ) : (
-        <div className="bg-white rounded-xl shadow-lg border-2 border-blue-200 overflow-hidden">
-          {/* Header */}
-          <div className="bg-gradient-to-r from-blue-600 to-indigo-600 p-6">
-            <div className="flex items-center gap-4">
-              <div className="bg-white/20 backdrop-blur-sm p-3 rounded-xl">
-                <span className="text-4xl">🏥</span>
-                </div>
-              <div className="flex-1">
-                <h2 className="text-2xl font-bold text-white mb-1">Hồ Sơ Bệnh Án</h2>
-                <p className="text-blue-100 text-sm">Mã hồ sơ: <span className="font-semibold">{list[0]?.maHSBA || 'N/A'}</span></p>
-              </div>
-            </div>
-          </div>
-
-          {/* Thông tin hồ sơ */}
-          <div className="p-6">
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-6">
-              <div className="flex items-center gap-4 p-4 bg-blue-50 rounded-lg border border-blue-200">
-                <div className="bg-blue-100 p-3 rounded-lg">
-                  <span className="text-2xl">📋</span>
-                </div>
-                <div>
-                  <p className="text-xs font-medium text-gray-500 uppercase tracking-wide mb-1">Mã Hồ Sơ</p>
-                  <p className="text-lg font-bold text-gray-800">{list[0]?.maHSBA || 'N/A'}</p>
-                </div>
-              </div>
-              <div className="flex items-center gap-4 p-4 bg-green-50 rounded-lg border border-green-200">
-                <div className="bg-green-100 p-3 rounded-lg">
-                  <span className="text-2xl">📅</span>
-                </div>
-                <div>
-                  <p className="text-xs font-medium text-gray-500 uppercase tracking-wide mb-1">Ngày Thành Lập</p>
-                  <p className="text-lg font-bold text-gray-800">
-                    {list[0]?.ngayLap ? dayjs(list[0].ngayLap).format("DD/MM/YYYY") : 'N/A'}
-                  </p>
-                </div>
-              </div>
-            </div>
-
-            {/* Nút xem chi tiết */}
-            <div className="flex justify-end">
-              <button
-                onClick={() => handleViewDetails(list[0]?.maHSBA)}
-                className="bg-gradient-to-r from-blue-600 to-indigo-600 text-white px-8 py-3 rounded-lg font-semibold hover:from-blue-700 hover:to-indigo-700 transition-all duration-200 shadow-md hover:shadow-lg transform hover:scale-105 flex items-center gap-2"
-              >
-                <span>Xem chi tiết lịch sử khám bệnh</span>
-                <span>→</span>
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
-    </div>
-  );
+const EVENT_STYLE = {
+  PHIEU_KHAM: {
+    title: "Phiếu khám",
+    icon: Stethoscope,
+    header: "from-blue-600 to-blue-500",
+    accent: "border-blue-200",
+    badge: "bg-blue-50 text-blue-700",
+  },
+  DON_THUOC: {
+    title: "Đơn thuốc",
+    icon: Pill,
+    header: "from-violet-600 to-fuchsia-500",
+    accent: "border-violet-200",
+    badge: "bg-violet-50 text-violet-700",
+  },
+  XET_NGHIEM: {
+    title: "Kết quả xét nghiệm",
+    icon: FlaskConical,
+    header: "from-amber-500 to-orange-500",
+    accent: "border-amber-200",
+    badge: "bg-amber-50 text-amber-700",
+  },
+  LICH_KHAM: {
+    title: "Lịch khám",
+    icon: CalendarDays,
+    header: "from-emerald-600 to-teal-500",
+    accent: "border-emerald-200",
+    badge: "bg-emerald-50 text-emerald-700",
+  },
 };
 
-// --- BASE URL cho Backend (Dựa trên cấu hình Backend đang chạy ở cổng 4000) ---
-const BASE_BACKEND_URL = import.meta.env.VITE_API_BASE_URL || "http://localhost:4000"; 
-
-// --- Component Helper: Hiển thị liên kết File ---
-const FileLink = ({ dataUrl, label = "Xem ảnh đính kèm" }) => {
-  if (!dataUrl) return (
-    <div className="flex items-center gap-2 text-gray-400 italic py-2">
-      <span>📎</span>
-      <span>Không có file đính kèm</span>
-    </div>
-  );
-  
-  // SỬA LỖI: Ghép BASE_BACKEND_URL với đường dẫn tương đối (ví dụ: /uploads/...)
-  const fullUrl = dataUrl.startsWith('/uploads/') 
-    ? `${BASE_BACKEND_URL}${dataUrl}` 
-    : dataUrl; // Giữ nguyên nếu là URL đầy đủ hoặc Base64
-
-  return (
-    <div className="mt-3 pt-3 border-t border-gray-200">
-      <a 
-        href={fullUrl} // SỬ DỤNG FULL URL ĐÃ GHÉP
-        target="_blank" 
-        rel="noopener noreferrer" 
-        className="inline-flex items-center gap-2 bg-blue-50 hover:bg-blue-100 text-blue-700 font-medium px-4 py-2 rounded-lg transition-colors border border-blue-200"
-      >
-        <span>🖼️</span>
-        <span>{label}</span>
-        <span>↗</span>
-      </a>
-    </div>
-  );
+const STATUS_LABEL = {
+  ACTIVE: "Đang hoạt động",
+  OPEN: "Đang mở",
+  CLOSED: "Đã đóng",
+  COMPLETED: "Hoàn thành",
+  CONFIRMED: "Đã xác nhận",
+  PENDING: "Chờ xác nhận",
+  CANCELLED: "Đã hủy",
+  CANCELED: "Đã hủy",
+  VITALS_RECORDED: "Đã ghi nhận sinh hiệu",
 };
 
+const cleanText = (value, fallback = "Chưa cập nhật") => {
+  if (value === null || value === undefined || value === "") return fallback;
+  return String(value);
+};
 
-// === COMPONENT MODAL (SỬA ĐỔI) ===
-// Sửa 6: Nhận `bacSiList` và `nhanSuList`
-const ModalChiTiet = ({ data, isLoading, onClose, bacSiList, nhanSuList }) => {
-  // SỬA: Tự động gọi handleVerify khi Modal được mount
-  useEffect(() => {
-    if (data && data.hoSo && data.hoSo.maHSBA) {
-      handleVerify(); 
-    }
-  }, [data?.hoSo?.maHSBA]);
+const shortHash = (value) => {
+  if (!value) return "Chưa có";
+  const text = String(value);
+  return text.length > 18 ? `${text.slice(0, 10)}...${text.slice(-8)}` : text;
+};
 
-  // Bắt buộc phải có các state liên quan đến Verification
-  const [filterDate, setFilterDate] = useState(""); 
-  const [selectedDate, setSelectedDate] = useState(""); 
-  const [isVerifying, setIsVerifying] = useState(false);
-  const [verifyMessage, setVerifyMessage] = useState(null);
-  const [isChainValid, setIsChainValid] = useState(true); 
+const visibleRecordId = (hoSo = {}) =>
+  hoSo.displayRecordId ||
+  hoSo.recordCode ||
+  hoSo.citizenId ||
+  hoSo.cccd ||
+  hoSo.medicalRecordId ||
+  hoSo.recordId ||
+  hoSo.maHSBA ||
+  "Chưa có";
 
-  // State cho bộ lọc
-  const [filters, setFilters] = useState({
-    phieuKham: true,
-    donThuoc: true,
-    xetNghiem: true,
-    taoMoi: true
-  });
+const ledgerRecordId = (hoSo = {}) =>
+  hoSo.citizenId ||
+  hoSo.cccd ||
+  hoSo.medicalRecordId ||
+  hoSo.recordId ||
+  hoSo.recordCode ||
+  hoSo.maHSBA ||
+  null;
 
-  if (isLoading || data === true || !data.hoSo) { 
-    return (
-      <div className="min-h-screen bg-gradient-to-br from-blue-50 to-indigo-50 p-6">
-        <button 
-          onClick={onClose} 
-          className="mb-6 flex items-center gap-2 text-blue-600 hover:text-blue-800 font-semibold transition-colors"
-        >
-          <span>←</span>
-          <span>Quay lại danh sách</span>
-        </button>
-        <div className="bg-white rounded-xl shadow-lg p-12 text-center">
-          <div className="inline-block animate-spin rounded-full h-16 w-16 border-t-4 border-b-4 border-blue-600 mb-4"></div>
-          <h2 className="text-2xl font-bold text-gray-800">Đang tải chi tiết hồ sơ...</h2>
-        </div>
-      </div>
-    );
-  }
+const blockchainPresentation = (ledgerStatus, loading) => {
+  const summary = ledgerStatus?.summary || {};
+  const status = ledgerStatus?.status || 'NOT_CHECKED';
+  const amb = ledgerStatus?.amb || {};
 
-  const { hoSo, chain } = data;
-  
-  // THÊM: Hàm xử lý kiểm tra tính toàn vẹn (Blockchain Verification)
-  const handleVerify = async () => {
-    const dateToVerify = selectedDate || dayjs().format('YYYY-MM-DD');
-    
-    setIsVerifying(true);
-    setVerifyMessage(null);
-    try {
-      // Gọi API verifyChain (đã import ở file gốc)
-      const res = await verifyChain(hoSo.maHSBA, dateToVerify);
-      setVerifyMessage(res.data.message);
-      setIsChainValid(true); 
-    } catch (err) {
-      setVerifyMessage(err.response?.data?.message || "Lỗi kết nối khi xác thực.");
-      setIsChainValid(false);
-    } finally {
-      setIsVerifying(false);
-    }
-  };
-  
-  // Hàm kiểm tra block có được hiển thị không
-  const shouldShowBlock = (blockType) => {
-    switch (blockType) {
-      case 'PHIEU_KHAM':
-        return filters.phieuKham;
-      case 'DON_THUOC_HOAN_CHINH':
-        return filters.donThuoc;
-      case 'PHIEU_XET_NGHIEM':
-      case 'KET_QUA_XET_NGHIEM':
-      case 'XET_NGHIEM_HOAN_CHINH':
-        return filters.xetNghiem;
-      case 'TAO_MOI':
-        return filters.taoMoi;
-      default:
-        return true;
-    }
-  };
+  if (loading) {
+    return {
+      tone: 'border-blue-200 bg-blue-50',
+      iconTone: 'bg-blue-100 text-blue-700',
+      title: 'Đang kiểm tra bằng chứng hồ sơ...',
+      subtitle: 'Hệ thống đang so sánh dữ liệu hiện tại với các dấu vết đã ghi nhận.',
+      badge: 'Đang kiểm tra',
+      badgeTone: 'bg-blue-100 text-blue-700',
+      good: false,
+    };
+  }
 
-  // Lọc và nhóm các block theo đợt khám bệnh (tháng) và ngày
-  const filteredChain = (chain || []).filter(block => {
-    // 1. Lọc theo loại
-    const isTypeMatch = shouldShowBlock(block.block_type);
-    
-    // 2. Lọc theo ngày (nếu có)
-    const isDateMatch = !filterDate || dayjs(block.timestamp).format('YYYY-MM-DD') === filterDate;
-    
-    return isTypeMatch && isDateMatch;
-  });
-  
-  // Nhóm theo tháng, sau đó nhóm theo ngày trong mỗi tháng
-  const groupedByMonth = filteredChain.reduce((acc, block) => {
-    const monthKey = dayjs(block.timestamp).format('YYYY-MM');
-    const monthLabel = dayjs(block.timestamp).format('MM/YYYY');
-    const dayKey = dayjs(block.timestamp).format('YYYY-MM-DD');
-    const dayLabel = dayjs(block.timestamp).format('DD/MM/YYYY');
-    
-    if (!acc[monthKey]) {
-      acc[monthKey] = {
-        label: monthLabel,
-        days: {}
-      };
-    }
-    
-    if (!acc[monthKey].days[dayKey]) {
-      acc[monthKey].days[dayKey] = {
-        label: dayLabel,
-        items: []
-      };
-    }
-    
-    acc[monthKey].days[dayKey].items.push(block);
-    return acc;
-  }, {});
+  if (!ledgerStatus) {
+    return {
+      tone: 'border-slate-200 bg-white',
+      iconTone: 'bg-slate-100 text-slate-600',
+      title: 'Chưa kiểm tra bằng chứng blockchain',
+      subtitle: 'Bấm nút kiểm tra để xác minh hồ sơ có bị sửa ngoài quy trình hay không.',
+      badge: 'Chưa kiểm tra',
+      badgeTone: 'bg-slate-100 text-slate-600',
+      good: false,
+    };
+  }
 
-  // Sắp xếp tháng theo thứ tự giảm dần (mới nhất trước)
-  const sortedMonths = Object.keys(groupedByMonth).sort((a, b) => b.localeCompare(a));
-  
-  // Hàm toggle filter
-  const toggleFilter = (filterKey) => {
-    setFilters(prev => ({
-      ...prev,
-      [filterKey]: !prev[filterKey]
-    }));
-  };
+  if (status === 'VALID') {
+    return {
+      tone: 'border-emerald-200 bg-emerald-50/70',
+      iconTone: 'bg-emerald-100 text-emerald-700',
+      title: summary.headline || 'Hồ sơ hợp lệ, chưa phát hiện sửa đổi trái phép',
+      subtitle:
+        summary.explain ||
+        'Các dữ liệu trong hồ sơ khớp với chuỗi hash đã lưu. Nếu ai sửa dữ liệu trực tiếp, lần kiểm tra sau sẽ báo lỗi.',
+      badge: amb.enabled ? 'Đã có AMB/Ethereum' : 'Hash-chain nội bộ',
+      badgeTone: 'bg-emerald-100 text-emerald-700',
+      good: true,
+    };
+  }
 
-  return (
-    <div className="min-h-screen bg-gradient-to-br from-blue-50 via-white to-indigo-50 p-6">
-      {/* Header */}
-      <div className="mb-8">
-        <button 
-          onClick={onClose} 
-          className="mb-6 flex items-center gap-2 text-blue-600 hover:text-blue-800 font-semibold transition-colors group"
-        >
-          <span className="group-hover:-translate-x-1 transition-transform">←</span>
-          <span>Quay lại danh sách</span>
-        </button>
-        
-        <div className="bg-white rounded-2xl shadow-xl p-8 border-b-8 border-blue-600 overflow-hidden relative">
-          {/* Huy hiệu xác thực nổi bật */}
-          <div className="absolute top-0 right-0 p-4">
-            {isVerifying ? (
-              <div className="flex items-center gap-2 bg-blue-50 text-blue-600 px-4 py-2 rounded-full font-bold animate-pulse border border-blue-200">
-                <div className="w-4 h-4 border-2 border-blue-600 border-t-transparent rounded-full animate-spin"></div>
-                Đang xác thực bảo mật...
-              </div>
-            ) : verifyMessage ? (
-              <div className={`flex items-center gap-2 px-6 py-2 rounded-full font-bold shadow-lg border-2 ${
-                isChainValid ? 'bg-green-50 text-green-600 border-green-200' : 'bg-red-50 text-red-600 border-red-200'
-              }`}>
-                <span>{isChainValid ? '🛡️' : '🚨'}</span>
-                <span>{isChainValid ? 'Dữ liệu đã được xác thực (Blockchain)' : 'Cảnh báo: Dữ liệu bị giả mạo!'}</span>
-              </div>
-            ) : null}
+  if (status === 'NO_LEDGER_DATA') {
+    return {
+      tone: 'border-amber-200 bg-amber-50/80',
+      iconTone: 'bg-amber-100 text-amber-700',
+      title: 'Chưa có bằng chứng blockchain cho hồ sơ này',
+      subtitle: 'Hồ sơ chưa có block. Hãy tạo phiếu khám/đơn thuốc/xét nghiệm mới hoặc chạy backfill ledger.',
+      badge: 'Chưa có block',
+      badgeTone: 'bg-amber-100 text-amber-700',
+      good: false,
+    };
+  }
+
+  return {
+    tone: 'border-red-200 bg-red-50/80',
+    iconTone: 'bg-red-100 text-red-700',
+    title: summary.headline || 'Cần kiểm tra lại tính toàn vẹn hồ sơ',
+    subtitle:
+      summary.explain ||
+      'Một dấu vết trong hồ sơ không còn khớp với dữ liệu hiện tại hoặc chuỗi hash bị đứt.',
+    badge: 'Cần xử lý',
+    badgeTone: 'bg-red-100 text-red-700',
+    good: false,
+  };
+};
+
+const statusLabel = (value) => {
+  const normalized = String(value || "").trim().toUpperCase();
+  return STATUS_LABEL[normalized] || cleanText(value);
+};
+
+const formatDate = (value, format = "DD/MM/YYYY") => {
+  if (!value) return "Chưa cập nhật";
+  const parsed = dayjs(value);
+  return parsed.isValid() ? parsed.format(format) : cleanText(value);
+};
+
+const eventDateKey = (event) => {
+  const value = event?.thoiGian || event?.occurredAt;
+  return value && dayjs(value).isValid() ? dayjs(value).format("YYYY-MM-DD") : "unknown";
+};
+
+const eventMonthKey = (event) => {
+  const value = event?.thoiGian || event?.occurredAt;
+  return value && dayjs(value).isValid() ? dayjs(value).format("YYYY-MM") : "unknown";
+};
+
+const SummaryCard = ({ icon: Icon, label, value, tone }) => (
+  <div className={`rounded-2xl border p-4 shadow-sm ${tone}`}>
+    <div className="flex items-center gap-3">
+      <div className="rounded-xl bg-white/80 p-2.5 shadow-sm">
+        <Icon className="h-5 w-5" />
+      </div>
+      <div>
+        <p className="text-2xl font-black leading-none">{value ?? 0}</p>
+        <p className="mt-1 text-xs font-semibold uppercase tracking-wide opacity-75">
+          {label}
+        </p>
+      </div>
+    </div>
+  </div>
+);
+
+const InfoRow = ({ label, value, multiline = false }) => (
+  <div className="grid gap-1 border-b border-slate-100 py-2.5 last:border-b-0 md:grid-cols-[170px_1fr] md:gap-4">
+    <span className="text-sm font-semibold text-slate-500">{label}</span>
+    <span className={`text-sm text-slate-800 ${multiline ? "whitespace-pre-wrap" : ""}`}>
+      {cleanText(value)}
+    </span>
+  </div>
+);
+
+const VitalsGrid = ({ vitals = {} }) => {
+  const items = [
+    ["Nhiệt độ", vitals.temperature, "°C"],
+    ["Mạch", vitals.heartRate, "lần/phút"],
+    [
+      "Huyết áp",
+      vitals.systolicBloodPressure && vitals.diastolicBloodPressure
+        ? `${vitals.systolicBloodPressure}/${vitals.diastolicBloodPressure}`
+        : null,
+      "mmHg",
+    ],
+    ["SpO₂", vitals.oxygenSaturation, "%"],
+    ["Cân nặng", vitals.weightKg, "kg"],
+    ["Chiều cao", vitals.heightCm, "cm"],
+  ].filter(([, value]) => value !== null && value !== undefined && value !== "");
+
+  if (items.length === 0) return null;
+
+  return (
+    <div className="mt-4 grid grid-cols-2 gap-3 md:grid-cols-3 xl:grid-cols-6">
+      {items.map(([label, value, unit]) => (
+        <div key={label} className="rounded-xl border border-slate-200 bg-slate-50 px-3 py-3 text-center">
+          <p className="text-xs font-semibold uppercase tracking-wide text-slate-500">{label}</p>
+          <p className="mt-1 text-sm font-bold text-slate-800">
+            {value} {unit}
+          </p>
+        </div>
+      ))}
+    </div>
+  );
+};
+
+const ExaminationContent = ({ data = {} }) => (
+  <div>
+    <InfoRow label="Mã phiếu khám" value={data.maPK || data.examinationId} />
+    <InfoRow label="Bác sĩ" value={data.tenBacSi || data.BacSi?.hoTen || data.maBS} />
+    <InfoRow label="Triệu chứng" value={data.trieuChung || data.symptoms} multiline />
+    <InfoRow label="Chẩn đoán" value={data.chuanDoan || data.diagnosis} multiline />
+    <InfoRow label="Điều trị" value={data.dieuTri || data.treatment} multiline />
+    <InfoRow label="Lời dặn" value={data.loiDan || data.advice} multiline />
+    <InfoRow label="Trạng thái" value={statusLabel(data.trangThai || data.status)} />
+    <VitalsGrid vitals={data.sinhHieu || data.vitals || {}} />
+  </div>
+);
+
+const PrescriptionContent = ({ data = {} }) => {
+  const items = data.chiTiet || data.medicineItems || [];
+
+  return (
+    <div>
+      <InfoRow label="Mã đơn thuốc" value={data.maDT || data.prescriptionId} />
+      <InfoRow label="Bác sĩ kê đơn" value={data.tenBacSi || data.maBS} />
+      <InfoRow label="Lời dặn chung" value={data.loiDan || data.generalInstructions} multiline />
+      <InfoRow label="Trạng thái" value={statusLabel(data.trangThai || data.status)} />
+
+      <div className="mt-4 overflow-hidden rounded-xl border border-violet-100">
+        <div className="bg-violet-50 px-4 py-3 text-sm font-bold text-violet-800">
+          Chi tiết thuốc ({items.length})
+        </div>
+        {items.length === 0 ? (
+          <p className="px-4 py-5 text-sm italic text-slate-500">Chưa có chi tiết thuốc.</p>
+        ) : (
+          <div className="overflow-x-auto">
+            <table className="min-w-full text-sm">
+              <thead className="bg-white text-left text-xs uppercase tracking-wide text-slate-500">
+                <tr>
+                  <th className="px-4 py-3">Tên thuốc</th>
+                  <th className="px-4 py-3">Số lượng</th>
+                  <th className="px-4 py-3">Liều dùng</th>
+                  <th className="px-4 py-3">Tần suất</th>
+                  <th className="px-4 py-3">Hướng dẫn</th>
+                </tr>
+              </thead>
+              <tbody className="divide-y divide-slate-100">
+                {items.map((item, index) => (
+                  <tr key={`${item.maThuoc || item.medicineId || "medicine"}-${index}`}>
+                    <td className="px-4 py-3 font-semibold text-slate-800">
+                      {cleanText(item.tenThuoc || item.medicineName)}
+                    </td>
+                    <td className="px-4 py-3 text-slate-700">
+                      {cleanText(item.soLuong ?? item.quantity, "-")} {item.donVi || item.unit || ""}
+                    </td>
+                    <td className="px-4 py-3 text-slate-700">
+                      {cleanText(item.lieuDung || item.dosage, "-")}
+                    </td>
+                    <td className="px-4 py-3 text-slate-700">
+                      {cleanText(item.tanSuat || item.frequency, "-")}
+                    </td>
+                    <td className="px-4 py-3 text-slate-700">
+                      {cleanText(item.huongDan || item.instructions, "-")}
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
           </div>
+        )}
+      </div>
+    </div>
+  );
+};
 
-          <div className="flex flex-col md:flex-row items-center gap-6 relative z-10">
-            <div className="bg-gradient-to-br from-blue-600 to-indigo-700 p-5 rounded-2xl shadow-lg ring-4 ring-blue-100">
-              <span className="text-5xl">🏥</span>
-            </div>
-            
-            <div className="flex-1 text-center md:text-left">
-              <div className="flex flex-wrap justify-center md:justify-start items-center gap-3 mb-2">
-                <h2 className="text-3xl font-black text-gray-900 tracking-tight">
-                  CHI TIẾT HỒ SƠ <span className="text-blue-600 px-2 bg-blue-50 rounded-lg">{hoSo.maHSBA}</span>
-                </h2>
-              </div>
-              
-              <div className="flex flex-wrap justify-center md:justify-start items-center gap-6 text-gray-600 font-medium">
-                <div className="flex items-center gap-2 bg-gray-100 px-3 py-1.5 rounded-lg">
-                  <span className="text-lg">🗓️</span>
-                  <span>Ngày lập: <span className="text-gray-900">{dayjs(hoSo.ngayLap).format("DD/MM/YYYY")}</span></span>
-                </div>
-                <div className="flex items-center gap-2 bg-gray-100 px-3 py-1.5 rounded-lg">
-                  <span className="text-lg">✅</span>
-                  <span>Trạng thái: <span className="text-blue-600 capitalize">Đang hoạt động</span></span>
-                </div>
-              </div>
-            </div>
+const LabResultContent = ({ data = {} }) => (
+  <div>
+    <InfoRow label="Mã phiếu xét nghiệm" value={data.maPhieuXN || data.labResultId} />
+    <InfoRow label="Xét nghiệm" value={data.XetNghiem?.tenXN || data.testName} />
+    <InfoRow label="Loại xét nghiệm" value={data.XetNghiem?.LoaiXetNghiem?.tenLoai || data.categoryName} />
+    <InfoRow label="Kỹ thuật viên" value={data.tenNhanSu || data.NhanSuYTe?.hoTen || data.maNS} />
+    <InfoRow label="Kết quả" value={data.ketQua || data.resultText} multiline />
+    <InfoRow label="Khoảng tham chiếu" value={data.khoangThamChieu || data.referenceRange} />
+    <InfoRow label="Đơn vị" value={data.donVi || data.unit} />
+    <InfoRow label="Trạng thái" value={statusLabel(data.trangThai || data.status)} />
+  </div>
+);
+
+const AppointmentContent = ({ data = {} }) => (
+  <div>
+    <InfoRow label="Mã lịch khám" value={data.maLich || data.appointmentId} />
+    <InfoRow label="Bác sĩ" value={data.tenBacSi || data.BacSi?.hoTen || data.maBS} />
+    <InfoRow label="Ngày khám" value={formatDate(data.ngayKham || data.appointmentDate)} />
+    <InfoRow label="Giờ khám" value={data.gioKham || data.appointmentTime} />
+    <InfoRow label="Khoa" value={data.maKhoa || data.departmentId} />
+    <InfoRow label="Phòng" value={data.maPhong || data.roomId} />
+    <InfoRow label="Trạng thái" value={statusLabel(data.trangThai || data.status)} />
+  </div>
+);
+
+const EventContent = ({ event }) => {
+  switch (event.loai) {
+    case "PHIEU_KHAM":
+      return <ExaminationContent data={event.data} />;
+    case "DON_THUOC":
+      return <PrescriptionContent data={event.data} />;
+    case "XET_NGHIEM":
+      return <LabResultContent data={event.data} />;
+    case "LICH_KHAM":
+      return <AppointmentContent data={event.data} />;
+    default:
+      return <pre className="overflow-auto text-xs">{JSON.stringify(event.data, null, 2)}</pre>;
+  }
+};
+
+const EventCard = ({ event }) => {
+  const [expanded, setExpanded] = useState(true);
+  const style = EVENT_STYLE[event.loai] || EVENT_STYLE.PHIEU_KHAM;
+  const Icon = style.icon;
+  const occurredAt = event.thoiGian || event.occurredAt;
+
+  return (
+    <article className={`overflow-hidden rounded-2xl border bg-white shadow-sm transition-shadow hover:shadow-md ${style.accent}`}>
+      <button
+        type="button"
+        onClick={() => setExpanded((value) => !value)}
+        className={`flex w-full items-center justify-between gap-4 bg-gradient-to-r px-4 py-3 text-left text-white ${style.header}`}
+      >
+        <div className="flex min-w-0 items-center gap-3">
+          <span className="rounded-lg bg-white/20 p-2 backdrop-blur-sm">
+            <Icon className="h-5 w-5" />
+          </span>
+          <div className="min-w-0">
+            <h4 className="truncate text-sm font-bold md:text-base">{style.title}</h4>
+            {event.maHSBA && (
+              <p className="truncate text-xs text-white/80">Hồ sơ: {event.maHSBA}</p>
+            )}
           </div>
         </div>
-      </div>
+        <div className="flex shrink-0 items-center gap-2">
+          <span className="hidden rounded-lg bg-white/20 px-3 py-1.5 text-xs font-semibold sm:inline-flex">
+            {formatDate(occurredAt, "DD/MM/YYYY HH:mm")}
+          </span>
+          <ChevronDown className={`h-5 w-5 transition-transform ${expanded ? "rotate-180" : ""}`} />
+        </div>
+      </button>
 
-      {/* Phần Kiểm tra tính toàn vẹn (Blockchain Verification) */}
-      {!isVerifying && !isChainValid && (
-        <div className="mb-6 bg-red-50 rounded-xl shadow-lg p-6 border-2 border-red-500 animate-bounce">
-          <div className="flex items-center gap-4">
-            <span className="text-4xl animate-pulse">🚨</span>
-            <div className="flex-1">
-              <h3 className="text-xl font-bold text-red-700 mb-1">CẢNH BÁO BẢO MẬT: Dữ liệu bị xâm phạm!</h3>
-              <p className="text-red-600 font-medium">{verifyMessage}</p>
-            </div>
-            <button onClick={handleVerify} className="bg-red-600 text-white px-6 py-2 rounded-xl font-bold hover:bg-red-700 transition-all">
-              Kiểm tra lại 🔄
-            </button>
+      {expanded && (
+        <div className="p-4 md:p-5">
+          <div className={`mb-4 inline-flex items-center gap-2 rounded-full px-3 py-1 text-xs font-bold ${style.badge}`}>
+            <Clock3 className="h-3.5 w-3.5" />
+            {formatDate(occurredAt, "DD/MM/YYYY HH:mm")}
           </div>
+          <EventContent event={event} />
         </div>
       )}
+    </article>
+  );
+};
 
-      <div className={`mb-6 bg-white rounded-xl shadow-md p-4 border ${
-          verifyMessage 
-            ? (isChainValid ? 'border-green-500' : 'border-red-500') 
-            : 'border-gray-200'
-        }`}>
-        <div className="flex items-center gap-3 mb-3">
-          <div className="bg-blue-100 p-2 rounded-lg">
-            <span className="text-xl">🛡️</span>
-          </div>
-          <h3 className="text-lg font-bold text-gray-800">Kiểm tra tính toàn vẹn Blockchain</h3>
-        </div>
+const EmptyState = ({ title, description }) => (
+  <div className="rounded-2xl border border-dashed border-slate-300 bg-white p-10 text-center shadow-sm">
+    <FileHeart className="mx-auto h-12 w-12 text-slate-300" />
+    <h3 className="mt-4 text-lg font-bold text-slate-700">{title}</h3>
+    <p className="mx-auto mt-2 max-w-xl text-sm text-slate-500">{description}</p>
+  </div>
+);
 
-        <div className="flex flex-col md:flex-row gap-4 mb-4">
-            <input
-                type="date"
-                value={selectedDate}
-                onChange={(e) => {
-                    setSelectedDate(e.target.value);
-                    setVerifyMessage(null); // Reset thông báo khi đổi ngày
-                    setIsChainValid(true);
-                }}
-                className="border p-2 rounded w-full md:w-auto"
-            />
-            <button
-                onClick={handleVerify}
-                disabled={isVerifying || !hoSo.maHSBA}
-                className="bg-indigo-600 text-white font-bold py-2 px-4 rounded hover:bg-indigo-700 disabled:opacity-50 transition-colors flex-shrink-0"
-            >
-                {isVerifying ? "Đang kiểm tra..." : "Kiểm tra theo ngày"}
-            </button>
-             <button
-                onClick={() => {
-                    setSelectedDate(""); 
-                    setVerifyMessage(null); 
-                    setIsChainValid(true);
-                }}
-                className="bg-gray-500 text-white font-bold py-2 px-4 rounded hover:bg-gray-600 transition-colors flex-shrink-0"
-            >
-                Hiển thị tất cả
-            </button>
-        </div>
-        
-        {verifyMessage && (
-            <div className={`p-3 rounded-lg ${isChainValid ? 'bg-green-100 text-green-800' : 'bg-red-100 text-red-800'}`}>
-                <p className="font-semibold">{isChainValid ? '✅ Xác thực thành công:' : '🚨 GIẢ MẠO/LỖI:'}</p>
-                <p className="text-sm">{verifyMessage}</p>
-            </div>
-        )}
-        
-      </div>
+const HoSoBenhAnPage = () => {
+  const [patientId, setPatientId] = useState(null);
+  const [record, setRecord] = useState(null);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState("");
+  const [filterDate, setFilterDate] = useState("");
+  const [ledgerStatus, setLedgerStatus] = useState(null);
+  const [ledgerLoading, setLedgerLoading] = useState(false);
+  const [filters, setFilters] = useState(() =>
+    Object.fromEntries(FILTERS.map((item) => [item.key, true])),
+  );
 
-      {/* Bộ lọc hiển thị/ẩn - Thiết kế hiện đại hơn */}
-      <div className="mb-8 bg-white/80 backdrop-blur-md rounded-2xl shadow-lg p-6 border border-white/20 sticky top-2 z-30">
-        <div className="flex flex-col md:flex-row md:items-end gap-6">
-          {/* Lọc theo loại */}
-          <div className="flex-1">
-            <div className="flex items-center gap-3 mb-4">
-              <div className="bg-blue-600 text-white p-2 rounded-lg shadow-md">
-                <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" viewBox="0 0 20 20" fill="currentColor">
-                  <path fillRule="evenodd" d="M3 3a1 1 0 011-1h12a1 1 0 011 1v3a1 1 0 01-.293.707L12 11.414V15a1 1 0 01-.293.707l-2 2A1 1 0 018 17v-5.586L3.293 6.707A1 1 0 013 6V3z" clipRule="evenodd" />
-                </svg>
-              </div>
-              <h3 className="text-xl font-bold text-gray-900 tracking-tight">Bộ lọc dòng thời gian</h3>
-            </div>
-            
-            <div className="flex flex-wrap gap-3">
-              {[
-                { key: 'phieuKham', label: 'Phiếu Khám', activeClass: 'bg-blue-600 shadow-blue-500/30', icon: '🩺' },
-                { key: 'donThuoc', label: 'Đơn Thuốc', activeClass: 'bg-purple-600 shadow-purple-500/30', icon: '💊' },
-                { key: 'xetNghiem', label: 'Xét Nghiệm', activeClass: 'bg-orange-600 shadow-orange-500/30', icon: '🔬' },
-                { key: 'taoMoi', label: 'Tạo Mới', activeClass: 'bg-green-600 shadow-green-500/30', icon: '👤' }
-              ].map((f) => (
-                <button
-                  key={f.key}
-                  onClick={() => toggleFilter(f.key)}
-                  className={`
-                    flex items-center gap-2 px-5 py-2.5 rounded-xl font-bold transition-all duration-300
-                    ${filters[f.key] 
-                      ? `${f.activeClass} text-white shadow-lg scale-105` 
-                      : 'bg-gray-100 text-gray-500 hover:bg-gray-200'}
-                  `}
-                >
-                  <span>{f.icon}</span>
-                  <span>{f.label}</span>
-                  {filters[f.key] && (
-                    <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4 ml-1" viewBox="0 0 20 20" fill="currentColor">
-                      <path fillRule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clipRule="evenodd" />
-                    </svg>
-                  )}
-                </button>
-              ))}
-            </div>
-          </div>
+  const loadMedicalRecord = async () => {
+    setLoading(true);
+    setError("");
 
-          {/* Lọc theo ngày */}
-          <div className="w-full md:w-64">
-             <div className="flex items-center gap-2 mb-2 text-gray-600 font-bold">
-                <span>🗓️ Tìm theo ngày</span>
-             </div>
-             <div className="relative group">
-                <input
-                  type="date"
-                  value={filterDate}
-                  onChange={(e) => setFilterDate(e.target.value)}
-                  className="w-full bg-white border-2 border-gray-100 focus:border-blue-500 rounded-xl px-4 py-2.5 outline-none font-bold text-gray-700 shadow-inner group-hover:border-blue-200 transition-all cursor-pointer"
-                />
-                {filterDate && (
-                  <button 
-                    onClick={() => setFilterDate("")}
-                    className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-red-500 transition-colors"
-                  >
-                    <span>✖</span>
-                  </button>
-                )}
-             </div>
-          </div>
+    try {
+      const resolvedPatientId = patientId || (await resolvePatientId());
+      if (!resolvedPatientId) {
+        throw new Error("Tài khoản chưa được liên kết với hồ sơ bệnh nhân.");
+      }
+
+      setPatientId(resolvedPatientId);
+      const response = await getHoSoTongHop(resolvedPatientId);
+      const payload = response?.data?.data ?? response?.data ?? null;
+      setRecord(payload);
+
+      const currentRecordId = ledgerRecordId(payload?.hoSo || {});
+
+      if (currentRecordId) {
+        await loadLedgerStatus(currentRecordId);
+      } else {
+        setLedgerStatus(null);
+      }
+    } catch (requestError) {
+      const message =
+        requestError?.response?.data?.message ||
+        requestError?.response?.data?.error?.message ||
+        requestError?.message ||
+        "Không thể tải hồ sơ bệnh án.";
+      setError(message);
+      setRecord(null);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+
+  const loadLedgerStatus = async (recordId) => {
+    if (!recordId) return;
+    setLedgerLoading(true);
+    try {
+      const response = await verifyMedicalLedger(recordId);
+      setLedgerStatus(response?.data?.data ?? response?.data ?? null);
+    } catch (requestError) {
+      setLedgerStatus({
+        valid: false,
+        status: "VERIFY_FAILED",
+        message:
+          requestError?.response?.data?.message ||
+          requestError?.message ||
+          "Không thể kiểm tra blockchain.",
+      });
+    } finally {
+      setLedgerLoading(false);
+    }
+  };
+
+  useEffect(() => {
+    loadMedicalRecord();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
+  const visibleEvents = useMemo(() => {
+    const events = Array.isArray(record?.suKien) ? record.suKien : [];
+    return events.filter((event) => {
+      const typeMatched = filters[event.loai] !== false;
+      const dateMatched = !filterDate || eventDateKey(event) === filterDate;
+      return typeMatched && dateMatched;
+    });
+  }, [record, filters, filterDate]);
+
+  const groupedTimeline = useMemo(() => {
+    const monthMap = new Map();
+
+    for (const event of visibleEvents) {
+      const monthKey = eventMonthKey(event);
+      const dayKey = eventDateKey(event);
+      const month = monthMap.get(monthKey) || {
+        key: monthKey,
+        label: monthKey === "unknown" ? "Không xác định" : dayjs(`${monthKey}-01`).format("MM/YYYY"),
+        days: new Map(),
+        total: 0,
+      };
+      const day = month.days.get(dayKey) || {
+        key: dayKey,
+        label: dayKey === "unknown" ? "Không xác định" : dayjs(dayKey).format("DD/MM/YYYY"),
+        events: [],
+      };
+
+      day.events.push(event);
+      month.days.set(dayKey, day);
+      month.total += 1;
+      monthMap.set(monthKey, month);
+    }
+
+    return [...monthMap.values()]
+      .sort((left, right) => right.key.localeCompare(left.key))
+      .map((month) => ({
+        ...month,
+        days: [...month.days.values()].sort((left, right) => right.key.localeCompare(left.key)),
+      }));
+  }, [visibleEvents]);
+
+  const toggleFilter = (key) => {
+    setFilters((current) => ({ ...current, [key]: !current[key] }));
+  };
+
+  if (loading) {
+    return (
+      <div className="flex min-h-[70vh] items-center justify-center p-6">
+        <div className="text-center">
+          <LoaderCircle className="mx-auto h-12 w-12 animate-spin text-blue-600" />
+          <p className="mt-4 font-semibold text-slate-600">Đang tổng hợp hồ sơ bệnh án...</p>
         </div>
       </div>
+    );
+  }
 
-      {/* Lịch sử khám bệnh theo đợt (tháng) và ngày */}
-      {sortedMonths.length > 0 ? (
-        <div className="space-y-8">
-          {sortedMonths.map((monthKey) => {
-            const monthData = groupedByMonth[monthKey];
-            const sortedDays = Object.keys(monthData.days).sort((a, b) => b.localeCompare(a));
-            const totalEvents = Object.values(monthData.days).reduce((sum, day) => sum + day.items.length, 0);
-            
-            return (
-              <div key={monthKey} className="space-y-6">
-                {/* Month Header */}
-                <div className="flex items-center gap-3 mb-4">
-                  <div className="bg-gradient-to-r from-blue-600 to-indigo-600 p-2 rounded-lg">
-                    <span className="text-xl">📅</span>
-                  </div>
-                  <h3 className="text-xl font-bold text-gray-800">
-                    Đợt khám bệnh: Tháng {monthData.label}
-                  </h3>
-                  <span className="bg-blue-100 text-blue-800 px-3 py-1 rounded-full text-sm font-semibold">
-                    {totalEvents} sự kiện
-                  </span>
-                </div>
+  if (error) {
+    return (
+      <div className="p-4 md:p-6">
+        <div className="rounded-2xl border border-red-200 bg-red-50 p-8 text-center">
+          <FileHeart className="mx-auto h-12 w-12 text-red-400" />
+          <h2 className="mt-4 text-xl font-bold text-red-700">Không thể tải hồ sơ bệnh án</h2>
+          <p className="mt-2 text-sm text-red-600">{error}</p>
+          <button
+            type="button"
+            onClick={loadMedicalRecord}
+            className="mt-5 inline-flex items-center gap-2 rounded-xl bg-red-600 px-5 py-2.5 font-semibold text-white hover:bg-red-700"
+          >
+            <RefreshCw className="h-4 w-4" />
+            Thử lại
+          </button>
+        </div>
+      </div>
+    );
+  }
 
-                {/* Blocks grouped by day */}
-                <div className="space-y-6">
-                  {sortedDays.map((dayKey) => {
-                    const dayData = monthData.days[dayKey];
-                    return (
-                      <div key={dayKey} className="bg-gray-50 rounded-xl p-4 border border-gray-200">
-                        {/* Day Header */}
-                        <div className="flex items-center gap-3 mb-4 pb-3 border-b border-gray-300">
-                          <div className="bg-blue-100 p-2 rounded-lg">
-                            <span className="text-lg">📆</span>
-                          </div>
-                          <h4 className="text-lg font-bold text-gray-800">
-                            Ngày {dayData.label}
-                          </h4>
-                          <span className="bg-gray-200 text-gray-700 px-3 py-1 rounded-full text-xs font-semibold">
-                            {dayData.items.length} sự kiện
-                          </span>
-                        </div>
+  if (!record?.hoSo) {
+    return (
+      <div className="p-4 md:p-6">
+        <EmptyState
+          title="Chưa có hồ sơ bệnh án"
+          description="Hồ sơ bệnh án sẽ được tạo một lần cho tài khoản bệnh nhân và tự động bổ sung các lần khám, đơn thuốc cùng kết quả xét nghiệm về sau."
+        />
+      </div>
+    );
+  }
 
-                        {/* Blocks for this day */}
-                        <div className="space-y-4">
-                          {dayData.items.map((block) => (
-                            <BlockWidget 
-                              key={block.id}
-                              block={block} 
-                              bacSiList={bacSiList} 
-                              nhanSuList={nhanSuList} 
-                            />
-                          ))}
-                        </div>
-                      </div>
-                    );
-                  })}
-                </div>
-              </div>
-            );
-          })}
-        </div>
-      ) : (
-        <div className="bg-white rounded-xl shadow-md p-12 text-center">
-          <div className="inline-block bg-gray-100 p-6 rounded-full mb-4">
-            <span className="text-5xl">📭</span>
-          </div>
-          <h3 className="text-lg font-semibold text-gray-700 mb-2">
-            {filteredChain.length === 0 && (chain || []).length > 0
-              ? "Không có sự kiện nào khớp với bộ lọc"
-              : "Chưa có lịch sử khám bệnh"}
-          </h3>
-          <p className="text-gray-500">
-            {filteredChain.length === 0 && (chain || []).length > 0
-              ? "Vui lòng bật các bộ lọc để xem sự kiện."
-              : "Các phiếu khám và xét nghiệm sẽ được hiển thị tại đây."}
-          </p>
-        </div>
-      )}
-    </div>
-  );
-};
+  const { hoSo, thongKe = {} } = record;
+  const patient = hoSo.benhNhan || {};
+  const displayRecord = visibleRecordId(hoSo);
+  const integrityRecordId = ledgerRecordId(hoSo);
+  const blockchainView = blockchainPresentation(ledgerStatus, ledgerLoading);
+  const amb = ledgerStatus?.amb || {};
+  const summary = ledgerStatus?.summary || {};
 
-// --- Các component hiển thị nội dung từng loại khối ---
+  return (
+    <div className="min-h-screen bg-slate-50 p-4 md:p-6">
+      <div className="mx-auto max-w-7xl space-y-6">
+        <section className="overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-sm">
+          <div className="flex flex-col gap-5 p-5 md:flex-row md:items-center md:justify-between md:p-6">
+            <div className="flex items-start gap-4">
+              <div className="rounded-2xl bg-gradient-to-br from-blue-600 to-indigo-600 p-3 text-white shadow-lg shadow-blue-200">
+                <FileHeart className="h-7 w-7" />
+              </div>
+              <div>
+                <p className="text-xs font-bold uppercase tracking-[0.18em] text-blue-600">
+                  Hồ sơ bệnh án duy nhất
+                </p>
+                <h1 className="mt-1 text-2xl font-black text-slate-900 md:text-3xl">
+                  Chi tiết hồ sơ: <span className="text-blue-600">{displayRecord}</span>
+                </h1>
+                <div className="mt-3 flex flex-wrap items-center gap-x-5 gap-y-2 text-sm text-slate-500">
+                  <span className="inline-flex items-center gap-2">
+                    <CalendarDays className="h-4 w-4 text-blue-500" />
+                    Ngày thành lập: <strong className="text-slate-700">{formatDate(hoSo.ngayLap)}</strong>
+                  </span>
+                  <span className="inline-flex items-center gap-2">
+                    <UserRound className="h-4 w-4 text-blue-500" />
+                    Bệnh nhân: <strong className="text-slate-700">{patient.hoTen || patient.fullName || hoSo.maBN}</strong>
+                  </span>
+                  <span className="inline-flex items-center gap-2">
+                    <Check className="h-4 w-4 text-emerald-500" />
+                    {statusLabel(hoSo.trangThai || hoSo.status)}
+                  </span>
+                </div>
+              </div>
+            </div>
 
-// Sửa 10: Thêm hàm tìm tên Bác sĩ
-const getBacSiName = (maBS, bacSiList) => {
-  if (!bacSiList || bacSiList.length === 0) return maBS;
-  const bacSi = bacSiList.find(bs => bs.maBS === maBS);
-  return bacSi ? bacSi.hoTen : maBS; 
-};
+            <button
+              type="button"
+              onClick={loadMedicalRecord}
+              className="inline-flex items-center justify-center gap-2 rounded-xl border border-slate-200 bg-white px-4 py-2.5 text-sm font-bold text-slate-700 shadow-sm hover:border-blue-300 hover:text-blue-700"
+            >
+              <RefreshCw className="h-4 w-4" />
+              Làm mới dữ liệu
+            </button>
+          </div>
 
-// Sửa 11: Thêm hàm tìm tên Nhân sự
-const getNhanSuName = (maNS, nhanSuList) => {
-  if (!nhanSuList || nhanSuList.length === 0) return maNS;
-  const nhanSu = nhanSuList.find(ns => ns.maNS === maNS);
-  return nhanSu ? nhanSu.hoTen : maNS; 
-};
+          {hoSo.lichSuBenh && (
+            <div className="border-t border-slate-100 bg-blue-50/50 px-5 py-4 md:px-6">
+              <div className="flex items-start gap-3">
+                <HeartPulse className="mt-0.5 h-5 w-5 shrink-0 text-blue-600" />
+                <div>
+                  <p className="text-xs font-bold uppercase tracking-wide text-blue-700">Tóm tắt lịch sử bệnh</p>
+                  <p className="mt-1 text-sm leading-6 text-slate-700">{hoSo.lichSuBenh}</p>
+                </div>
+              </div>
+            </div>
+          )}
+        </section>
 
-const InfoRow = ({ label, value }) => (
-  <div className="flex items-start gap-3 py-2 border-b border-gray-100 last:border-0">
-    <span className="text-gray-500 font-medium min-w-[140px]">{label}:</span>
-    <span className="text-gray-800 flex-1">{value || <span className="text-gray-400 italic">Không có</span>}</span>
-  </div>
-);
 
-const TaoMoiContent = ({ data }) => (
-  <>
-    <InfoRow label="Mã Bệnh nhân" value={data.maBN} />
-    <InfoRow label="Ngày lập" value={dayjs(data.ngayLap).format("DD/MM/YYYY")} />
-    <InfoRow label="Lịch sử bệnh" value={data.lichSuBenh} />
-  </>
-);
+        <section className={`rounded-2xl border p-4 shadow-sm transition-all md:p-5 ${blockchainView.tone}`}>
+          <div className="flex flex-col gap-5 lg:flex-row lg:items-start lg:justify-between">
+            <div className="flex min-w-0 items-start gap-4">
+              <div className={`rounded-2xl p-3 ${blockchainView.iconTone}`}>
+                {blockchainView.good ? <ShieldCheck className="h-6 w-6" /> : <ShieldAlert className="h-6 w-6" />}
+              </div>
+              <div className="min-w-0">
+                <div className="flex flex-wrap items-center gap-2">
+                  <p className="text-xs font-black uppercase tracking-wide text-slate-500">
+                    Bằng chứng toàn vẹn hồ sơ
+                  </p>
+                  <span className={`rounded-full px-3 py-1 text-xs font-black ${blockchainView.badgeTone}`}>
+                    {blockchainView.badge}
+                  </span>
+                </div>
 
-// Sửa 12: Cập nhật PhieuKhamContent (Thêm FileLink)
-// Gợi ý đơn thuốc THAM KHẢO cho bệnh nhân, dựa trên chẩn đoán
-// LƯU Ý: Đây chỉ là gợi ý minh hoạ cho đồ án, KHÔNG thay thế chỉ định bác sĩ.
-const getSuggestedMedicinesByDiagnosis = (diagnosisRaw) => {
-  if (!diagnosisRaw) return [];
-  const diagnosis = diagnosisRaw.toLowerCase();
+                <h2 className="mt-2 text-xl font-black text-slate-900">
+                  {blockchainView.title}
+                </h2>
+                <p className="mt-2 max-w-4xl text-sm leading-6 text-slate-700">
+                  {blockchainView.subtitle}
+                </p>
 
-  // Một số rule đơn giản theo từ khoá trong chẩn đoán
-  const suggestions = [];
+                <div className="mt-4 grid gap-3 md:grid-cols-2 xl:grid-cols-4">
+                  <div className="rounded-2xl border border-white/70 bg-white/80 p-3">
+                    <p className="text-xs font-bold uppercase text-slate-400">Kết quả kiểm tra</p>
+                    <p className="mt-1 text-sm font-black text-slate-800">
+                      {ledgerStatus?.status || "Chưa kiểm tra"}
+                    </p>
+                  </div>
+                  <div className="rounded-2xl border border-white/70 bg-white/80 p-3">
+                    <p className="text-xs font-bold uppercase text-slate-400">Số dấu vết</p>
+                    <p className="mt-1 text-sm font-black text-slate-800">
+                      {ledgerStatus?.blockCount ?? 0} block
+                    </p>
+                  </div>
+                  <div className="rounded-2xl border border-white/70 bg-white/80 p-3">
+                    <p className="text-xs font-bold uppercase text-slate-400">Hash cuối</p>
+                    <p className="mt-1 font-mono text-sm font-black text-slate-800">
+                      {shortHash(ledgerStatus?.latestBlockHash)}
+                    </p>
+                  </div>
+                  <div className="rounded-2xl border border-white/70 bg-white/80 p-3">
+                    <p className="text-xs font-bold uppercase text-slate-400">AMB/Ethereum</p>
+                    <p className="mt-1 text-sm font-black text-slate-800">
+                      {amb.enabled
+                        ? `${amb.confirmed || 0} xác nhận, ${amb.submitted || 0} đang chờ`
+                        : "Chưa bật"}
+                    </p>
+                  </div>
+                </div>
 
-  if (diagnosis.includes("cảm") || diagnosis.includes("cúm")) {
-    suggestions.push({
-      tenThuoc: "Paracetamol 500mg",
-      cachDung: "1 viên x 3 lần / ngày, sau ăn nếu có sốt hoặc đau đầu.",
-    });
-    suggestions.push({
-      tenThuoc: "Vitamin C 500mg",
-      cachDung: "1 viên x 1–2 lần / ngày, sau ăn.",
-    });
-  }
+                {ledgerStatus?.brokenAt && (
+                  <div className="mt-4 rounded-2xl border border-red-200 bg-white/90 p-3 text-sm text-red-700">
+                    <strong>Vị trí cần kiểm tra:</strong> {ledgerStatus.brokenAt}
+                  </div>
+                )}
 
-  if (diagnosis.includes("ho")) {
-    suggestions.push({
-      tenThuoc: "Siro ho thảo dược",
-      cachDung: "5–10 ml x 3 lần / ngày, sau ăn.",
-    });
-  }
+                {summary.recommendedAction && ledgerStatus?.status !== "VALID" && (
+                  <div className="mt-4 rounded-2xl border border-amber-200 bg-white/90 p-3 text-sm text-amber-800">
+                    <strong>Gợi ý xử lý:</strong> {summary.recommendedAction}
+                  </div>
+                )}
 
-  if (
-    diagnosis.includes("đau đầu") ||
-    diagnosis.includes("nhức đầu") ||
-    diagnosis.includes("migraine")
-  ) {
-    suggestions.push({
-      tenThuoc: "Paracetamol 500mg",
-      cachDung: "1 viên khi đau, tối đa 3 lần / ngày, cách nhau ít nhất 4–6 giờ.",
-    });
-  }
+                {amb.latestTransactionId && (
+                  <div className="mt-4 rounded-2xl border border-indigo-200 bg-white/90 p-3">
+                    <div className="flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
+                      <div>
+                        <p className="text-xs font-bold uppercase text-indigo-500">
+                          Giao dịch blockchain AMB mới nhất
+                        </p>
+                        <p className="mt-1 font-mono text-sm font-black text-slate-800">
+                          {shortHash(amb.latestTransactionId)}
+                        </p>
+                        <p className="mt-1 text-xs text-slate-500">
+                          Mạng: {amb.latestNetwork || "Ethereum"} · Trạng thái: {amb.latestStatus || "Không rõ"}
+                        </p>
+                      </div>
+                      {amb.latestTransactionUrl && (
+                        <a
+                          href={amb.latestTransactionUrl}
+                          target="_blank"
+                          rel="noreferrer"
+                          className="inline-flex items-center justify-center gap-2 rounded-xl bg-indigo-600 px-4 py-2 text-sm font-bold text-white shadow-sm hover:bg-indigo-700"
+                        >
+                          Xem biên nhận
+                          <ExternalLink className="h-4 w-4" />
+                        </a>
+                      )}
+                    </div>
+                  </div>
+                )}
 
-  if (
-    diagnosis.includes("dạ dày") ||
-    diagnosis.includes("viêm loét dạ dày") ||
-    diagnosis.includes("trào ngược")
-  ) {
-    suggestions.push({
-      tenThuoc: "Thuốc giảm tiết acid (ví dụ: Omeprazol 20mg)",
-      cachDung: "1 viên trước ăn sáng 30 phút, dùng theo chỉ định bác sĩ.",
-    });
-  }
+                <div className="mt-4 flex items-start gap-2 rounded-2xl border border-slate-200 bg-white/70 p-3 text-xs leading-5 text-slate-600">
+                  <Database className="mt-0.5 h-4 w-4 shrink-0 text-slate-400" />
+                  <p>
+                    Dữ liệu bệnh án thật vẫn lưu trong hệ thống bệnh viện. Blockchain chỉ lưu dấu vân tay số
+                    của dữ liệu để chứng minh hồ sơ không bị sửa âm thầm.
+                  </p>
+                </div>
+              </div>
+            </div>
 
-  if (
-    diagnosis.includes("dị ứng") ||
-    diagnosis.includes("mẩn ngứa") ||
-    diagnosis.includes("mề đay")
-  ) {
-    suggestions.push({
-      tenThuoc: "Thuốc kháng histamin (ví dụ: Cetirizin 10mg)",
-      cachDung: "1 viên buổi tối hoặc theo chỉ định bác sĩ.",
-    });
-  }
+            <button
+              type="button"
+              onClick={() => loadLedgerStatus(integrityRecordId)}
+              disabled={ledgerLoading}
+              className="inline-flex shrink-0 items-center justify-center gap-2 rounded-xl border border-slate-200 bg-white px-4 py-2.5 text-sm font-bold text-slate-700 shadow-sm hover:border-emerald-300 hover:text-emerald-700 disabled:opacity-60"
+            >
+              {ledgerLoading ? <LoaderCircle className="h-4 w-4 animate-spin" /> : <ShieldCheck className="h-4 w-4" />}
+              Kiểm tra bằng chứng
+            </button>
+          </div>
+        </section>
 
-  if (suggestions.length === 0) {
-    return [];
-  }
+        <section className="grid grid-cols-2 gap-3 md:grid-cols-5">
+          <SummaryCard icon={CalendarDays} label="Đợt khám" value={thongKe.soDotKham} tone="border-emerald-200 bg-emerald-50 text-emerald-800" />
+          <SummaryCard icon={Stethoscope} label="Phiếu khám" value={thongKe.soPhieuKham} tone="border-blue-200 bg-blue-50 text-blue-800" />
+          <SummaryCard icon={Pill} label="Đơn thuốc" value={thongKe.soDonThuoc} tone="border-violet-200 bg-violet-50 text-violet-800" />
+          <SummaryCard icon={FlaskConical} label="Xét nghiệm" value={thongKe.soXetNghiem} tone="border-amber-200 bg-amber-50 text-amber-800" />
+          <SummaryCard icon={ClipboardList} label="Tổng sự kiện" value={thongKe.tongSuKien} tone="col-span-2 border-slate-200 bg-white text-slate-800 md:col-span-1" />
+        </section>
 
-  return suggestions;
-};
+        <section className="rounded-2xl border border-slate-200 bg-white p-4 shadow-sm md:p-5">
+          <div className="mb-4 flex items-center gap-3">
+            <div className="rounded-xl bg-blue-50 p-2 text-blue-600">
+              <Search className="h-5 w-5" />
+            </div>
+            <div>
+              <h2 className="font-black text-slate-900">Bộ lọc hiển thị</h2>
+              <p className="text-xs text-slate-500">Bật hoặc tắt từng loại thông tin trong hồ sơ.</p>
+            </div>
+          </div>
 
-const PhieuKhamContent = ({ data, bacSiList }) => {
-  const goiYThuoc = getSuggestedMedicinesByDiagnosis(data.chuanDoan);
+          <div className="flex flex-col gap-4 xl:flex-row xl:items-end xl:justify-between">
+            <div className="flex flex-wrap gap-2.5">
+              {FILTERS.map((filter) => {
+                const Icon = filter.icon;
+                const active = filters[filter.key];
+                return (
+                  <button
+                    key={filter.key}
+                    type="button"
+                    onClick={() => toggleFilter(filter.key)}
+                    className={`inline-flex items-center gap-2 rounded-xl border px-4 py-2.5 text-sm font-bold shadow-sm transition ${active ? filter.active : filter.idle}`}
+                  >
+                    {active && <Check className="h-4 w-4" />}
+                    <Icon className="h-4 w-4" />
+                    {filter.label}
+                  </button>
+                );
+              })}
+            </div>
 
-  return (
-    <>
-      <InfoRow label="Mã Phiếu Khám" value={data.maPK} />
-      <InfoRow label="Bác sĩ" value={getBacSiName(data.maBS, bacSiList)} />
-      <InfoRow label="Triệu chứng" value={data.trieuChung} />
-      <InfoRow label="Chẩn đoán" value={data.chuanDoan} />
-      <InfoRow label="Lời dặn" value={data.loiDan} />
-      <FileLink dataUrl={data.file} label="Xem ảnh Phiếu khám" />
+            <label className="block w-full xl:w-64">
+              <span className="mb-1.5 block text-xs font-bold uppercase tracking-wide text-slate-500">
+                Lọc theo ngày
+              </span>
+              <input
+                type="date"
+                value={filterDate}
+                onChange={(event) => setFilterDate(event.target.value)}
+                className="w-full rounded-xl border border-slate-200 bg-white px-3 py-2.5 text-sm font-semibold text-slate-700 outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-100"
+              />
+            </label>
+          </div>
+        </section>
 
-      {/* Gợi ý đơn thuốc cho bệnh nhân (chỉ mang tính tham khảo) */}
-      {goiYThuoc.length > 0 && (
-      <div className="mt-4 pt-4 border-t border-dashed border-gray-200">
-          <div className="flex items-center gap-2 mb-2">
-            <span className="text-lg">💡</span>
-            <span className="font-semibold text-gray-800">
-              Gợi ý đơn thuốc (tham khảo, KHÔNG thay thế đơn của bác sĩ)
-            </span>
-          </div>
-          <p className="text-xs text-gray-500 mb-2">
-            Thông tin dưới đây chỉ mang tính tham khảo theo chẩn đoán. Bạn không nên tự ý mua và dùng thuốc
-            khi chưa có chỉ định cụ thể của bác sĩ.
-          </p>
-          <ul className="list-disc pl-5 space-y-1 text-sm text-gray-800">
-            {goiYThuoc.map((item, idx) => (
-              <li key={idx}>
-                <span className="font-semibold">{item.tenThuoc}</span>
-                <span className="ml-1 text-gray-700">– {item.cachDung}</span>
-              </li>
-                ))}
-          </ul>
-          </div>
-        )}
-    </>
-  );
-};
+        {groupedTimeline.length === 0 ? (
+          <EmptyState
+            title="Không có dữ liệu phù hợp"
+            description="Không có sự kiện nào khớp với bộ lọc hiện tại. Hãy bật thêm loại dữ liệu hoặc xóa ngày đang lọc."
+          />
+        ) : (
+          <section className="space-y-7">
+            {groupedTimeline.map((month) => (
+              <div key={month.key} className="space-y-4">
+                <div className="flex flex-wrap items-center gap-3">
+                  <div className="rounded-xl bg-blue-600 p-2.5 text-white shadow-md shadow-blue-200">
+                    <CalendarDays className="h-5 w-5" />
+                  </div>
+                  <h2 className="text-lg font-black text-slate-900 md:text-xl">
+                    Đợt khám bệnh: Tháng {month.label}
+                  </h2>
+                  <span className="rounded-full bg-blue-100 px-3 py-1 text-xs font-bold text-blue-700">
+                    {month.total} sự kiện
+                  </span>
+                </div>
 
-// Sửa 13: Cập nhật DonThuocHoanChinhContent (Thêm FileLink)
-const DonThuocHoanChinhContent = ({ data, bacSiList }) => (
-  <div className="space-y-3">
-    <InfoRow label="Mã Đơn Thuốc" value={data.maDT} />
-    <InfoRow label="Gắn với Phiếu Khám" value={data.maPK} />
-    <InfoRow label="Bác sĩ" value={getBacSiName(data.maBS, bacSiList)} />
+                <div className="space-y-4">
+                  {month.days.map((day) => (
+                    <div key={day.key} className="rounded-2xl border border-slate-200 bg-white p-4 shadow-sm md:p-5">
+                      <div className="mb-4 flex flex-wrap items-center gap-3 border-b border-slate-100 pb-3">
+                        <div className="rounded-lg bg-slate-100 p-2 text-slate-600">
+                          <FileText className="h-4 w-4" />
+                        </div>
+                        <h3 className="font-black text-slate-800">Ngày {day.label}</h3>
+                        <span className="rounded-full bg-slate-100 px-2.5 py-1 text-xs font-bold text-slate-600">
+                          {day.events.length} sự kiện
+                        </span>
+                      </div>
 
-    {/* BỔ SUNG HIỂN THỊ FILE CHO ĐƠN THUỐC */}
-    <FileLink dataUrl={data.file} label="Xem ảnh Đơn thuốc" />
-
-    {/* Bảng chi tiết thuốc */}
-    <div className="mt-4 pt-4 border-t border-gray-200">
-      <h5 className="font-semibold text-gray-800 mb-3 flex items-center gap-2">
-        <span>💊</span>
-        <span>Chi tiết thuốc:</span>
-      </h5>
-      <div className="overflow-x-auto rounded-lg border border-gray-200">
-        <table className="min-w-full text-sm">
-          <thead className="bg-gradient-to-r from-purple-50 to-purple-100">
-            <tr>
-              <th className="px-4 py-3 text-left font-semibold text-gray-700">Mã Thuốc</th>
-              <th className="px-4 py-3 text-left font-semibold text-gray-700">Tên Thuốc</th>
-              <th className="px-4 py-3 text-left font-semibold text-gray-700">Số Lượng</th>
-              <th className="px-4 py-3 text-left font-semibold text-gray-700">Liều Dùng</th>
-            </tr>
-          </thead>
-          <tbody className="bg-white divide-y divide-gray-200">
-            {(data.chiTietList || []).map((item, index) => (
-              <tr key={index} className="hover:bg-purple-50 transition-colors">
-                <td className="px-4 py-3 text-gray-800 font-medium">{item.maThuoc}</td>
-                <td className="px-4 py-3 text-gray-700">{item.tenThuoc || <span className="text-gray-400 italic">(Không có tên)</span>}</td>
-                <td className="px-4 py-3 text-gray-700">{item.soLuong}</td>
-                <td className="px-4 py-3 text-gray-700">{item.lieuDung}</td>
-              </tr>
-            ))}
-          </tbody>
-        </table>
-      </div>
-    </div>
-  </div>
-);
-
-// Sửa 14: Cập nhật KetQuaXetNghiemContent (Thêm FileLink)
-const KetQuaXetNghiemContent = ({ data, nhanSuList }) => (
-  <>
-    <InfoRow label="Mã Phiếu XN" value={data.maPhieuXN} />
-    <InfoRow label="Mã Yêu Cầu" value={data.maYeuCau} />
-    <InfoRow label="Mã Xét Nghiệm" value={data.maXN} />
-    {/* Thay thế ID bằng Tên */}
-    <InfoRow label="Nhân viên" value={getNhanSuName(data.maNS, nhanSuList)} />
-    <InfoRow label="Kết quả" value={data.ketQua} />
-    <InfoRow label="Ghi chú" value={data.ghiChu} />
-    <FileLink dataUrl={data.file} label="Xem ảnh Kết quả XN" />
-  </>
-);
-
-// Helper function to get gradient colors based on block type
-const getGradientColor = (blockType) => {
-  switch (blockType) {
-    case 'PHIEU_KHAM':
-      return 'from-blue-500 to-blue-600';
-    case 'TAO_MOI':
-      return 'from-green-500 to-green-600';
-    case 'DON_THUOC_HOAN_CHINH':
-      return 'from-purple-500 to-purple-600';
-    case 'PHIEU_XET_NGHIEM':
-    case 'KET_QUA_XET_NGHIEM':
-    case 'XET_NGHIEM_HOAN_CHINH':
-      return 'from-orange-500 to-orange-600';
-    default:
-      return 'from-gray-500 to-gray-600';
-  }
-};
-
-// === COMPONENT CON ĐỂ HIỂN THỊ KHỐI (BLOCK) (Giữ nguyên) ===
-const BlockWidget = ({ block, bacSiList, nhanSuList }) => {
-  let content, icon, title, color;
-  
-  const blockData = block.data_json ? JSON.parse(block.data_json) : {}; 
-
-  switch (block.block_type) {
-    case 'PHIEU_KHAM':
-      icon = "🩺";
-      title = "Phiếu Khám";
-      color = "text-blue-700";
-      content = <PhieuKhamContent data={blockData} bacSiList={bacSiList} />;
-      break;
-    case 'TAO_MOI':
-      icon = "👤";
-      title = "Tạo Hồ Sơ";
-      color = "text-green-700";
-      content = <TaoMoiContent data={blockData} />;
-      break;
-    
-    case 'DON_THUOC_HOAN_CHINH':
-      icon = "💊";
-      title = "Đơn Thuốc";
-      color = "text-purple-700";
-      content = <DonThuocHoanChinhContent data={blockData} bacSiList={bacSiList} />;
-      break;
-      
-    // Ẩn Yêu Cầu Xét Nghiệm
-    case 'YEU_CAU_XET_NGHIEM':
-      return null;
-      
-    case 'PHIEU_XET_NGHIEM':
-    case 'KET_QUA_XET_NGHIEM':
-    case 'XET_NGHIEM_HOAN_CHINH': 
-       icon = "🔬";
-      title = "Kết Quả Xét Nghiệm";
-      color = "text-orange-800";
-      // Sửa 9: Truyền `nhanSuList`
-      content = <KetQuaXetNghiemContent data={blockData} nhanSuList={nhanSuList} />;
-      break;
-
-    default:
-      return null;
-  }
-
-  return (
-    <div className="bg-white rounded-xl shadow-lg border-2 border-gray-200 hover:shadow-xl transition-all duration-300 overflow-hidden">
-      {/* Header */}
-      <div className={`bg-gradient-to-r ${getGradientColor(block.block_type)} p-4`}>
-        <div className="flex justify-between items-center">
-          <div className="flex items-center gap-3">
-            <div className="bg-white/20 backdrop-blur-sm p-2 rounded-lg">
-              <span className="text-2xl">{icon}</span>
-            </div>
-            <h4 className="text-lg font-bold text-white">
-              {title}
-            </h4>
-          </div>
-          <div className="bg-white/20 backdrop-blur-sm px-3 py-1.5 rounded-lg">
-            <span className="text-xs font-semibold text-white">
-              {dayjs(block.timestamp).format("DD/MM/YYYY HH:mm")}
-            </span>
-          </div>
-        </div>
-      </div>
-      
-      {/* Content */}
-      <div className="p-6">
-        <div className="space-y-3 text-sm">
-          {content}
-        </div>
-      </div>
-    </div>
-  );
+                      <div className="space-y-4">
+                        {day.events.map((event) => (
+                          <EventCard key={event.id} event={event} />
+                        ))}
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            ))}
+          </section>
+        )}
+      </div>
+    </div>
+  );
 };
 
 export default HoSoBenhAnPage;

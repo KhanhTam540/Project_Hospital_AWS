@@ -1,4 +1,5 @@
 import React, { useEffect, useState, useMemo } from "react";
+import AdminPagination, { useAdminPagination } from "../../../components/admin/AdminPagination";
 import {
   getAllThuoc,
   createThuoc,
@@ -125,6 +126,11 @@ const QuanLyThuocPage = () => {
         t.tenHoatChat?.toLowerCase().includes(search.toLowerCase())
     );
   }, [thuocList, search]);
+
+  const pagination = useAdminPagination(filtered, {
+    initialPageSize: 10,
+    resetKey: search,
+  });
 
   if (loading) {
     return (
@@ -407,7 +413,7 @@ const QuanLyThuocPage = () => {
                 </tr>
               </thead>
               <tbody className="divide-y divide-gray-200">
-                {filtered.map(t => (
+                {pagination.pageItems.map(t => (
                   <tr key={t.maThuoc} className="hover:bg-red-50 transition-colors">
                     <td className="px-6 py-4 font-medium text-gray-800">
                       <span className="px-3 py-1 bg-red-100 text-red-800 rounded-full text-xs font-semibold">
@@ -461,6 +467,7 @@ const QuanLyThuocPage = () => {
               </tbody>
             </table>
           </div>
+          <AdminPagination pagination={pagination} itemLabel="thuốc" />
         </div>
       )}
     </div>

@@ -1,28 +1,20 @@
 import axios from "../../api/axiosClient";
+import { ensureArray, unwrapApiResponse } from "../../utils/apiResponse";
 
-// Lấy toàn bộ nhóm thuốc
-export const getAllNhomThuoc = async () => {
-  const res = await axios.get("/thuoc/nhomthuoc");
-  return res.data.data;
-};
+export async function getAllNhomThuoc() {
+  const response = await axios.get("/thuoc/nhomthuoc");
+  return ensureArray(unwrapApiResponse(response, []));
+}
 
-// Lấy 1 nhóm thuốc theo mã
-export const getOneNhomThuoc = async (id) => {
-  const res = await axios.get(`/thuoc/nhomthuoc/${id}`);
-  return res.data.data;
-};
+export async function getOneNhomThuoc(id) {
+  const response = await axios.get(
+    `/thuoc/nhomthuoc/${encodeURIComponent(id)}`,
+  );
+  return unwrapApiResponse(response, null);
+}
 
-// Tạo mới nhóm thuốc
-export const createNhomThuoc = (data) => {
-  return axios.post("/thuoc/nhomthuoc", data);
-};
-
-// Cập nhật nhóm thuốc
-export const updateNhomThuoc = (id, data) => {
-  return axios.put(`/thuoc/nhomthuoc/${id}`, data);
-};
-
-// Xoá nhóm thuốc
-export const deleteNhomThuoc = (id) => {
-  return axios.delete(`/thuoc/nhomthuoc/${id}`);
-};
+export const createNhomThuoc = (data) => axios.post("/thuoc/nhomthuoc", data);
+export const updateNhomThuoc = (id, data) =>
+  axios.put(`/thuoc/nhomthuoc/${encodeURIComponent(id)}`, data);
+export const deleteNhomThuoc = (id) =>
+  axios.delete(`/thuoc/nhomthuoc/${encodeURIComponent(id)}`);

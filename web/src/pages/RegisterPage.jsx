@@ -11,6 +11,7 @@ import { cognitoSignUp } from "../auth/cognitoAuth";
 import { isCognitoEnabled } from "../config/cognito";
 
 const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+const CCCD_RE = /^\d{12}$/;
 const STRONG_PASSWORD_RE =
   /^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[^A-Za-z0-9]).{10,}$/;
 
@@ -19,6 +20,7 @@ function RegisterPage() {
   const cognitoEnabled = isCognitoEnabled();
 
   const [fullName, setFullName] = useState("");
+  const [citizenId, setCitizenId] = useState("");
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [confirmPassword, setConfirmPassword] = useState("");
@@ -29,8 +31,17 @@ function RegisterPage() {
   const validate = () => {
     const nextErrors = {};
     const normalizedEmail = email.trim().toLowerCase();
+    const normalizedCitizenId = citizenId.replace(/\D/g, "");
 
-    if (!fullName.trim()) nextErrors.fullName = "Vui lòng nhập họ và tên.";
+    if (!fullName.trim()) {
+      nextErrors.fullName = "Vui lòng nhập họ và tên.";
+    }
+
+    if (!normalizedCitizenId) {
+      nextErrors.citizenId = "Vui lòng nhập số CCCD.";
+    } else if (!CCCD_RE.test(normalizedCitizenId)) {
+      nextErrors.citizenId = "CCCD phải gồm đúng 12 chữ số.";
+    }
 
     if (!normalizedEmail) {
       nextErrors.email = "Vui lòng nhập email.";
@@ -57,13 +68,16 @@ function RegisterPage() {
     event.preventDefault();
 
     if (!cognitoEnabled) {
-      toast.error("Hệ thống xác thực chưa được cấu hình. Vui lòng liên hệ quản trị viên.");
+      toast.error(
+        "Hệ thống xác thực chưa được cấu hình. Vui lòng liên hệ quản trị viên.",
+      );
       return;
     }
 
     if (!validate()) return;
 
     const normalizedEmail = email.trim().toLowerCase();
+    const normalizedCitizenId = citizenId.replace(/\D/g, "");
 
     try {
       setLoading(true);
@@ -72,6 +86,7 @@ function RegisterPage() {
         email: normalizedEmail,
         password,
         name: fullName.trim(),
+        cccd: normalizedCitizenId,
       });
 
       sessionStorage.setItem("pendingConfirmationEmail", normalizedEmail);
@@ -102,6 +117,15 @@ function RegisterPage() {
         return;
       }
 
+      if (message.toUpperCase().includes("CCCD")) {
+        toast.error(
+          message.includes("đã")
+            ? message
+            : "CCCD không hợp lệ hoặc đã được sử dụng bởi tài khoản khác.",
+        );
+        return;
+      }
+
       toast.error(message);
     } finally {
       setLoading(false);
@@ -116,11 +140,11 @@ function RegisterPage() {
       panelTitle="Chủ động chăm sóc sức khỏe ngay từ hôm nay"
       panelDescription="Đăng ký tài khoản để sử dụng các dịch vụ trực tuyến của bệnh viện nhanh chóng và thuận tiện hơn."
       panelItems={[
-        "Đăng ký tài khoản chỉ trong vài phút",
+        "CCCD được dùng làm mã hồ sơ bệnh án",
         "Đặt lịch khám trực tuyến thuận tiện",
         "Theo dõi hồ sơ và hóa đơn tập trung",
       ]}
-      panelNote="Mã xác nhận sẽ được gửi đến email bạn đăng ký."
+      panelNote="Sau khi xác nhận email, hệ thống tự tạo hồ sơ bệnh án theo số CCCD."
       icon="📝"
       footer={
         <p>
@@ -139,6 +163,26 @@ function RegisterPage() {
           disabled={loading}
           autoFocus
         />
+
+        <AuthInput
+          label="CCCD"
+          value={citizenId}
+          onChange={(event) =>
+            setCitizenId(event.target.value.replace(/\D/g, "").slice(0, 12))
+          }
+          error={errors.citizenId}
+          placeholder="Nhập đúng 12 chữ số CCCD"
+          inputMode="numeric"
+          autoComplete="off"
+          minLength={12}
+          maxLength={12}
+          disabled={loading}
+        />
+
+        <p className="-mt-2 mb-4 text-xs leading-5 text-slate-500">
+          CCCD là định danh duy nhất và sẽ được dùng làm mã hồ sơ bệnh án. Sau
+          khi đăng ký, bệnh nhân không tự thay đổi trường này.
+        </p>
 
         <AuthInput
           label="Email"
