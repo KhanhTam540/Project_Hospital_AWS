@@ -1,28 +1,20 @@
 import axios from "../../api/axiosClient";
+import { ensureArray, unwrapApiResponse } from "../../utils/apiResponse";
 
-// Lấy toàn bộ đơn vị tính
-export const getAllDonViTinh = async () => {
-  const res = await axios.get("/thuoc/donvitinh");
-  return res.data.data;
-};
+export async function getAllDonViTinh() {
+  const response = await axios.get("/thuoc/donvitinh");
+  return ensureArray(unwrapApiResponse(response, []));
+}
 
-// Lấy 1 đơn vị tính theo mã
-export const getOneDonViTinh = async (id) => {
-  const res = await axios.get(`/thuoc/donvitinh/${id}`);
-  return res.data.data;
-};
+export async function getOneDonViTinh(id) {
+  const response = await axios.get(
+    `/thuoc/donvitinh/${encodeURIComponent(id)}`,
+  );
+  return unwrapApiResponse(response, null);
+}
 
-// Tạo mới đơn vị tính
-export const createDonViTinh = (data) => {
-  return axios.post("/thuoc/donvitinh", data);
-};
-
-// Cập nhật đơn vị tính
-export const updateDonViTinh = (id, data) => {
-  return axios.put(`/thuoc/donvitinh/${id}`, data);
-};
-
-// Xoá đơn vị tính
-export const deleteDonViTinh = (id) => {
-  return axios.delete(`/thuoc/donvitinh/${id}`);
-};
+export const createDonViTinh = (data) => axios.post("/thuoc/donvitinh", data);
+export const updateDonViTinh = (id, data) =>
+  axios.put(`/thuoc/donvitinh/${encodeURIComponent(id)}`, data);
+export const deleteDonViTinh = (id) =>
+  axios.delete(`/thuoc/donvitinh/${encodeURIComponent(id)}`);

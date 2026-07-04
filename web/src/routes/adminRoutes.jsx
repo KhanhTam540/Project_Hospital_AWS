@@ -5,9 +5,7 @@ import AdminHome from "../pages/AdminHome";
 import AdminUserList from "../pages/admin/AdminUserList";
 import CreateUserForm from "../pages/admin/CreateUserForm";
 import AssignRole from "../pages/admin/AssignRole";
-import CognitoLinkPage from "../pages/admin/CognitoLinkPage";
 import ManageKhoaPhongPage from "../pages/admin/ManageKhoaPhongPage";
-import AccountApprovalPage from "../pages/admin/AccountApprovalPage";
 import ManageBacSi from "../pages/admin/ManageBacSi";
 import ManageNhanSu from "../pages/admin/ManageNhanSu";
 import ManageBenhNhan from "../pages/admin/ManageBenhNhan";
@@ -15,11 +13,9 @@ import ManageLichKham from "../pages/admin/ManageLichKham";
 import ManageXetNghiem from "../pages/admin/ManageXetNghiem";
 import ManageLoaiXN from "../pages/admin/ManageLoaiXN";
 import ManageHoSoBenhAn from "../pages/admin/ManageHoSoBenhAn";
-import ChiTietHSBAPage from "../pages/admin/ChiTietHSBAPage";
 import QuanLyThuocPage from "../pages/admin/thuoc/QuanLyThuocPage";
 import QuanLyNhomThuoc from "../pages/admin/thuoc/QuanLyNhomThuoc";
 import QuanLyDonViTinh from "../pages/admin/thuoc/QuanLyDonViTinh";
-import TroLyBacSiPage from "../pages/admin/nhansu/TroLyBacSiPage";
 import QuanLyCaTrucPage from "../pages/admin/nhansu/QuanLyCaTrucPage";
 import ThongKeHoaDonPage from "../pages/admin/thongke/ThongKeHoaDonPage";
 import ThongKeLichLamViecPage from "../pages/admin/thongke/ThongKeLichLamViecPage";
@@ -37,20 +33,16 @@ export const adminRouteDefinitions = [
   { path: "taikhoan/tao-moi", element: CreateUserForm },
   { path: "taikhoan/sua/:id", element: CreateUserForm, hidden: true },
   { path: "taikhoan/phan-quyen", element: AssignRole },
-  { path: "taikhoan/cognito", element: CognitoLinkPage },
-  { path: "taikhoan/duyet-dang-ky", element: AccountApprovalPage },
   { path: "khoa", element: ManageKhoaPhongPage },
   { path: "khoa-phong", element: ManageKhoaPhongPage },
   { path: "bacsi", element: ManageBacSi },
   { path: "nhansu", element: ManageNhanSu },
-  { path: "nhansu/troly", element: TroLyBacSiPage },
   { path: "nhansu/catruc", element: QuanLyCaTrucPage },
   { path: "benhnhan", element: ManageBenhNhan },
   { path: "lichkham", element: ManageLichKham },
   { path: "xetnghiem", element: ManageXetNghiem },
   { path: "loaixetnghiem", element: ManageLoaiXN },
   { path: "hosobenhan", element: ManageHoSoBenhAn },
-  { path: "hosobenhan/:maHSBA", element: ChiTietHSBAPage, hidden: true },
   { path: "thuoc", element: QuanLyThuocPage },
   { path: "nhomthuoc", element: QuanLyNhomThuoc },
   { path: "donvitinh", element: QuanLyDonViTinh },

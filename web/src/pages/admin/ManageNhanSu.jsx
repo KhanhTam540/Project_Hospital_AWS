@@ -1,314 +1,211 @@
-import React, { useEffect, useState, useMemo } from "react";
-import axios from "../../api/axiosClient";
+import React, { useCallback, useEffect, useMemo, useState } from "react";
+import AdminPagination, { useAdminPagination } from "../../components/admin/AdminPagination";
 import toast from "react-hot-toast";
-import { UserCog, Search, Edit, Trash2, X } from 'lucide-react';
+import { Edit3, Plus, RefreshCw, Search, Trash2, UserCog, X } from "lucide-react";
+import axios from "../../api/axiosClient";
+import {
+  ensureArray,
+  getApiErrorMessage,
+  unwrapApiResponse,
+} from "../../utils/apiResponse";
+
+const EMPTY_FORM = Object.freeze({
+  maNS: "",
+  hoTen: "",
+  maKhoa: "",
+  loaiNS: "YT",
+  capBac: "",
+  chuyenMon: "",
+  trangThai: 1,
+});
+
+const STAFF_TYPES = Object.freeze([
+  ["YT", "Y tá / Điều dưỡng"],
+  ["XN", "Kỹ thuật viên xét nghiệm"],
+  ["TN", "Tiếp nhận"],
+  ["HC", "Hành chính"],
+  ["KT", "Kế toán / Thu ngân"],
+]);
 
 function ManageNhanSu() {
-  const [dsNhanSu, setDsNhanSu] = useState([]);
-  const [dsKhoa, setDsKhoa] = useState([]);
+  const [staff, setStaff] = useState([]);
+  const [departments, setDepartments] = useState([]);
   const [form, setForm] = useState(null);
   const [search, setSearch] = useState("");
-  const [loading, setLoading] = useState(false);
-  const token = localStorage.getItem("token");
+  const [loading, setLoading] = useState(true);
+  const [saving, setSaving] = useState(false);
+  const [deletingId, setDeletingId] = useState("");
 
-  useEffect(() => {
-    fetchNhanSu();
-    fetchKhoa();
+  const fetchStaff = useCallback(async ({ silent = false } = {}) => {
+    if (!silent) setLoading(true);
+    try {
+      const response = await axios.get("/nhansu");
+      setStaff(ensureArray(unwrapApiResponse(response, [])));
+    } catch (error) {
+      toast.error(getApiErrorMessage(error, "Không thể tải danh sách nhân sự"));
+      if (!silent) setStaff([]);
+    } finally {
+      if (!silent) setLoading(false);
+    }
   }, []);
 
-  const fetchNhanSu = async () => {
-    setLoading(true);
+  const fetchDepartments = useCallback(async () => {
     try {
-      const res = await axios.get("/nhansu", {
-        headers: { Authorization: `Bearer ${token}` },
-      });
-      setDsNhanSu(res.data.data || []);
-    } catch {
-      toast.error("Không thể tải danh sách nhân sự");
-    } finally {
-      setLoading(false);
+      const response = await axios.get("/khoa");
+      setDepartments(ensureArray(unwrapApiResponse(response, [])));
+    } catch (error) {
+      toast.error(getApiErrorMessage(error, "Không thể tải danh sách khoa"));
+      setDepartments([]);
     }
+  }, []);
+
+  useEffect(() => {
+    Promise.all([fetchStaff(), fetchDepartments()]);
+  }, [fetchDepartments, fetchStaff]);
+
+  const filteredStaff = useMemo(() => {
+    const keyword = search.trim().toLowerCase();
+    if (!keyword) return staff;
+    return staff.filter((item) =>
+      [item.maNS, item.hoTen, item.loaiNS, item.chuyenMon, item.Khoa?.tenKhoa]
+        .some((value) => String(value || "").toLowerCase().includes(keyword)),
+    );
+  }, [search, staff]);
+
+  const pagination = useAdminPagination(filteredStaff, {
+    initialPageSize: 10,
+    resetKey: search,
+  });
+
+  const handleChange = (event) => {
+    const { name, value } = event.target;
+    setForm((current) => ({
+      ...current,
+      [name]: name === "trangThai" ? Number(value) : value,
+    }));
   };
 
-  const fetchKhoa = async () => {
-    try {
-      const res = await axios.get("/khoa", {
-        headers: { Authorization: `Bearer ${token}` },
-      });
-      setDsKhoa(res.data.data || []);
-    } catch {
-      toast.error("Không thể tải danh sách khoa");
+  const handleSubmit = async (event) => {
+    event.preventDefault();
+    if (!form.hoTen.trim() || !form.maKhoa || !form.loaiNS) {
+      toast.error("Họ tên, khoa và loại nhân sự là bắt buộc");
+      return;
     }
-  };
 
-  const handleEdit = (ns) => setForm({ ...ns });
-
-  const handleDelete = async (maNS) => {
-    if (!window.confirm("Xác nhận xoá nhân sự này?")) return;
+    setSaving(true);
     try {
-      await axios.delete(`/nhansu/${maNS}`, {
-        headers: { Authorization: `Bearer ${token}` },
-      });
-      toast.success("Đã xoá nhân sự");
-      fetchNhanSu();
-    } catch {
-      toast.error("Không thể xoá nhân sự");
-    }
-  };
+      const payload = {
+        ...form,
+        hoTen: form.hoTen.trim(),
+        capBac: form.capBac.trim(),
+        chuyenMon: form.chuyenMon.trim(),
+      };
 
-  const handleChange = (e) => {
-    setForm((prev) => ({ ...prev, [e.target.name]: e.target.value }));
-  };
+      if (form.maNS) {
+        const response = await axios.put(`/nhansu/${encodeURIComponent(form.maNS)}`, payload);
+        const updated = unwrapApiResponse(response, payload);
+        setStaff((current) => current.map((item) => item.maNS === form.maNS ? updated : item));
+        toast.success("Cập nhật nhân sự thành công");
+      } else {
+        const response = await axios.post("/nhansu", payload);
+        const created = unwrapApiResponse(response, payload);
+        setStaff((current) => [created, ...current]);
+        toast.success("Thêm nhân sự thành công");
+      }
 
-  const handleUpdate = async (e) => {
-    e.preventDefault();
-    if (!form) return;
-    try {
-      await axios.put(`/nhansu/${form.maNS}`, form, {
-        headers: { Authorization: `Bearer ${token}` },
-      });
-      toast.success("Cập nhật thành công");
       setForm(null);
-      fetchNhanSu();
-    } catch {
-      toast.error("Lỗi khi cập nhật");
+      await fetchStaff({ silent: true });
+    } catch (error) {
+      toast.error(getApiErrorMessage(error, "Không thể lưu nhân sự"));
+    } finally {
+      setSaving(false);
     }
   };
 
-  const filtered = useMemo(() => {
-    return dsNhanSu.filter(
-      (ns) =>
-        ns.hoTen?.toLowerCase().includes(search.toLowerCase()) ||
-        ns.maNS?.toLowerCase().includes(search.toLowerCase()) ||
-        ns.loaiNS?.toLowerCase().includes(search.toLowerCase()) ||
-        ns.chuyenMon?.toLowerCase().includes(search.toLowerCase())
-    );
-  }, [dsNhanSu, search]);
-
-  const getLoaiNSLabel = (loai) => {
-    const labels = {
-      YT: "Y tá / Điều dưỡng",
-      TN: "Tiếp nhận",
-      XN: "Nhân viên xét nghiệm",
-      HC: "Hành chính",
-      KT: "Kế toán",
-    };
-    return labels[loai] || loai;
+  const handleDelete = async (item) => {
+    if (!window.confirm(`Xóa nhân sự ${item.hoTen}?`)) return;
+    setDeletingId(item.maNS);
+    try {
+      await axios.delete(`/nhansu/${encodeURIComponent(item.maNS)}`);
+      setStaff((current) => current.filter((row) => row.maNS !== item.maNS));
+      toast.success("Đã xóa nhân sự khỏi hệ thống");
+      await fetchStaff({ silent: true });
+    } catch (error) {
+      toast.error(
+        getApiErrorMessage(
+          error,
+          "Không thể xóa nhân sự. Nhân sự có thể đang có lịch hoặc hồ sơ liên quan.",
+        ),
+      );
+    } finally {
+      setDeletingId("");
+    }
   };
-
-  const getLoaiNSColor = (loai) => {
-    const colors = {
-      YT: "bg-green-100 text-green-800 border-green-200",
-      TN: "bg-blue-100 text-blue-800 border-blue-200",
-      XN: "bg-purple-100 text-purple-800 border-purple-200",
-      HC: "bg-yellow-100 text-yellow-800 border-yellow-200",
-      KT: "bg-orange-100 text-orange-800 border-orange-200",
-    };
-    return colors[loai] || "bg-gray-100 text-gray-800 border-gray-200";
-  };
-
-  if (loading) {
-    return (
-      <div className="flex items-center justify-center min-h-[400px]">
-        <div className="text-center">
-          <div className="inline-block animate-spin rounded-full h-12 w-12 border-t-4 border-b-4 border-blue-600 mb-4"></div>
-          <p className="text-gray-600">Đang tải dữ liệu...</p>
-        </div>
-      </div>
-    );
-  }
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-blue-50 via-white to-indigo-50 p-6">
-      {/* Header */}
-      <div className="mb-8">
-        <div className="flex items-center gap-4 mb-4">
-          <div className="bg-gradient-to-r from-yellow-600 to-orange-600 p-4 rounded-xl shadow-lg">
-            <UserCog size={32} className="text-white" />
-          </div>
-          <div>
-            <h1 className="text-3xl font-bold text-gray-800 mb-2">Quản lý nhân viên y tế</h1>
-            <p className="text-gray-600">Quản lý thông tin nhân sự trong hệ thống</p>
-          </div>
+    <div className="space-y-6 p-4 sm:p-6">
+      <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
+        <div>
+          <p className="text-xs font-bold uppercase tracking-[0.18em] text-violet-600">Nhân sự bệnh viện</p>
+          <h1 className="mt-1 text-3xl font-black text-slate-900">Quản lý nhân sự</h1>
+          <p className="mt-1 text-sm text-slate-500">Xóa, thêm và chỉnh sửa dữ liệu trực tiếp trong DynamoDB.</p>
         </div>
-
-        {/* Search Bar */}
-        <div className="relative">
-          <Search className="absolute left-4 top-1/2 transform -translate-y-1/2 text-gray-400" size={20} />
-          <input
-            type="text"
-            placeholder="Tìm kiếm theo tên, mã NS, loại hoặc chuyên môn..."
-            value={search}
-            onChange={(e) => setSearch(e.target.value)}
-            className="w-full pl-12 pr-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-yellow-500 focus:border-transparent bg-white shadow-sm"
-          />
+        <div className="flex gap-2">
+          <button type="button" onClick={() => fetchStaff()} className="inline-flex items-center gap-2 rounded-xl border border-slate-200 bg-white px-4 py-2.5 font-semibold text-slate-700 hover:bg-slate-50"><RefreshCw size={17} /> Làm mới</button>
+          <button type="button" onClick={() => setForm({ ...EMPTY_FORM })} className="inline-flex items-center gap-2 rounded-xl bg-violet-600 px-4 py-2.5 font-bold text-white hover:bg-violet-700"><Plus size={18} /> Thêm nhân sự</button>
         </div>
       </div>
 
-      {/* Edit Form Modal */}
-      {form && (
-        <div className="fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-4">
-          <div className="bg-white rounded-xl shadow-2xl max-w-2xl w-full max-h-[90vh] overflow-y-auto">
-            <div className="sticky top-0 bg-gradient-to-r from-yellow-600 to-orange-600 p-6 flex items-center justify-between">
-              <h2 className="text-2xl font-bold text-white">Cập nhật thông tin nhân sự</h2>
-              <button
-                onClick={() => setForm(null)}
-                className="text-white hover:bg-white/20 p-2 rounded-lg transition-colors"
-              >
-                <X size={24} />
-              </button>
-            </div>
-            <form onSubmit={handleUpdate} className="p-6 space-y-4">
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-2">Họ tên *</label>
-                  <input
-                    name="hoTen"
-                    value={form.hoTen || ""}
-                    onChange={handleChange}
-                    placeholder="Họ tên"
-                    className="w-full border border-gray-300 rounded-lg px-4 py-2 focus:ring-2 focus:ring-yellow-500 focus:border-transparent"
-                    required
-                  />
-                </div>
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-2">Loại nhân sự *</label>
-                  <select
-                    name="loaiNS"
-                    value={form.loaiNS || ""}
-                    onChange={handleChange}
-                    className="w-full border border-gray-300 rounded-lg px-4 py-2 focus:ring-2 focus:ring-yellow-500 focus:border-transparent"
-                    required
-                  >
-                    <option value="">-- Chọn loại nhân sự --</option>
-                    <option value="YT">Y tá / Điều dưỡng</option>
-                    <option value="TN">Tiếp nhận</option>
-                    <option value="XN">Nhân viên xét nghiệm</option>
-                    <option value="HC">Hành chính</option>
-                    <option value="KT">Kế toán</option>
-                  </select>
-                </div>
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-2">Cấp bậc *</label>
-                  <input
-                    name="capBac"
-                    value={form.capBac || ""}
-                    onChange={handleChange}
-                    placeholder="Cấp bậc"
-                    className="w-full border border-gray-300 rounded-lg px-4 py-2 focus:ring-2 focus:ring-yellow-500 focus:border-transparent"
-                    required
-                  />
-                </div>
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-2">Chuyên môn *</label>
-                  <input
-                    name="chuyenMon"
-                    value={form.chuyenMon || ""}
-                    onChange={handleChange}
-                    placeholder="Chuyên môn"
-                    className="w-full border border-gray-300 rounded-lg px-4 py-2 focus:ring-2 focus:ring-yellow-500 focus:border-transparent"
-                    required
-                  />
-                </div>
-                <div className="col-span-2">
-                  <label className="block text-sm font-medium text-gray-700 mb-2">Khoa *</label>
-                  <select
-                    name="maKhoa"
-                    value={form.maKhoa || ""}
-                    onChange={handleChange}
-                    className="w-full border border-gray-300 rounded-lg px-4 py-2 focus:ring-2 focus:ring-yellow-500 focus:border-transparent"
-                    required
-                  >
-                    <option value="">-- Chọn khoa --</option>
-                    {dsKhoa.map((k) => (
-                      <option key={k.maKhoa} value={k.maKhoa}>
-                        {k.tenKhoa} ({k.maKhoa})
-                      </option>
-                    ))}
-                  </select>
-                </div>
-              </div>
-              <div className="flex justify-end gap-3 pt-4 border-t">
-                <button
-                  type="button"
-                  onClick={() => setForm(null)}
-                  className="px-6 py-2 border border-gray-300 rounded-lg text-gray-700 hover:bg-gray-50 transition-colors"
-                >
-                  Hủy
-                </button>
-                <button
-                  type="submit"
-                  className="px-6 py-2 bg-gradient-to-r from-yellow-600 to-orange-600 text-white rounded-lg hover:from-yellow-700 hover:to-orange-700 transition-all shadow-md"
-                >
-                  Lưu cập nhật
-                </button>
-              </div>
-            </form>
-          </div>
-        </div>
-      )}
+      <div className="relative max-w-xl">
+        <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" size={18} />
+        <input value={search} onChange={(event) => setSearch(event.target.value)} placeholder="Tìm mã, tên, loại nhân sự hoặc khoa..." className="w-full rounded-xl border border-slate-200 bg-white py-3 pl-10 pr-4 outline-none focus:border-violet-400 focus:ring-2 focus:ring-violet-100" />
+      </div>
 
-      {/* Table */}
-      {filtered.length === 0 ? (
-        <div className="bg-white rounded-xl shadow-md p-12 text-center">
-          <UserCog size={64} className="mx-auto text-gray-300 mb-4" />
-          <h3 className="text-xl font-semibold text-gray-700 mb-2">Không có nhân sự nào</h3>
-          <p className="text-gray-500">Thử thay đổi từ khóa tìm kiếm</p>
-        </div>
-      ) : (
-        <div className="bg-white rounded-xl shadow-md overflow-hidden border border-gray-200">
+      <div className="overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-sm">
+        {loading ? (
+          <div className="p-12 text-center text-slate-500">Đang tải danh sách nhân sự...</div>
+        ) : filteredStaff.length === 0 ? (
+          <div className="p-12 text-center text-slate-500"><UserCog className="mx-auto mb-3 text-slate-300" size={48} />Chưa có nhân sự phù hợp.</div>
+        ) : (
           <div className="overflow-x-auto">
             <table className="min-w-full text-sm">
-              <thead className="bg-gradient-to-r from-gray-50 to-gray-100 border-b border-gray-200">
-                <tr>
-                  <th className="px-6 py-4 text-left font-semibold text-gray-700">Mã NS</th>
-                  <th className="px-6 py-4 text-left font-semibold text-gray-700">Họ tên</th>
-                  <th className="px-6 py-4 text-left font-semibold text-gray-700">Loại</th>
-                  <th className="px-6 py-4 text-left font-semibold text-gray-700">Cấp bậc</th>
-                  <th className="px-6 py-4 text-left font-semibold text-gray-700">Chuyên môn</th>
-                  <th className="px-6 py-4 text-left font-semibold text-gray-700">Khoa</th>
-                  <th className="px-6 py-4 text-center font-semibold text-gray-700">Thao tác</th>
-                </tr>
-              </thead>
-              <tbody className="divide-y divide-gray-200">
-                {filtered.map((ns) => (
-                  <tr key={ns.maNS} className="hover:bg-yellow-50 transition-colors">
-                    <td className="px-6 py-4 font-medium text-gray-800">{ns.maNS}</td>
-                    <td className="px-6 py-4 text-gray-700 font-semibold">{ns.hoTen}</td>
-                    <td className="px-6 py-4">
-                      <span className={`px-3 py-1 rounded-full text-xs font-semibold border ${getLoaiNSColor(ns.loaiNS)}`}>
-                        {getLoaiNSLabel(ns.loaiNS)}
-                      </span>
-                    </td>
-                    <td className="px-6 py-4 text-gray-700">{ns.capBac}</td>
-                    <td className="px-6 py-4 text-gray-700">{ns.chuyenMon}</td>
-                    <td className="px-6 py-4">
-                      <span className="px-3 py-1 bg-blue-100 text-blue-800 rounded-full text-xs font-semibold">
-                        {dsKhoa.find(k => k.maKhoa === ns.maKhoa)?.tenKhoa || ns.maKhoa}
-                      </span>
-                    </td>
-                    <td className="px-6 py-4">
-                      <div className="flex items-center justify-center gap-2">
-                        <button
-                          onClick={() => handleEdit(ns)}
-                          className="p-2 text-blue-600 hover:bg-blue-100 rounded-lg transition-colors"
-                          title="Sửa"
-                        >
-                          <Edit size={18} />
-                        </button>
-                        <button
-                          onClick={() => handleDelete(ns.maNS)}
-                          className="p-2 text-red-600 hover:bg-red-100 rounded-lg transition-colors"
-                          title="Xóa"
-                        >
-                          <Trash2 size={18} />
-                        </button>
-                      </div>
-                    </td>
+              <thead className="bg-slate-50 text-left text-slate-600"><tr><th className="px-5 py-4">Mã</th><th className="px-5 py-4">Họ tên</th><th className="px-5 py-4">Loại</th><th className="px-5 py-4">Khoa</th><th className="px-5 py-4">Trạng thái</th><th className="px-5 py-4 text-center">Thao tác</th></tr></thead>
+              <tbody className="divide-y divide-slate-100">
+                {pagination.pageItems.map((item) => (
+                  <tr key={item.maNS} className="hover:bg-violet-50/40">
+                    <td className="px-5 py-4 font-mono text-xs text-slate-500">{item.maNS}</td>
+                    <td className="px-5 py-4 font-bold text-slate-900">{item.hoTen}</td>
+                    <td className="px-5 py-4 text-slate-600">{STAFF_TYPES.find(([value]) => value === item.loaiNS)?.[1] || item.loaiNS || "—"}</td>
+                    <td className="px-5 py-4 text-slate-600">{item.Khoa?.tenKhoa || item.maKhoa || "—"}</td>
+                    <td className="px-5 py-4"><span className={`rounded-full px-2.5 py-1 text-xs font-bold ${Number(item.trangThai) === 0 ? "bg-slate-100 text-slate-600" : "bg-emerald-100 text-emerald-700"}`}>{Number(item.trangThai) === 0 ? "Ngừng hoạt động" : "Đang hoạt động"}</span></td>
+                    <td className="px-5 py-4"><div className="flex justify-center gap-2"><button type="button" onClick={() => setForm({ ...EMPTY_FORM, ...item })} className="rounded-lg p-2 text-blue-600 hover:bg-blue-100" title="Sửa"><Edit3 size={18} /></button><button type="button" onClick={() => handleDelete(item)} disabled={deletingId === item.maNS} className="rounded-lg p-2 text-red-600 hover:bg-red-100 disabled:opacity-50" title="Xóa"><Trash2 size={18} /></button></div></td>
                   </tr>
                 ))}
               </tbody>
             </table>
+          </div>
+        )}
+      </div>
+
+      {!loading && filteredStaff.length > 0 && (
+        <div className="overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-sm">
+          <AdminPagination pagination={pagination} itemLabel="nhân sự" />
+        </div>
+      )}
+
+      {form && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-950/50 p-4">
+          <div className="w-full max-w-2xl rounded-2xl bg-white shadow-2xl">
+            <div className="flex items-center justify-between border-b border-slate-100 p-5"><h2 className="text-xl font-black">{form.maNS ? "Cập nhật nhân sự" : "Thêm nhân sự"}</h2><button type="button" onClick={() => !saving && setForm(null)} className="rounded-lg p-2 hover:bg-slate-100"><X size={20} /></button></div>
+            <form onSubmit={handleSubmit} className="grid gap-4 p-5 md:grid-cols-2">
+              <label className="md:col-span-2"><span className="mb-1 block text-sm font-semibold">Họ tên *</span><input name="hoTen" value={form.hoTen} onChange={handleChange} required className="w-full rounded-lg border border-slate-300 px-3 py-2.5" /></label>
+              <label><span className="mb-1 block text-sm font-semibold">Khoa *</span><select name="maKhoa" value={form.maKhoa} onChange={handleChange} required className="w-full rounded-lg border border-slate-300 px-3 py-2.5"><option value="">-- Chọn khoa --</option>{departments.map((item) => <option key={item.maKhoa} value={item.maKhoa}>{item.tenKhoa}</option>)}</select></label>
+              <label><span className="mb-1 block text-sm font-semibold">Loại nhân sự *</span><select name="loaiNS" value={form.loaiNS} onChange={handleChange} required className="w-full rounded-lg border border-slate-300 px-3 py-2.5">{STAFF_TYPES.map(([value, label]) => <option key={value} value={value}>{label}</option>)}</select></label>
+              <label><span className="mb-1 block text-sm font-semibold">Cấp bậc</span><input name="capBac" value={form.capBac} onChange={handleChange} className="w-full rounded-lg border border-slate-300 px-3 py-2.5" /></label>
+              <label><span className="mb-1 block text-sm font-semibold">Chuyên môn</span><input name="chuyenMon" value={form.chuyenMon} onChange={handleChange} className="w-full rounded-lg border border-slate-300 px-3 py-2.5" /></label>
+              <label><span className="mb-1 block text-sm font-semibold">Trạng thái</span><select name="trangThai" value={form.trangThai} onChange={handleChange} className="w-full rounded-lg border border-slate-300 px-3 py-2.5"><option value={1}>Đang hoạt động</option><option value={0}>Ngừng hoạt động</option></select></label>
+              <div className="flex justify-end gap-3 border-t border-slate-100 pt-4 md:col-span-2"><button type="button" onClick={() => setForm(null)} className="rounded-lg border border-slate-300 px-4 py-2 font-semibold">Hủy</button><button type="submit" disabled={saving} className="rounded-lg bg-violet-600 px-5 py-2 font-bold text-white disabled:bg-slate-400">{saving ? "Đang lưu..." : "Lưu nhân sự"}</button></div>
+            </form>
           </div>
         </div>
       )}

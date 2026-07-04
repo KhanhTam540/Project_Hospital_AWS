@@ -1,0 +1,38 @@
+[
+  {
+    "pk": "MEDICINE_GROUP#NT001",
+    "sk": "META",
+    "entityType": "MEDICINE_GROUP",
+    "groupId": "NT001",
+    "groupName": "Giảm đau - hạ sốt",
+    "description": "Thuốc giảm đau và hạ sốt thông dụng.",
+    "status": "ACTIVE",
+    "dataSource": "P2TB_SAMPLE",
+    "createdAt": "2026-06-24T00:00:00.000Z",
+    "updatedAt": "2026-06-24T00:00:00.000Z"
+  },
+  {
+    "pk": "MEDICINE_GROUP#NT002",
+    "sk": "META",
+    "entityType": "MEDICINE_GROUP",
+    "groupId": "NT002",
+    "groupName": "Vitamin và khoáng chất",
+    "description": "Nhóm sản phẩm bổ sung vitamin và khoáng chất.",
+    "status": "ACTIVE",
+    "dataSource": "P2TB_SAMPLE",
+    "createdAt": "2026-06-24T00:00:00.000Z",
+    "updatedAt": "2026-06-24T00:00:00.000Z"
+  },
+  {
+    "pk": "MEDICINE_GROUP#NT003",
+    "sk": "META",
+    "entityType": "MEDICINE_GROUP",
+    "groupId": "NT003",
+    "groupName": "Dung dịch sát khuẩn",
+    "description": "Dung dịch vệ sinh và sát khuẩn dùng trong y tế.",
+    "status": "ACTIVE",
+    "dataSource": "P2TB_SAMPLE",
+    "createdAt": "2026-06-24T00:00:00.000Z",
+    "updatedAt": "2026-06-24T00:00:00.000Z"
+  }
+]

@@ -10,13 +10,11 @@ import {
   CalendarDays,
   CheckCircle2,
   Clock3,
-  Cloud,
   Database,
   FileText,
   FlaskConical,
   Pill,
   RefreshCw,
-  Server,
   ShieldCheck,
   Sparkles,
   Stethoscope,
@@ -178,32 +176,7 @@ const QUICK_ACTIONS = [
   },
 ];
 
-const SYSTEM_SERVICES = [
-  {
-    title: "API Gateway & Lambda",
-    description: "Luồng API serverless",
-    icon: Server,
-    tone: "bg-blue-50 text-blue-600",
-  },
-  {
-    title: "Amazon Cognito",
-    description: "Xác thực và phân quyền",
-    icon: ShieldCheck,
-    tone: "bg-violet-50 text-violet-600",
-  },
-  {
-    title: "DynamoDB",
-    description: "Cơ sở dữ liệu ứng dụng",
-    icon: Database,
-    tone: "bg-emerald-50 text-emerald-600",
-  },
-  {
-    title: "CloudFront",
-    description: "Phân phối giao diện toàn cầu",
-    icon: Cloud,
-    tone: "bg-cyan-50 text-cyan-600",
-  },
-];
+
 
 const extractCount = (response) => {
   const body = response?.data;
@@ -358,7 +331,7 @@ const AdminHome = () => {
                 {getDisplayName(user)}
               </h1>
               <p className="mt-3 max-w-2xl text-sm leading-6 text-slate-300 sm:text-base">
-                Theo dõi hoạt động bệnh viện, quản lý tài khoản và kiểm soát dữ liệu tập trung trên hạ tầng AWS.
+                Theo dõi hoạt động bệnh viện, quản lý tài khoản và kiểm soát dữ liệu nghiệp vụ tập trung.
               </p>
             </div>
 
@@ -413,7 +386,7 @@ const AdminHome = () => {
           </div>
         </section>
 
-        <section className="grid gap-6 2xl:grid-cols-[1.45fr_1fr]">
+        <section>
           <div className="rounded-[24px] border border-slate-200/80 bg-white p-5 shadow-sm sm:p-6">
             <div className="mb-5 flex items-center justify-between gap-4">
               <div>
@@ -423,7 +396,7 @@ const AdminHome = () => {
               <Activity size={23} className="text-violet-500" />
             </div>
 
-            <div className="grid gap-3 sm:grid-cols-2">
+            <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
               {QUICK_ACTIONS.map((action) => {
                 const Icon = action.icon;
                 return (
@@ -441,36 +414,6 @@ const AdminHome = () => {
                     </div>
                     <ArrowUpRight size={18} className="shrink-0 text-slate-300 transition group-hover:text-slate-700" />
                   </Link>
-                );
-              })}
-            </div>
-          </div>
-
-          <div className="rounded-[24px] border border-slate-200/80 bg-white p-5 shadow-sm sm:p-6">
-            <div className="mb-5 flex items-center justify-between gap-4">
-              <div>
-                <p className="text-xs font-bold uppercase tracking-[0.18em] text-emerald-600">Hạ tầng AWS</p>
-                <h2 className="mt-1 text-xl font-black text-slate-900">Trạng thái dịch vụ</h2>
-              </div>
-              <span className="inline-flex items-center gap-1.5 rounded-full bg-emerald-50 px-3 py-1 text-xs font-bold text-emerald-700 ring-1 ring-emerald-100">
-                <CheckCircle2 size={14} /> Sẵn sàng
-              </span>
-            </div>
-
-            <div className="space-y-3">
-              {SYSTEM_SERVICES.map((service) => {
-                const Icon = service.icon;
-                return (
-                  <div key={service.title} className="flex items-center gap-3 rounded-xl border border-slate-100 bg-slate-50/70 p-3">
-                    <div className={`flex h-10 w-10 shrink-0 items-center justify-center rounded-xl ${service.tone}`}>
-                      <Icon size={19} />
-                    </div>
-                    <div className="min-w-0 flex-1">
-                      <p className="truncate text-sm font-bold text-slate-800">{service.title}</p>
-                      <p className="truncate text-xs text-slate-400">{service.description}</p>
-                    </div>
-                    <span className="h-2.5 w-2.5 shrink-0 rounded-full bg-emerald-500 shadow-[0_0_0_4px_rgba(16,185,129,0.1)]" />
-                  </div>
                 );
               })}
             </div>
@@ -499,10 +442,10 @@ const AdminHome = () => {
           </div>
 
           <Link
-            to="/admin/taikhoan/cognito"
+            to="/admin/taikhoan"
             className="inline-flex items-center justify-center gap-2 rounded-xl bg-slate-900 px-5 py-3 text-sm font-bold text-white shadow-lg shadow-slate-900/15 transition hover:-translate-y-0.5 hover:bg-blue-700"
           >
-            Quản lý Cognito
+            Quản lý tài khoản
             <ArrowUpRight size={17} />
           </Link>
         </section>

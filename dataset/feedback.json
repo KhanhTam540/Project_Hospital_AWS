@@ -1,0 +1,34 @@
+[
+  {
+    "pk": "FEEDBACK#PH001",
+    "sk": "META",
+    "entityType": "FEEDBACK",
+    "feedbackId": "PH001",
+    "patientId": "BN001",
+    "title": "Góp ý về thời gian chờ",
+    "content": "Mong bệnh viện cập nhật thời gian dự kiến đến lượt khám rõ hơn.",
+    "feedbackType": "GOI_Y",
+    "status": "CHO_XU_LY",
+    "reply": "",
+    "repliedAt": null,
+    "dataSource": "P2TB_SAMPLE",
+    "createdAt": "2026-06-28T08:00:00.000Z",
+    "updatedAt": "2026-06-28T08:00:00.000Z"
+  },
+  {
+    "pk": "FEEDBACK#PH002",
+    "sk": "META",
+    "entityType": "FEEDBACK",
+    "feedbackId": "PH002",
+    "patientId": "BN002",
+    "title": "Cảm ơn đội ngũ điều dưỡng",
+    "content": "Nhân viên hỗ trợ nhiệt tình và hướng dẫn rõ ràng.",
+    "feedbackType": "PHAN_HOI",
+    "status": "DA_XU_LY",
+    "reply": "Cảm ơn bạn đã gửi phản hồi. Bệnh viện sẽ tiếp tục nâng cao chất lượng phục vụ.",
+    "repliedAt": "2026-06-29T08:00:00.000Z",
+    "dataSource": "P2TB_SAMPLE",
+    "createdAt": "2026-06-28T09:00:00.000Z",
+    "updatedAt": "2026-06-29T08:00:00.000Z"
+  }
+]

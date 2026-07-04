@@ -22,8 +22,9 @@ import {
   Building2,
   UserCircle
 } from "lucide-react";
-import axios from "../api/axiosClient";
 import toast from "react-hot-toast";
+import { resolveCurrentDoctor } from "../services/bacsi/bacsiService";
+import { getApiErrorMessage } from "../utils/apiResponse";
 
 // Component hiển thị cấp bậc
 const CapBacBadge = ({ capBac }) => {
@@ -57,24 +58,26 @@ const DoctorLayout = () => {
   const [doctorInfo, setDoctorInfo] = useState(null);
 
   useEffect(() => {
-    fetchDoctorInfo();
-  }, []);
+    let active = true;
 
-  const fetchDoctorInfo = async () => {
-    try {
-      const maTK = localStorage.getItem("maTK");
-      if (!maTK) return;
-
-      const res = await axios.get(`/bacsi/maTK/${maTK}`);
-      const data = res.data.data || res.data;
-      setDoctorInfo(data);
-      if (data.maBS) {
-        localStorage.setItem("maBS", data.maBS);
+    const fetchDoctorInfo = async () => {
+      try {
+        const data = await resolveCurrentDoctor({ forceRefresh: true });
+        if (active) setDoctorInfo(data);
+      } catch (error) {
+        if (!active) return;
+        setDoctorInfo(null);
+        toast.error(
+          getApiErrorMessage(error, "Không thể tải thông tin bác sĩ"),
+        );
       }
-    } catch (err) {
-      console.error("Lỗi tải thông tin bác sĩ:", err);
-    }
-  };
+    };
+
+    fetchDoctorInfo();
+    return () => {
+      active = false;
+    };
+  }, []);
 
   const menuItems = [
     {

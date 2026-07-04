@@ -1,278 +1,513 @@
-import React, { useEffect, useState, useMemo } from "react";
-import {
-  getAllCaTruc,
-  createCaTruc,
-  updateCaTruc,
-  deleteCaTruc,
-} from "../../../services/catruc/catrucService";
+import React, { useCallback, useEffect, useMemo, useState } from "react";
+import AdminPagination, { useAdminPagination } from "../../../components/admin/AdminPagination";
 import toast from "react-hot-toast";
-import { Clock, Search, Edit, Trash2, X, Plus, Save } from 'lucide-react';
+import {
+  Clock,
+  Edit,
+  Plus,
+  Save,
+  Search,
+  Trash2,
+  X,
+} from "lucide-react";
+import {
+  createCaTruc,
+  deleteCaTruc,
+  getAllCaTruc,
+  updateCaTruc,
+} from "../../../services/catruc/catrucService";
+
+const EMPTY_FORM = {
+  maCa: "",
+  tenCa: "",
+  thoiGianBatDau: "",
+  thoiGianKetThuc: "",
+};
+
+const extractShiftList = (response) => {
+  const payload = response?.data?.data ?? response?.data ?? [];
+
+  if (Array.isArray(payload)) {
+    return payload;
+  }
+
+  const candidates = [
+    payload?.items,
+    payload?.shifts,
+    payload?.caTruc,
+    payload?.data,
+  ];
+
+  return candidates.find(Array.isArray) ?? [];
+};
+
+const normalizeTime = (value) => {
+  if (!value) return "--:--";
+  return String(value).slice(0, 5);
+};
+
+const normalizeShift = (item = {}) => ({
+  ...item,
+  maCa: item.maCa ?? item.shiftId ?? item.id ?? "",
+  tenCa: item.tenCa ?? item.shiftName ?? item.name ?? "",
+  thoiGianBatDau:
+    item.thoiGianBatDau ?? item.startTime ?? item.timeStart ?? "",
+  thoiGianKetThuc:
+    item.thoiGianKetThuc ?? item.endTime ?? item.timeEnd ?? "",
+});
 
 const QuanLyCaTrucPage = () => {
   const [list, setList] = useState([]);
   const [form, setForm] = useState(null);
   const [search, setSearch] = useState("");
-  const [loading, setLoading] = useState(false);
+  const [loading, setLoading] = useState(true);
+  const [submitting, setSubmitting] = useState(false);
+  const [deletingId, setDeletingId] = useState("");
 
-  useEffect(() => {
-    fetchData();
-  }, []);
-
-  const fetchData = async () => {
+  const fetchData = useCallback(async () => {
     setLoading(true);
+
     try {
-    const res = await getAllCaTruc();
-    setList(res.data.data || []);
-    } catch (err) {
-      toast.error("Lỗi khi tải dữ liệu ca trực");
+      const response = await getAllCaTruc();
+      const shifts = extractShiftList(response).map(normalizeShift);
+      setList(shifts);
+    } catch (error) {
+      console.error("Không thể tải danh sách ca trực:", error);
+      toast.error(
+        error?.response?.data?.message || "Không thể tải dữ liệu ca trực",
+      );
+      setList([]);
     } finally {
       setLoading(false);
     }
-  };
+  }, []);
 
-  const handleChange = (e) => {
-    setForm({ ...form, [e.target.name]: e.target.value });
-  };
-
-  const handleCreate = async (e) => {
-    e.preventDefault();
-    if (!form) return;
-    try {
-    await createCaTruc(form);
-      toast.success("Thêm ca trực thành công");
-      setForm(null);
+  useEffect(() => {
     fetchData();
-    } catch (err) {
-      toast.error("Lỗi khi thêm ca trực");
+  }, [fetchData]);
+
+  const filtered = useMemo(() => {
+    const keyword = search.trim().toLowerCase();
+
+    if (!keyword) {
+      return list;
     }
+
+    return list.filter((ca) =>
+      [ca.maCa, ca.tenCa, ca.thoiGianBatDau, ca.thoiGianKetThuc]
+        .filter(Boolean)
+        .some((value) => String(value).toLowerCase().includes(keyword)),
+    );
+  }, [list, search]);
+
+  const pagination = useAdminPagination(filtered, {
+    initialPageSize: 10,
+    resetKey: search,
+  });
+
+  const handleChange = (event) => {
+    const { name, value } = event.target;
+    setForm((current) => ({
+      ...(current ?? EMPTY_FORM),
+      [name]: value,
+    }));
+  };
+
+  const handleNew = () => {
+    setForm({ ...EMPTY_FORM });
   };
 
   const handleEdit = (ca) => {
-    setForm({ ...ca });
+    setForm({
+      maCa: ca.maCa,
+      tenCa: ca.tenCa,
+      thoiGianBatDau: normalizeTime(ca.thoiGianBatDau),
+      thoiGianKetThuc: normalizeTime(ca.thoiGianKetThuc),
+    });
   };
 
-  const handleUpdate = async (e) => {
-    e.preventDefault();
-    if (!form || !form.maCa) return;
+  const validateForm = () => {
+    if (!form?.tenCa?.trim()) {
+      toast.error("Vui lòng nhập tên ca trực");
+      return false;
+    }
+
+    if (!form?.thoiGianBatDau || !form?.thoiGianKetThuc) {
+      toast.error("Vui lòng chọn đầy đủ giờ bắt đầu và giờ kết thúc");
+      return false;
+    }
+
+    if (form.thoiGianBatDau === form.thoiGianKetThuc) {
+      toast.error("Giờ bắt đầu và giờ kết thúc không được trùng nhau");
+      return false;
+    }
+
+    return true;
+  };
+
+  const handleSubmit = async (event) => {
+    event.preventDefault();
+
+    if (!validateForm()) {
+      return;
+    }
+
+    const payload = {
+      tenCa: form.tenCa.trim(),
+      thoiGianBatDau: normalizeTime(form.thoiGianBatDau),
+      thoiGianKetThuc: normalizeTime(form.thoiGianKetThuc),
+    };
+
+    setSubmitting(true);
+
     try {
-      await updateCaTruc(form.maCa, {
-        tenCa: form.tenCa,
-        thoiGianBatDau: form.thoiGianBatDau,
-        thoiGianKetThuc: form.thoiGianKetThuc,
-      });
-      toast.success("Cập nhật ca trực thành công");
+      if (form.maCa) {
+        await updateCaTruc(form.maCa, payload);
+        toast.success("Cập nhật ca trực thành công");
+      } else {
+        await createCaTruc(payload);
+        toast.success("Thêm ca trực thành công");
+      }
+
       setForm(null);
-      fetchData();
-    } catch (err) {
-      toast.error("Lỗi khi cập nhật ca trực");
+      await fetchData();
+    } catch (error) {
+      console.error("Không thể lưu ca trực:", error);
+      toast.error(
+        error?.response?.data?.message ||
+          (form.maCa
+            ? "Không thể cập nhật ca trực"
+            : "Không thể thêm ca trực"),
+      );
+    } finally {
+      setSubmitting(false);
     }
   };
 
   const handleDelete = async (id) => {
-    if (!window.confirm("Xoá ca trực này?")) return;
+    const shift = list.find((item) => item.maCa === id);
+    const label = shift?.tenCa || id;
+
+    if (!window.confirm(`Bạn có chắc muốn xóa ca trực “${label}”?`)) {
+      return;
+    }
+
+    setDeletingId(id);
+
     try {
       await deleteCaTruc(id);
-      toast.success("Đã xoá ca trực");
-      fetchData();
-    } catch (err) {
-      toast.error("Lỗi khi xoá ca trực");
+      setList((current) => current.filter((item) => item.maCa !== id));
+      toast.success("Đã xóa ca trực");
+    } catch (error) {
+      console.error("Không thể xóa ca trực:", error);
+      toast.error(
+        error?.response?.data?.message ||
+          "Không thể xóa ca trực. Ca có thể đang được sử dụng.",
+      );
+      await fetchData();
+    } finally {
+      setDeletingId("");
     }
   };
 
-  const handleNew = () => {
-    setForm({
-      tenCa: "",
-      thoiGianBatDau: "",
-      thoiGianKetThuc: "",
-    });
-  };
-
-  const filtered = useMemo(() => {
-    return list.filter(
-      (ca) =>
-        ca.tenCa?.toLowerCase().includes(search.toLowerCase()) ||
-        ca.maCa?.toLowerCase().includes(search.toLowerCase())
-    );
-  }, [list, search]);
-
-  if (loading) {
-    return (
-      <div className="flex items-center justify-center min-h-[400px]">
-        <div className="text-center">
-          <div className="inline-block animate-spin rounded-full h-12 w-12 border-t-4 border-b-4 border-blue-600 mb-4"></div>
-          <p className="text-gray-600">Đang tải dữ liệu...</p>
-        </div>
-      </div>
-    );
-  }
-
   return (
-    <div className="min-h-screen bg-gradient-to-br from-blue-50 via-white to-indigo-50 p-6">
-      {/* Header */}
-      <div className="mb-8">
-        <div className="flex items-center justify-between mb-4">
+    <div className="min-h-full bg-gradient-to-br from-blue-50 via-white to-indigo-50 p-4 sm:p-6">
+      <div className="mx-auto w-full max-w-[1600px]">
+        <div className="mb-6 flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
           <div className="flex items-center gap-4">
-            <div className="bg-gradient-to-r from-slate-600 to-gray-600 p-4 rounded-xl shadow-lg">
-              <Clock size={32} className="text-white" />
+            <div className="flex h-14 w-14 shrink-0 items-center justify-center rounded-xl bg-gradient-to-r from-slate-600 to-gray-600 shadow-lg">
+              <Clock size={30} className="text-white" />
             </div>
+
             <div>
-              <h1 className="text-3xl font-bold text-gray-800 mb-2">Quản lý ca trực</h1>
-              <p className="text-gray-600">Quản lý các ca trực bệnh viện</p>
+              <h1 className="text-2xl font-bold text-slate-900 sm:text-3xl">
+                Quản lý ca trực
+              </h1>
+              <p className="mt-1 text-sm text-slate-600 sm:text-base">
+                Quản lý các ca trực bệnh viện
+              </p>
             </div>
           </div>
+
           <button
+            type="button"
             onClick={handleNew}
-            className="bg-gradient-to-r from-slate-600 to-gray-600 text-white px-6 py-3 rounded-lg font-semibold hover:from-slate-700 hover:to-gray-700 transition-all duration-200 shadow-md hover:shadow-lg flex items-center gap-2"
+            className="inline-flex min-h-11 items-center justify-center gap-2 rounded-lg bg-gradient-to-r from-slate-600 to-gray-600 px-5 py-2.5 font-semibold text-white shadow-md transition hover:from-slate-700 hover:to-gray-700 hover:shadow-lg"
           >
-            <Plus size={20} />
+            <Plus size={19} />
             Thêm ca trực
           </button>
         </div>
 
-        {/* Search Bar */}
-        <div className="relative">
-          <Search className="absolute left-4 top-1/2 transform -translate-y-1/2 text-gray-400" size={20} />
+        <div className="relative mb-6">
+          <Search
+            className="pointer-events-none absolute left-4 top-1/2 -translate-y-1/2 text-slate-400"
+            size={20}
+          />
           <input
-            type="text"
+            type="search"
             placeholder="Tìm kiếm theo tên ca hoặc mã ca..."
             value={search}
-            onChange={(e) => setSearch(e.target.value)}
-            className="w-full pl-12 pr-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-slate-500 focus:border-transparent bg-white shadow-sm"
+            onChange={(event) => setSearch(event.target.value)}
+            className="h-12 w-full rounded-lg border border-slate-300 bg-white pl-12 pr-4 text-slate-800 shadow-sm outline-none transition placeholder:text-slate-400 focus:border-slate-500 focus:ring-2 focus:ring-slate-200"
           />
         </div>
+
+        <div className="overflow-hidden rounded-xl border border-slate-200 bg-white shadow-md">
+          {loading ? (
+            <div className="flex min-h-72 items-center justify-center">
+              <div className="text-center">
+                <div className="mx-auto mb-4 h-11 w-11 animate-spin rounded-full border-4 border-slate-200 border-t-slate-600" />
+                <p className="text-slate-600">Đang tải dữ liệu...</p>
+              </div>
+            </div>
+          ) : filtered.length === 0 ? (
+            <div className="flex min-h-72 flex-col items-center justify-center px-6 text-center">
+              <Clock size={58} className="mb-4 text-slate-300" />
+              <h3 className="text-lg font-semibold text-slate-700">
+                Không có ca trực nào
+              </h3>
+              <p className="mt-2 text-sm text-slate-500">
+                Thay đổi từ khóa tìm kiếm hoặc thêm ca trực mới.
+              </p>
+            </div>
+          ) : (
+            <div className="overflow-x-auto">
+              <table className="w-full min-w-[900px] table-fixed text-sm">
+                <colgroup>
+                  <col className="w-[18%]" />
+                  <col className="w-[26%]" />
+                  <col className="w-[18%]" />
+                  <col className="w-[18%]" />
+                  <col className="w-[20%]" />
+                </colgroup>
+
+                <thead className="border-b border-slate-200 bg-slate-50">
+                  <tr>
+                    <th className="px-6 py-4 text-left font-semibold text-slate-700">
+                      Mã ca
+                    </th>
+                    <th className="px-6 py-4 text-left font-semibold text-slate-700">
+                      Tên ca
+                    </th>
+                    <th className="px-6 py-4 text-left font-semibold text-slate-700">
+                      Giờ bắt đầu
+                    </th>
+                    <th className="px-6 py-4 text-left font-semibold text-slate-700">
+                      Giờ kết thúc
+                    </th>
+                    <th className="px-6 py-4 text-center font-semibold text-slate-700">
+                      Thao tác
+                    </th>
+                  </tr>
+                </thead>
+
+                <tbody className="divide-y divide-slate-200">
+                  {pagination.pageItems.map((ca) => (
+                    <tr
+                      key={ca.maCa}
+                      className="transition-colors hover:bg-slate-50"
+                    >
+                      <td className="px-6 py-5 align-middle">
+                        <span className="inline-flex max-w-full rounded-full bg-slate-100 px-3 py-1 text-xs font-semibold text-slate-800">
+                          <span className="truncate">{ca.maCa || "—"}</span>
+                        </span>
+                      </td>
+
+                      <td className="px-6 py-5 align-middle font-semibold text-slate-800">
+                        <div className="truncate" title={ca.tenCa}>
+                          {ca.tenCa || "—"}
+                        </div>
+                      </td>
+
+                      <td className="px-6 py-5 align-middle text-slate-700">
+                        <div className="flex items-center gap-2 whitespace-nowrap">
+                          <Clock
+                            size={16}
+                            className="shrink-0 text-slate-400"
+                          />
+                          <span>{normalizeTime(ca.thoiGianBatDau)}</span>
+                        </div>
+                      </td>
+
+                      <td className="px-6 py-5 align-middle text-slate-700">
+                        <div className="flex items-center gap-2 whitespace-nowrap">
+                          <Clock
+                            size={16}
+                            className="shrink-0 text-slate-400"
+                          />
+                          <span>{normalizeTime(ca.thoiGianKetThuc)}</span>
+                        </div>
+                      </td>
+
+                      <td className="px-6 py-5 align-middle">
+                        <div className="flex items-center justify-center gap-2">
+                          <button
+                            type="button"
+                            onClick={() => handleEdit(ca)}
+                            className="inline-flex h-9 w-9 items-center justify-center rounded-lg text-blue-600 transition hover:bg-blue-50 disabled:cursor-not-allowed disabled:opacity-50"
+                            title="Sửa ca trực"
+                            aria-label={`Sửa ${ca.tenCa || ca.maCa}`}
+                            disabled={Boolean(deletingId)}
+                          >
+                            <Edit size={18} />
+                          </button>
+
+                          <button
+                            type="button"
+                            onClick={() => handleDelete(ca.maCa)}
+                            className="inline-flex h-9 w-9 items-center justify-center rounded-lg text-red-600 transition hover:bg-red-50 disabled:cursor-not-allowed disabled:opacity-50"
+                            title="Xóa ca trực"
+                            aria-label={`Xóa ${ca.tenCa || ca.maCa}`}
+                            disabled={deletingId === ca.maCa}
+                          >
+                            {deletingId === ca.maCa ? (
+                              <span className="h-4 w-4 animate-spin rounded-full border-2 border-red-200 border-t-red-600" />
+                            ) : (
+                              <Trash2 size={18} />
+                            )}
+                          </button>
+                        </div>
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          )}
+        </div>
+
+        {!loading && filtered.length > 0 && (
+          <div className="mt-4 overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-sm">
+            <AdminPagination pagination={pagination} itemLabel="ca trực" />
+          </div>
+        )}
       </div>
 
-      {/* Form Modal */}
       {form && (
-        <div className="fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-4">
-          <div className="bg-white rounded-xl shadow-2xl max-w-2xl w-full max-h-[90vh] overflow-y-auto">
-            <div className="sticky top-0 bg-gradient-to-r from-slate-600 to-gray-600 p-6 flex items-center justify-between">
-              <h2 className="text-2xl font-bold text-white">
+        <div
+          className="fixed inset-0 z-50 flex items-center justify-center bg-slate-950/50 p-4 backdrop-blur-[1px]"
+          role="dialog"
+          aria-modal="true"
+          aria-label={form.maCa ? "Cập nhật ca trực" : "Thêm ca trực"}
+        >
+          <div className="max-h-[90vh] w-full max-w-2xl overflow-y-auto rounded-xl bg-white shadow-2xl">
+            <div className="sticky top-0 z-10 flex items-center justify-between bg-gradient-to-r from-slate-600 to-gray-600 px-6 py-5">
+              <h2 className="text-xl font-bold text-white sm:text-2xl">
                 {form.maCa ? "Cập nhật ca trực" : "Thêm ca trực mới"}
               </h2>
+
               <button
-                onClick={() => setForm(null)}
-                className="text-white hover:bg-white/20 p-2 rounded-lg transition-colors"
+                type="button"
+                onClick={() => !submitting && setForm(null)}
+                className="rounded-lg p-2 text-white transition hover:bg-white/15 disabled:opacity-50"
+                aria-label="Đóng"
+                disabled={submitting}
               >
-                <X size={24} />
+                <X size={23} />
               </button>
             </div>
-            <form onSubmit={form.maCa ? handleUpdate : handleCreate} className="p-6 space-y-4">
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">Tên ca *</label>
-        <input
-          name="tenCa"
-                  value={form.tenCa || ""}
-          onChange={handleChange}
-                  placeholder="Tên ca (VD: Ca sáng, Ca chiều, Ca đêm)"
-                  className="w-full border border-gray-300 rounded-lg px-4 py-2 focus:ring-2 focus:ring-slate-500 focus:border-transparent"
-                  required
-        />
-              </div>
-              <div className="grid grid-cols-2 gap-4">
+
+            <form onSubmit={handleSubmit} className="space-y-5 p-6">
+              {form.maCa && (
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-2">Giờ bắt đầu *</label>
-        <input
-          type="time"
-          name="thoiGianBatDau"
-                    value={form.thoiGianBatDau || ""}
-          onChange={handleChange}
-                    className="w-full border border-gray-300 rounded-lg px-4 py-2 focus:ring-2 focus:ring-slate-500 focus:border-transparent"
-                    required
-        />
+                  <label className="mb-2 block text-sm font-medium text-slate-700">
+                    Mã ca
+                  </label>
+                  <input
+                    value={form.maCa}
+                    disabled
+                    className="w-full rounded-lg border border-slate-200 bg-slate-100 px-4 py-2.5 text-slate-500"
+                  />
                 </div>
+              )}
+
+              <div>
+                <label
+                  htmlFor="tenCa"
+                  className="mb-2 block text-sm font-medium text-slate-700"
+                >
+                  Tên ca <span className="text-red-500">*</span>
+                </label>
+                <input
+                  id="tenCa"
+                  name="tenCa"
+                  value={form.tenCa || ""}
+                  onChange={handleChange}
+                  placeholder="Ví dụ: Ca sáng, Ca chiều, Ca đêm"
+                  className="w-full rounded-lg border border-slate-300 px-4 py-2.5 outline-none transition focus:border-slate-500 focus:ring-2 focus:ring-slate-200"
+                  maxLength={100}
+                  autoFocus
+                  required
+                />
+              </div>
+
+              <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-2">Giờ kết thúc *</label>
-        <input
-          type="time"
-          name="thoiGianKetThuc"
+                  <label
+                    htmlFor="thoiGianBatDau"
+                    className="mb-2 block text-sm font-medium text-slate-700"
+                  >
+                    Giờ bắt đầu <span className="text-red-500">*</span>
+                  </label>
+                  <input
+                    id="thoiGianBatDau"
+                    type="time"
+                    name="thoiGianBatDau"
+                    value={form.thoiGianBatDau || ""}
+                    onChange={handleChange}
+                    className="w-full rounded-lg border border-slate-300 px-4 py-2.5 outline-none transition focus:border-slate-500 focus:ring-2 focus:ring-slate-200"
+                    required
+                  />
+                </div>
+
+                <div>
+                  <label
+                    htmlFor="thoiGianKetThuc"
+                    className="mb-2 block text-sm font-medium text-slate-700"
+                  >
+                    Giờ kết thúc <span className="text-red-500">*</span>
+                  </label>
+                  <input
+                    id="thoiGianKetThuc"
+                    type="time"
+                    name="thoiGianKetThuc"
                     value={form.thoiGianKetThuc || ""}
-          onChange={handleChange}
-                    className="w-full border border-gray-300 rounded-lg px-4 py-2 focus:ring-2 focus:ring-slate-500 focus:border-transparent"
+                    onChange={handleChange}
+                    className="w-full rounded-lg border border-slate-300 px-4 py-2.5 outline-none transition focus:border-slate-500 focus:ring-2 focus:ring-slate-200"
                     required
                   />
                 </div>
               </div>
-              <div className="flex justify-end gap-3 pt-4 border-t">
+
+              <div className="flex flex-col-reverse gap-3 border-t border-slate-200 pt-5 sm:flex-row sm:justify-end">
                 <button
                   type="button"
                   onClick={() => setForm(null)}
-                  className="px-6 py-2 border border-gray-300 rounded-lg text-gray-700 hover:bg-gray-50 transition-colors"
+                  disabled={submitting}
+                  className="rounded-lg border border-slate-300 px-6 py-2.5 font-medium text-slate-700 transition hover:bg-slate-50 disabled:cursor-not-allowed disabled:opacity-50"
                 >
                   Hủy
                 </button>
+
                 <button
                   type="submit"
-                  className="px-6 py-2 bg-gradient-to-r from-slate-600 to-gray-600 text-white rounded-lg hover:from-slate-700 hover:to-gray-700 transition-all shadow-md flex items-center gap-2"
+                  disabled={submitting}
+                  className="inline-flex items-center justify-center gap-2 rounded-lg bg-gradient-to-r from-slate-600 to-gray-600 px-6 py-2.5 font-semibold text-white shadow-md transition hover:from-slate-700 hover:to-gray-700 disabled:cursor-not-allowed disabled:opacity-60"
                 >
-                  <Save size={18} />
-                  {form.maCa ? "Cập nhật" : "Thêm mới"}
-        </button>
-      </div>
+                  {submitting ? (
+                    <span className="h-4 w-4 animate-spin rounded-full border-2 border-white/40 border-t-white" />
+                  ) : (
+                    <Save size={18} />
+                  )}
+                  {submitting
+                    ? "Đang lưu..."
+                    : form.maCa
+                      ? "Cập nhật"
+                      : "Thêm mới"}
+                </button>
+              </div>
             </form>
-          </div>
-        </div>
-      )}
-
-      {/* Table */}
-      {filtered.length === 0 ? (
-        <div className="bg-white rounded-xl shadow-md p-12 text-center">
-          <Clock size={64} className="mx-auto text-gray-300 mb-4" />
-          <h3 className="text-xl font-semibold text-gray-700 mb-2">Không có ca trực nào</h3>
-          <p className="text-gray-500">Thử thay đổi từ khóa tìm kiếm hoặc thêm ca trực mới</p>
-        </div>
-      ) : (
-        <div className="bg-white rounded-xl shadow-md overflow-hidden border border-gray-200">
-          <div className="overflow-x-auto">
-            <table className="min-w-full text-sm">
-              <thead className="bg-gradient-to-r from-gray-50 to-gray-100 border-b border-gray-200">
-          <tr>
-                  <th className="px-6 py-4 text-left font-semibold text-gray-700">Mã ca</th>
-                  <th className="px-6 py-4 text-left font-semibold text-gray-700">Tên ca</th>
-                  <th className="px-6 py-4 text-left font-semibold text-gray-700">Giờ bắt đầu</th>
-                  <th className="px-6 py-4 text-left font-semibold text-gray-700">Giờ kết thúc</th>
-                  <th className="px-6 py-4 text-center font-semibold text-gray-700">Thao tác</th>
-          </tr>
-        </thead>
-              <tbody className="divide-y divide-gray-200">
-                {filtered.map((ca) => (
-                  <tr key={ca.maCa} className="hover:bg-slate-50 transition-colors">
-                    <td className="px-6 py-4 font-medium text-gray-800">
-                      <span className="px-3 py-1 bg-slate-100 text-slate-800 rounded-full text-xs font-semibold">
-                        {ca.maCa}
-                      </span>
-                    </td>
-                    <td className="px-6 py-4 text-gray-700 font-semibold">{ca.tenCa}</td>
-                    <td className="px-6 py-4 text-gray-700 flex items-center gap-2">
-                      <Clock size={16} className="text-gray-400" />
-                      {ca.thoiGianBatDau}
-                    </td>
-                    <td className="px-6 py-4 text-gray-700 flex items-center gap-2">
-                      <Clock size={16} className="text-gray-400" />
-                      {ca.thoiGianKetThuc}
-                    </td>
-                    <td className="px-6 py-4">
-                      <div className="flex items-center justify-center gap-2">
-                        <button
-                          onClick={() => handleEdit(ca)}
-                          className="p-2 text-blue-600 hover:bg-blue-100 rounded-lg transition-colors"
-                          title="Sửa"
-                        >
-                          <Edit size={18} />
-                        </button>
-                        <button
-                          onClick={() => handleDelete(ca.maCa)}
-                          className="p-2 text-red-600 hover:bg-red-100 rounded-lg transition-colors"
-                          title="Xóa"
-                        >
-                          <Trash2 size={18} />
-                        </button>
-                      </div>
-              </td>
-            </tr>
-          ))}
-        </tbody>
-      </table>
           </div>
         </div>
       )}

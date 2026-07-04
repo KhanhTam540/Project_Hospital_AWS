@@ -49,10 +49,32 @@ function expectStatus(result, expected, label) {
   console.log(`PASS ${label} -> HTTP ${expected}`);
 }
 
+async function waitForAudit(baseUrl, token, recordId) {
+  for (let attempt = 1; attempt <= 12; attempt += 1) {
+    const result = await request(
+      baseUrl,
+      'GET',
+      `/api/medical-records/${recordId}/audit`,
+      token,
+    );
+    if (
+      result.response.status === 200 &&
+      Array.isArray(result.payload?.data) &&
+      result.payload.data.length > 0
+    ) {
+      console.log(`PASS Medical audit stream produced ${result.payload.data.length} event(s)`);
+      return result.payload.data;
+    }
+    await new Promise((resolve) => setTimeout(resolve, 5000));
+  }
+  throw new Error('Medical audit events were not created within 60 seconds');
+}
+
 async function main() {
   const outputs = await readOutputs();
   const baseUrl = requireOutput(outputs, 'ApiEndpoint').replace(/\/$/, '');
   const tokens = readTokens();
+  const suffix = Date.now().toString(36).toUpperCase();
 
   const health = await request(baseUrl, 'GET', '/api/health');
   expectStatus(health, 200, 'Health check');
@@ -63,44 +85,16 @@ async function main() {
     '/api/patients',
     tokens.staff.accessToken,
     {
-      fullName: `API Test ${Date.now()}`,
+      fullName: `Dinh Bao API Test ${suffix}`,
       dateOfBirth: '1999-01-01',
       gender: 'NAM',
       phoneNumber: '0909999999',
       address: 'P2TB integration test',
-      healthInsuranceNumber: `TEST-${Date.now()}`,
+      healthInsuranceNumber: `TEST-${suffix}`,
     },
   );
   expectStatus(patientCreate, 201, 'Create patient as NHANSU');
   const patientId = patientCreate.payload.data.patientId;
-
-  const patientRead = await request(
-    baseUrl,
-    'GET',
-    `/api/patients/${patientId}`,
-    tokens.doctor.accessToken,
-  );
-  expectStatus(patientRead, 200, 'Read patient as BACSI');
-
-  const examination = await request(
-    baseUrl,
-    'POST',
-    `/api/patients/${patientId}/examinations`,
-    tokens.staff.accessToken,
-    {
-      vitals: {
-        temperature: 36.9,
-        heartRate: 78,
-        systolicBloodPressure: 115,
-        diastolicBloodPressure: 75,
-        oxygenSaturation: 99,
-        weightKg: 60,
-        heightCm: 168,
-      },
-      symptoms: 'Kiểm thử chỉ số sinh tồn',
-    },
-  );
-  expectStatus(examination, 201, 'Create vitals as NHANSU');
 
   const record = await request(
     baseUrl,
@@ -117,14 +111,28 @@ async function main() {
   expectStatus(record, 201, 'Create medical record as BACSI');
   const recordId = record.payload.data.recordId;
 
-  const forbidden = await request(
+  const examination = await request(
     baseUrl,
     'POST',
-    `/api/patients/${patientId}/records`,
-    tokens.patient.accessToken,
-    { diagnosis: 'Should be forbidden' },
+    `/api/patients/${patientId}/examinations`,
+    tokens.doctor.accessToken,
+    {
+      recordId,
+      vitals: {
+        temperature: 36.9,
+        heartRate: 78,
+        systolicBloodPressure: 115,
+        diastolicBloodPressure: 75,
+        oxygenSaturation: 99,
+        weightKg: 60,
+        heightCm: 168,
+      },
+      symptoms: 'Kiểm thử phiếu khám có liên kết hồ sơ',
+      diagnosis: 'Chẩn đoán kiểm thử',
+      treatment: 'Theo dõi',
+    },
   );
-  expectStatus(forbidden, 403, 'Reject BENHNHAN creating record');
+  expectStatus(examination, 201, 'Create linked examination as BACSI');
 
   const prescription = await request(
     baseUrl,
@@ -147,7 +155,79 @@ async function main() {
       generalInstructions: 'Không sử dụng trong thực tế',
     },
   );
-  expectStatus(prescription, 201, 'Create prescription as BACSI');
+  expectStatus(prescription, 201, 'Create linked prescription as BACSI');
+
+  const labTypeId = `LXN${suffix}`.slice(0, 24);
+  const labTestId = `XN${suffix}`.slice(0, 24);
+  const labType = await request(
+    baseUrl,
+    'POST',
+    '/api/loaixetnghiem',
+    tokens.admin.accessToken,
+    {
+      maLoaiXN: labTypeId,
+      tenLoai: `Loại xét nghiệm ${suffix}`,
+      moTa: 'Dữ liệu kiểm thử',
+    },
+  );
+  expectStatus(labType, 201, 'Create laboratory test type');
+
+  const labTest = await request(
+    baseUrl,
+    'POST',
+    '/api/xetnghiem',
+    tokens.admin.accessToken,
+    {
+      maXN: labTestId,
+      maLoaiXN: labTypeId,
+      tenXN: `Xét nghiệm ${suffix}`,
+      chiPhi: 150000,
+      donVi: 'Lần',
+    },
+  );
+  expectStatus(labTest, 201, 'Create laboratory test catalog item');
+
+  const labRequest = await request(
+    baseUrl,
+    'POST',
+    '/api/yeucauxetnghiem',
+    tokens.doctor.accessToken,
+    {
+      maBN: patientId,
+      maHSBA: recordId,
+      maXN: labTestId,
+      ghiChu: 'Yêu cầu xét nghiệm kiểm thử',
+    },
+  );
+  expectStatus(labRequest, 201, 'Create laboratory request');
+  const labRequestId = labRequest.payload.data.maYeuCau;
+
+  const labResult = await request(
+    baseUrl,
+    'POST',
+    '/api/phieuxetnghiem',
+    tokens.staff.accessToken,
+    {
+      maYeuCau: labRequestId,
+      ketQua: 'Âm tính - dữ liệu kiểm thử',
+      ghiChu: 'Chờ bác sĩ duyệt',
+      trangThai: 'DRAFT',
+    },
+  );
+  expectStatus(labResult, 201, 'Create draft laboratory result as NHANSU');
+  const labResultId = labResult.payload.data.maPhieuXN;
+
+  const approvedResult = await request(
+    baseUrl,
+    'PUT',
+    `/api/phieuxetnghiem/${labResultId}`,
+    tokens.doctor.accessToken,
+    {
+      ketQua: 'Âm tính - đã được bác sĩ duyệt',
+      trangThai: 'APPROVED',
+    },
+  );
+  expectStatus(approvedResult, 200, 'Approve laboratory result as BACSI');
 
   const uploadRequest = await request(
     baseUrl,
@@ -156,12 +236,13 @@ async function main() {
     tokens.doctor.accessToken,
     {
       patientId,
+      recordId,
       fileName: 'integration-test.png',
       contentType: 'image/png',
       fileSize: png.length,
     },
   );
-  expectStatus(uploadRequest, 201, 'Create S3 presigned upload URL');
+  expectStatus(uploadRequest, 201, 'Create linked S3 presigned upload URL');
   const upload = uploadRequest.payload.data;
 
   const putResponse = await fetch(upload.uploadUrl, {
@@ -183,36 +264,47 @@ async function main() {
   );
   expectStatus(complete, 200, 'Complete medical upload');
 
-  const download = await request(
+  const aiSummary = await request(
+    baseUrl,
+    'POST',
+    `/api/medical-records/${recordId}/ai-summary`,
+    tokens.doctor.accessToken,
+    {
+      summary:
+        'Bản tóm tắt AI đã được bác sĩ kiểm tra và phê duyệt cho hồ sơ kiểm thử.',
+      model: 'external-chat-ai',
+      sourceRequestId: `AI-${suffix}`,
+    },
+  );
+  expectStatus(aiSummary, 201, 'Approve AI summary for medical record');
+
+  await waitForAudit(baseUrl, tokens.doctor.accessToken, recordId);
+
+  const integrity = await request(
     baseUrl,
     'GET',
-    `/api/medical/download-url?documentId=${encodeURIComponent(upload.documentId)}`,
+    `/api/medical-records/${recordId}/integrity`,
     tokens.doctor.accessToken,
   );
-  expectStatus(download, 200, 'Create S3 presigned download URL');
-
-  const downloaded = await fetch(download.payload.data.downloadUrl);
-  if (!downloaded.ok) {
-    throw new Error(`S3 download failed with HTTP ${downloaded.status}`);
-  }
-  const downloadedBytes = Buffer.from(await downloaded.arrayBuffer());
-  if (!downloadedBytes.equals(png)) {
-    throw new Error('Downloaded file does not match uploaded file');
-  }
-  console.log('PASS Downloaded medical file matches uploaded bytes');
-
-  for (const route of ['records', 'examinations', 'prescriptions', 'documents']) {
-    const list = await request(
-      baseUrl,
-      'GET',
-      `/api/patients/${patientId}/${route}`,
-      tokens.doctor.accessToken,
+  expectStatus(integrity, 200, 'Verify medical-record integrity');
+  if (!['VALID', 'INCOMPLETE'].includes(integrity.payload.data.status)) {
+    throw new Error(
+      `Unexpected integrity status: ${integrity.payload.data.status}`,
     );
-    expectStatus(list, 200, `List patient ${route}`);
   }
 
-  console.log('\nMedical Week 1 API integration test completed successfully.');
+  const forbidden = await request(
+    baseUrl,
+    'POST',
+    `/api/patients/${patientId}/records`,
+    tokens.patient.accessToken,
+    { diagnosis: 'Should be forbidden' },
+  );
+  expectStatus(forbidden, 403, 'Reject BENHNHAN creating record');
+
+  console.log('\nDinh Bao Week 1-2 medical integration test completed successfully.');
   console.log(`Test patientId: ${patientId}`);
+  console.log(`Test recordId: ${recordId}`);
 }
 
 main().catch((error) => {

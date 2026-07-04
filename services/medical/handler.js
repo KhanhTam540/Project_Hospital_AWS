@@ -46,6 +46,9 @@ const {
   normalizeVitals,
   safeFileName,
 } = require('./domain');
+const adminFeatures = require('./admin-features');
+const adminCatalog = require('./admin-catalog');
+const labWorkflow = require('./lab-workflow');
 
 const s3 = new S3Client({});
 const tableName = process.env.TABLE_NAME;
@@ -94,19 +97,128 @@ async function ensurePatient(patientId) {
   return patient;
 }
 
+function sameIdentifier(left, right) {
+  return String(left || '').trim().toUpperCase() ===
+    String(right || '').trim().toUpperCase();
+}
+
 async function ensureDirectEntity(entity, id, patientId) {
-  const item = await getItem(directKey(entity, id));
+  const normalizedEntity = String(entity || '').trim().toUpperCase();
+  let item = await getItem(directKey(normalizedEntity, id));
+
+  // Hồ sơ được tạo từ API quản lý cũ có dạng:
+  // PATIENT#{patientId} / MEDICAL_RECORD#{recordId}
+  // và không có bản ghi trực tiếp RECORD#{recordId} / METADATA.
+  // Fallback này giúp phiếu khám, đơn thuốc và xét nghiệm dùng được cả hai kiểu dữ liệu.
   if (!item) {
-    throw new ApiError(404, `${entity}_NOT_FOUND`, `${entity} not found`);
+    const fallback = {
+      RECORD: {
+        entityType: 'MEDICAL_RECORD',
+        idField: 'recordId',
+      },
+      EXAMINATION: {
+        entityType: 'EXAMINATION',
+        idField: 'examinationId',
+      },
+      PRESCRIPTION: {
+        entityType: 'PRESCRIPTION',
+        idField: 'prescriptionId',
+      },
+      DOCUMENT: {
+        entityType: 'MEDICAL_DOCUMENT',
+        idField: 'documentId',
+      },
+    }[normalizedEntity];
+
+    if (fallback) {
+      const candidates = await scanEntityTypes([fallback.entityType]);
+      item = candidates.find(
+        (candidate) => sameIdentifier(candidate?.[fallback.idField], id),
+      );
+    }
   }
-  if (patientId && item.patientId !== patientId) {
+
+  if (!item) {
+    throw new ApiError(
+      404,
+      `${normalizedEntity}_NOT_FOUND`,
+      `${normalizedEntity} not found`,
+    );
+  }
+  if (patientId && !sameIdentifier(item.patientId, patientId)) {
     throw new ApiError(
       409,
       'PATIENT_RELATION_MISMATCH',
-      `${entity} does not belong to this patient`,
+      `${normalizedEntity} does not belong to this patient`,
     );
   }
   return item;
+}
+
+async function ensureMedicalRecordForPatient(recordId, patientId) {
+  try {
+    return await ensureDirectEntity('RECORD', recordId, patientId);
+  } catch (error) {
+    if (error?.code !== 'RECORD_NOT_FOUND' && error?.statusCode !== 404) {
+      throw error;
+    }
+  }
+
+  const patient = await ensurePatient(patientId);
+  const citizenId = String(patient.citizenId || '').trim();
+
+  if (!/^\d{12}$/.test(citizenId)) {
+    throw new ApiError(
+      409,
+      'PATIENT_CCCD_REQUIRED',
+      'Bệnh nhân phải có CCCD hợp lệ trước khi lập hồ sơ bệnh án',
+    );
+  }
+
+  if (!sameIdentifier(citizenId, recordId)) {
+    throw new ApiError(
+      409,
+      'MEDICAL_RECORD_CCCD_MISMATCH',
+      'Mã hồ sơ bệnh án phải trùng với CCCD của bệnh nhân',
+    );
+  }
+
+  const now = new Date().toISOString();
+  const item = {
+    entityType: 'RECORD',
+    recordId: citizenId,
+    medicalRecordId: citizenId,
+    recordCode: citizenId,
+    citizenId,
+    patientId,
+    status: 'OPEN',
+    dataSource: 'CCCD_AUTO_RECORD',
+    createdBy: 'SYSTEM',
+    createdAt: now,
+    updatedAt: now,
+    version: 1,
+  };
+
+  try {
+    return await putPatientProjection({
+      entity: 'RECORD',
+      id: citizenId,
+      patientId,
+      prefix: 'RECORD',
+      createdAt: now,
+      item,
+    });
+  } catch (error) {
+    // Hai request đồng thời có thể cùng tạo hồ sơ. Sau xung đột,
+    // đọc lại hồ sơ vừa được request còn lại tạo thành công.
+    if (
+      error?.name !== 'TransactionCanceledException' &&
+      error?.name !== 'ConditionalCheckFailedException'
+    ) {
+      throw error;
+    }
+    return ensureDirectEntity('RECORD', citizenId, patientId);
+  }
 }
 
 async function putPatientProjection({
@@ -406,6 +518,7 @@ async function createMedicalRecord(event) {
     createdBy: actor.sub,
     createdAt: now,
     updatedAt: now,
+    version: 1,
   };
 
   const created = await putPatientProjection({
@@ -446,10 +559,30 @@ async function createExamination(event) {
     );
   }
 
+  const rawMedicalRecordId =
+    body.medicalRecordId || body.recordId || body.maHSBA || null;
+  const medicalRecordId = rawMedicalRecordId
+    ? requiredString(rawMedicalRecordId, 'medicalRecordId', { maxLength: 100 })
+    : null;
+
+  if (hasGroup(actor, 'BACSI') && !medicalRecordId) {
+    throw new ApiError(
+      400,
+      'MEDICAL_RECORD_REQUIRED',
+      'Bác sĩ phải chọn hồ sơ bệnh án trước khi lập phiếu khám',
+    );
+  }
+
+  if (medicalRecordId) {
+    await ensureMedicalRecordForPatient(medicalRecordId, patientId);
+  }
+
   const item = {
     entityType: 'EXAMINATION',
     examinationId,
     patientId,
+    medicalRecordId,
+    recordId: medicalRecordId,
     actorId: actor.sub,
     actorGroups: actor.groups,
     vitals: normalizeVitals(body.vitals || {}),
@@ -467,6 +600,7 @@ async function createExamination(event) {
     createdBy: actor.sub,
     createdAt: now,
     updatedAt: now,
+    version: 1,
   };
 
   const created = await putPatientProjection({
@@ -485,8 +619,52 @@ async function listExaminations(event) {
   requireGroups(event, ['ADMIN', 'BACSI', 'NHANSU']);
   const patientId = routeParameter(event, 'patientId');
   await ensurePatient(patientId);
-  const items = await queryPatientItems(patientId, 'EXAM');
-  return success({ patientId, items, count: items.length });
+
+  const query = event.queryStringParameters || {};
+  const requestedRecordId =
+    query.medicalRecordId || query.recordId || query.maHSBA || null;
+
+  const [projected, legacy] = await Promise.all([
+    queryPatientItems(patientId, 'EXAM'),
+    scanEntityTypes(['EXAMINATION']),
+  ]);
+
+  let items = uniqueBy(
+    [
+      ...projected,
+      ...legacy.filter((item) => sameIdentifier(item.patientId, patientId)),
+    ],
+    (item) => item.examinationId,
+  );
+
+  if (requestedRecordId) {
+    await ensureMedicalRecordForPatient(requestedRecordId, patientId);
+    const patientRecords = uniqueBy(
+      (await scanEntityTypes(['MEDICAL_RECORD', 'RECORD']))
+        .filter((item) => sameIdentifier(item.patientId, patientId)),
+      (item) => item.recordId,
+    );
+    const allowUnlinkedLegacy = patientRecords.length <= 1;
+
+    items = items.filter((item) => {
+      const itemRecordId =
+        item.recordId || item.medicalRecordId || item.maHSBA || null;
+      return itemRecordId
+        ? sameIdentifier(itemRecordId, requestedRecordId)
+        : allowUnlinkedLegacy;
+    });
+  }
+
+  items.sort((left, right) =>
+    String(right.createdAt || '').localeCompare(String(left.createdAt || '')),
+  );
+
+  return success({
+    patientId,
+    medicalRecordId: requestedRecordId,
+    items: items.map(toLegacyExamination),
+    count: items.length,
+  });
 }
 
 async function createPrescription(event) {
@@ -495,8 +673,39 @@ async function createPrescription(event) {
   await ensurePatient(patientId);
 
   const body = parseJsonBody(event);
-  if (body.recordId) {
-    await ensureDirectEntity('RECORD', body.recordId, patientId);
+  const recordId = requiredString(
+    body.recordId || body.medicalRecordId || body.maHSBA,
+    'recordId',
+    { maxLength: 100 },
+  );
+  const record = await ensureMedicalRecordForPatient(recordId, patientId);
+
+  const examinationId = requiredString(
+    body.examinationId || body.maPK,
+    'examinationId',
+    { maxLength: 100 },
+  );
+  const examination = await ensureDirectEntity(
+    'EXAMINATION',
+    examinationId,
+    patientId,
+  );
+
+  const examinationRecordId =
+    examination.recordId ||
+    examination.medicalRecordId ||
+    examination.maHSBA ||
+    null;
+
+  if (
+    examinationRecordId &&
+    !sameIdentifier(examinationRecordId, recordId)
+  ) {
+    throw new ApiError(
+      409,
+      'EXAMINATION_RECORD_MISMATCH',
+      'Phiếu khám không thuộc hồ sơ bệnh án đã chọn',
+    );
   }
 
   const prescriptionId = randomUUID();
@@ -506,7 +715,10 @@ async function createPrescription(event) {
     prescriptionId,
     patientId,
     doctorId: actor.sub,
-    recordId: optionalString(body.recordId, 'recordId', { maxLength: 100 }),
+    recordId,
+    medicalRecordId: recordId,
+    examinationId,
+    recordCreatedAt: record.createdAt || null,
     medicineItems: normalizeMedicineItems(body.medicineItems),
     generalInstructions: optionalString(
       body.generalInstructions,
@@ -517,6 +729,7 @@ async function createPrescription(event) {
     createdBy: actor.sub,
     createdAt: now,
     updatedAt: now,
+    version: 1,
   };
 
   const created = await putPatientProjection({
@@ -535,8 +748,53 @@ async function listPrescriptions(event) {
   requireGroups(event, ['ADMIN', 'BACSI', 'NHANSU']);
   const patientId = routeParameter(event, 'patientId');
   await ensurePatient(patientId);
-  const items = await queryPatientItems(patientId, 'PRESCRIPTION');
-  return success({ patientId, items, count: items.length });
+
+  const query = event.queryStringParameters || {};
+  const requestedRecordId =
+    query.medicalRecordId || query.recordId || query.maHSBA || null;
+  const requestedExaminationId =
+    query.examinationId || query.maPK || null;
+
+  const [projected, legacy] = await Promise.all([
+    queryPatientItems(patientId, 'PRESCRIPTION'),
+    scanEntityTypes(['PRESCRIPTION']),
+  ]);
+
+  let items = uniqueBy(
+    [
+      ...projected,
+      ...legacy.filter((item) => sameIdentifier(item.patientId, patientId)),
+    ],
+    (item) => item.prescriptionId,
+  );
+
+  if (requestedRecordId) {
+    await ensureMedicalRecordForPatient(requestedRecordId, patientId);
+    items = items.filter((item) =>
+      sameIdentifier(
+        item.recordId || item.medicalRecordId || item.maHSBA,
+        requestedRecordId,
+      ),
+    );
+  }
+
+  if (requestedExaminationId) {
+    items = items.filter((item) =>
+      sameIdentifier(item.examinationId || item.maPK, requestedExaminationId),
+    );
+  }
+
+  items.sort((left, right) =>
+    String(right.createdAt || '').localeCompare(String(left.createdAt || '')),
+  );
+
+  return success({
+    patientId,
+    medicalRecordId: requestedRecordId,
+    examinationId: requestedExaminationId,
+    items: items.map(toLegacyPrescription),
+    count: items.length,
+  });
 }
 
 async function createUploadUrl(event) {
@@ -546,6 +804,16 @@ async function createUploadUrl(event) {
     maxLength: 100,
   });
   await ensurePatient(patientId);
+  const medicalRecordId = body.medicalRecordId || body.recordId || body.maHSBA
+    ? requiredString(
+        body.medicalRecordId || body.recordId || body.maHSBA,
+        'medicalRecordId',
+        { maxLength: 100 },
+      )
+    : null;
+  if (medicalRecordId) {
+    await ensureMedicalRecordForPatient(medicalRecordId, patientId);
+  }
 
   const fileName = safeFileName(body.fileName);
   const contentType = requiredString(body.contentType, 'contentType', {
@@ -580,6 +848,8 @@ async function createUploadUrl(event) {
     entityType: 'MEDICAL_DOCUMENT',
     documentId,
     patientId,
+    medicalRecordId,
+    recordId: medicalRecordId,
     fileName,
     contentType,
     expectedFileSize: fileSize,
@@ -588,6 +858,7 @@ async function createUploadUrl(event) {
     uploadedBy: actor.sub,
     createdAt: now,
     updatedAt: now,
+    version: 1,
   };
 
   await putPatientProjection({
@@ -864,7 +1135,124 @@ async function scanEntityTypes(entityTypes = []) {
 
   return items;
 }
+function normalizeIdentity(value) {
+  return String(value || '').trim().toLowerCase();
+}
 
+async function applicationUserForEvent(event) {
+  const currentUser = getCurrentUser(event);
+  const users = await scanEntityTypes(['USER']);
+
+  const email = normalizeIdentity(currentUser.email);
+  const username = normalizeIdentity(currentUser.username);
+
+  return (
+    users.find((item) => {
+      const sameSub =
+        currentUser.sub &&
+        (
+          item.cognitoSub === currentUser.sub ||
+          item.userId === currentUser.sub
+        );
+
+      const sameUsername =
+        username &&
+        normalizeIdentity(item.cognitoUsername) === username;
+
+      const sameEmail =
+        email &&
+        normalizeIdentity(item.email) === email;
+
+      return sameSub || sameUsername || sameEmail;
+    }) || null
+  );
+}
+
+async function patientIdForEvent(event) {
+  const currentUser = getCurrentUser(event);
+
+  if (!hasGroup(currentUser, 'BENHNHAN')) {
+    return null;
+  }
+
+  const applicationUser =
+    await applicationUserForEvent(event);
+
+  if (applicationUser?.patientId) {
+    return applicationUser.patientId;
+  }
+
+  const patients = await scanEntityTypes(['PATIENT']);
+
+  const email = normalizeIdentity(currentUser.email);
+  const username = normalizeIdentity(
+    currentUser.username,
+  );
+
+  const patient = patients.find((item) => {
+    const sameSub =
+      currentUser.sub &&
+      item.cognitoSub === currentUser.sub;
+
+    const sameUsername =
+      username &&
+      normalizeIdentity(item.cognitoUsername) ===
+        username;
+
+    const sameEmail =
+      email &&
+      normalizeIdentity(item.email) === email;
+
+    const sameAccount =
+      applicationUser?.userId &&
+      item.accountUserId === applicationUser.userId;
+
+    return (
+      sameSub ||
+      sameUsername ||
+      sameEmail ||
+      sameAccount
+    );
+  });
+
+  return patient?.patientId || null;
+}
+
+async function requirePatientScope(
+  event,
+  patientId,
+  allowedGroups = [
+    'ADMIN',
+    'BACSI',
+    'NHANSU',
+    'BENHNHAN',
+  ],
+) {
+  const actor = requireGroups(
+    event,
+    allowedGroups,
+  );
+
+  if (!hasGroup(actor, 'BENHNHAN')) {
+    return actor;
+  }
+
+  const ownPatientId =
+    await patientIdForEvent(event);
+
+  if (
+    !ownPatientId ||
+    ownPatientId !== patientId
+  ) {
+    throw new ApiError(
+      403,
+      'PATIENT_SCOPE_FORBIDDEN',
+      'Bạn chỉ được xem dữ liệu bệnh nhân của chính mình',
+    );
+  }
+
+  return actor;
+}
 function uniqueBy(items, selector) {
   const seen = new Set();
   const result = [];
@@ -882,21 +1270,32 @@ function uniqueBy(items, selector) {
 const normalizeStatus = (status) => String(status || 'ACTIVE').toUpperCase();
 
 function toLegacyPatient(item) {
+  const birthDate = item.birthDate || item.dateOfBirth || null;
+  const healthInsurance =
+    item.healthInsurance || item.healthInsuranceNumber || null;
+  const citizenId = item.citizenId || item.cccd || null;
+
   return {
     maBN: item.patientId,
     patientId: item.patientId,
+    maTK: item.accountUserId || null,
     hoTen: item.fullName,
     fullName: item.fullName,
-    ngaySinh: item.dateOfBirth || null,
-    dateOfBirth: item.dateOfBirth || null,
+    ngaySinh: birthDate,
+    birthDate,
+    dateOfBirth: birthDate,
     gioiTinh: item.gender || null,
     gender: item.gender || null,
     soDienThoai: item.phoneNumber || null,
     phoneNumber: item.phoneNumber || null,
     diaChi: item.address || null,
     address: item.address || null,
-    bhyt: item.healthInsuranceNumber || null,
-    healthInsuranceNumber: item.healthInsuranceNumber || null,
+    email: item.email || null,
+    bhyt: healthInsurance,
+    healthInsurance,
+    healthInsuranceNumber: healthInsurance,
+    cccd: citizenId,
+    citizenId,
     trangThai: normalizeStatus(item.status),
     status: normalizeStatus(item.status),
     createdAt: item.createdAt || null,
@@ -1011,9 +1410,18 @@ function toLegacyMedicalRecord(item) {
 }
 
 function toLegacyExamination(item) {
+  const recordId =
+    item.recordId ||
+    item.medicalRecordId ||
+    item.maHSBA ||
+    null;
+
   return {
     maPK: item.examinationId,
     examinationId: item.examinationId,
+    maHSBA: recordId,
+    recordId,
+    medicalRecordId: recordId,
     maBN: item.patientId,
     patientId: item.patientId,
     maBS: item.doctorId || item.actorId || null,
@@ -1035,11 +1443,24 @@ function toLegacyExamination(item) {
 }
 
 function toLegacyPrescription(item) {
+  const recordId =
+    item.recordId ||
+    item.medicalRecordId ||
+    item.maHSBA ||
+    null;
+  const examinationId =
+    item.examinationId ||
+    item.maPK ||
+    null;
+
   return {
     maDT: item.prescriptionId,
     prescriptionId: item.prescriptionId,
-    maHSBA: item.recordId || null,
-    recordId: item.recordId || null,
+    maHSBA: recordId,
+    recordId,
+    medicalRecordId: recordId,
+    maPK: examinationId,
+    examinationId,
     maBN: item.patientId,
     patientId: item.patientId,
     maBS: item.doctorId || item.createdBy || null,
@@ -1053,7 +1474,84 @@ function toLegacyPrescription(item) {
     createdAt: item.createdAt || null,
   };
 }
+function toLegacyLabResult(item) {
+  return {
+    maPhieuXN: item.labResultId,
+    labResultId: item.labResultId,
 
+    maBN: item.patientId,
+    patientId: item.patientId,
+
+    maHSBA: item.recordId || null,
+    recordId: item.recordId || null,
+
+    ngayThucHien:
+      item.performedAt ||
+      item.createdAt ||
+      null,
+
+    performedAt:
+      item.performedAt ||
+      item.createdAt ||
+      null,
+
+    ketQua: item.resultText || '',
+    resultText: item.resultText || '',
+
+    khoangThamChieu:
+      item.referenceRange || '',
+
+    referenceRange:
+      item.referenceRange || '',
+
+    donVi: item.unit || '',
+    unit: item.unit || '',
+
+    trangThai: normalizeStatus(
+      item.status || 'COMPLETED',
+    ),
+
+    status: normalizeStatus(
+      item.status || 'COMPLETED',
+    ),
+
+    XetNghiem: {
+      maXN:
+        item.testId ||
+        item.labResultId,
+
+      tenXN:
+        item.testName ||
+        'Xét nghiệm',
+
+      LoaiXetNghiem: {
+        maLoaiXN:
+          item.categoryId ||
+          item.testTypeId ||
+          null,
+
+        tenLoai:
+          item.categoryName ||
+          item.testTypeName ||
+          'Tổng quát',
+      },
+    },
+
+    NhanSuYTe: {
+      maNS: item.staffId || null,
+      hoTen:
+        item.staffName ||
+        'Kỹ thuật viên',
+    },
+
+    YeuCau: {
+      maBN: item.patientId,
+    },
+
+    createdAt: item.createdAt || null,
+    updatedAt: item.updatedAt || null,
+  };
+}
 function toLegacyMedicine(item) {
   return {
     maThuoc: item.medicineId,
@@ -1103,14 +1601,55 @@ async function legacyReadPatient(event) {
 }
 
 async function legacyPatientByAccount(event) {
-  requireGroups(event, ['ADMIN', 'BACSI', 'NHANSU', 'BENHNHAN']);
-  const maTK = routeParameter(event, 'maTK');
-  const fallbackId = maTK === 'USER004' ? 'BN001' : maTK;
-  const patients = uniqueBy(await scanEntityTypes(['PATIENT']), (item) => item.patientId);
-  const patient = patients.find(
-    (item) => item.accountUserId === maTK || item.patientId === fallbackId,
+  const actor = requireGroups(event, ['ADMIN', 'BACSI', 'NHANSU', 'BENHNHAN']);
+  const maTK = String(routeParameter(event, 'maTK') || '').trim();
+  const [patients, users] = await Promise.all([
+    scanEntityTypes(['PATIENT']),
+    scanEntityTypes(['USER']),
+  ]);
+
+  const candidates = [
+    maTK,
+    actor.sub,
+    actor.username,
+    actor.email,
+  ].filter(Boolean);
+
+  const applicationUser = users.find((item) =>
+    [item.userId, item.cognitoSub, item.cognitoUsername, item.email].some(
+      (value) =>
+        candidates.some(
+          (candidate) => normalizeIdentity(value) === normalizeIdentity(candidate),
+        ),
+    ),
   );
-  if (!patient) throw new ApiError(404, 'PATIENT_NOT_FOUND', 'Patient not found');
+
+  const patient = patients.find((item) =>
+    [
+      item.patientId,
+      item.accountUserId,
+      item.cognitoSub,
+      item.cognitoUsername,
+      item.email,
+    ].some((value) =>
+      candidates.some(
+        (candidate) => normalizeIdentity(value) === normalizeIdentity(candidate),
+      ),
+    ) ||
+    (applicationUser?.patientId && item.patientId === applicationUser.patientId),
+  );
+
+  if (!patient) {
+    throw new ApiError(404, 'PATIENT_NOT_FOUND', 'Không tìm thấy hồ sơ bệnh nhân');
+  }
+
+  if (hasGroup(actor, 'BENHNHAN')) {
+    const ownPatientId = await patientIdForEvent(event);
+    if (!ownPatientId || ownPatientId !== patient.patientId) {
+      throw new ApiError(403, 'PATIENT_SCOPE_FORBIDDEN', 'Bạn chỉ được xem hồ sơ của chính mình');
+    }
+  }
+
   return success(toLegacyPatient(patient));
 }
 
@@ -1255,6 +1794,519 @@ async function legacyDoctorAppointments(event) {
     maBS: doctorId,
   };
   return legacyListAppointments(event);
+}
+async function legacyListLabResults(event) {
+  const actor = requireGroups(event, [
+    'ADMIN',
+    'BACSI',
+    'NHANSU',
+    'BENHNHAN',
+  ]);
+
+  const query =
+    event.queryStringParameters || {};
+
+  let items = uniqueBy(
+    await scanEntityTypes(['LAB_RESULT']),
+    (item) => item.labResultId,
+  );
+
+  const requestedPatientId =
+    query.maBN ||
+    query.patientId ||
+    null;
+
+  if (requestedPatientId) {
+    items = items.filter(
+      (item) =>
+        item.patientId === requestedPatientId,
+    );
+  }
+
+  if (hasGroup(actor, 'BENHNHAN')) {
+    const ownPatientId =
+      await patientIdForEvent(event);
+
+    if (!ownPatientId) {
+      throw new ApiError(
+        403,
+        'PATIENT_PROFILE_NOT_LINKED',
+        'Tài khoản chưa được liên kết với hồ sơ bệnh nhân',
+      );
+    }
+
+    if (
+      requestedPatientId &&
+      requestedPatientId !== ownPatientId
+    ) {
+      throw new ApiError(
+        403,
+        'PATIENT_SCOPE_FORBIDDEN',
+        'Bạn chỉ được xem kết quả xét nghiệm của chính mình',
+      );
+    }
+
+    items = items.filter(
+      (item) =>
+        item.patientId === ownPatientId,
+    );
+  }
+
+  items.sort((left, right) =>
+    String(
+      right.performedAt ||
+      right.createdAt ||
+      '',
+    ).localeCompare(
+      String(
+        left.performedAt ||
+        left.createdAt ||
+        '',
+      ),
+    ),
+  );
+
+  return success(
+    items.map(toLegacyLabResult),
+  );
+}
+
+async function legacyReadLabResult(event) {
+  const labResultId = routeParameter(
+    event,
+    'labResultId',
+  );
+
+  const item = await ensureDirectEntity(
+    'LAB_RESULT',
+    labResultId,
+  );
+
+  await requirePatientScope(
+    event,
+    item.patientId,
+  );
+
+  return success(
+    toLegacyLabResult(item),
+  );
+}
+function eventDateValue(item, fields = []) {
+  for (const field of fields) {
+    const value = item?.[field];
+    if (value) return value;
+  }
+  return null;
+}
+
+function datePart(value) {
+  if (!value) return '';
+  const raw = String(value);
+  if (/^\d{4}-\d{2}-\d{2}$/.test(raw)) return raw;
+  const parsed = new Date(raw);
+  if (Number.isNaN(parsed.getTime())) return raw.slice(0, 10);
+  return parsed.toISOString().slice(0, 10);
+}
+
+function earliestDate(values = []) {
+  return values
+    .filter(Boolean)
+    .map((value) => String(value))
+    .sort((left, right) => left.localeCompare(right))[0] || null;
+}
+
+function normalizedText(value) {
+  return String(value || '').trim().toLowerCase();
+}
+
+function isTwelveDigitCitizenId(value) {
+  return /^\d{12}$/.test(String(value || '').trim());
+}
+
+function isClinicalRecordEvent(record = {}) {
+  return Boolean(
+    record.examinationId ||
+      record.encounterAt ||
+      record.examinedAt ||
+      record.symptoms ||
+      record.diagnosis ||
+      record.treatment ||
+      record.advice ||
+      record.vitals,
+  );
+}
+
+function pickCanonicalPatientRecord(records = [], patient = {}) {
+  const citizenId = String(patient.citizenId || patient.cccd || patient.medicalRecordId || '').trim();
+  const exactCitizenRecord = records.find((record) =>
+    isTwelveDigitCitizenId(record.recordId) &&
+    (record.recordId === citizenId || record.citizenId === citizenId || record.recordCode === citizenId),
+  );
+  if (exactCitizenRecord) return exactCitizenRecord;
+
+  const anyCitizenRecord = records.find((record) =>
+    isTwelveDigitCitizenId(record.recordId || record.medicalRecordId || record.recordCode || record.citizenId),
+  );
+  if (anyCitizenRecord) return anyCitizenRecord;
+
+  return records[0] || null;
+}
+
+function buildPrescriptionItems(prescription, rawItems, medicineMap) {
+  const embeddedItems = Array.isArray(prescription.medicineItems)
+    ? prescription.medicineItems
+    : [];
+  const separateItems = rawItems.filter(
+    (item) => item.prescriptionId === prescription.prescriptionId,
+  );
+  const source = embeddedItems.length > 0 ? embeddedItems : separateItems;
+
+  return source.map((item) => {
+    const medicineId = item.medicineId || item.maThuoc || null;
+    const medicine = medicineMap.get(medicineId);
+    return {
+      maThuoc: medicineId,
+      medicineId,
+      tenThuoc:
+        item.medicineName ||
+        item.tenThuoc ||
+        medicine?.name ||
+        medicine?.medicineName ||
+        'Thuốc',
+      soLuong: item.quantity ?? item.soLuong ?? null,
+      quantity: item.quantity ?? item.soLuong ?? null,
+      lieuDung: item.dosage || item.lieuDung || '',
+      dosage: item.dosage || item.lieuDung || '',
+      tanSuat: item.frequency || item.tanSuat || '',
+      frequency: item.frequency || item.tanSuat || '',
+      soNgayDung: item.durationDays ?? item.soNgayDung ?? null,
+      durationDays: item.durationDays ?? item.soNgayDung ?? null,
+      huongDan: item.instructions || item.huongDan || '',
+      instructions: item.instructions || item.huongDan || '',
+      donVi: item.unit || medicine?.unit || '',
+      unit: item.unit || medicine?.unit || '',
+    };
+  });
+}
+
+async function getPatientMedicalTimeline(event) {
+  const patientId = routeParameter(event, 'patientId');
+  await ensurePatient(patientId);
+  await requirePatientScope(
+    event,
+    patientId,
+    ['BACSI', 'NHANSU', 'BENHNHAN'],
+  );
+
+  const allItems = await scanEntityTypes([
+    'PATIENT',
+    'MEDICAL_RECORD',
+    'RECORD',
+    'EXAMINATION',
+    'PRESCRIPTION',
+    'PRESCRIPTION_ITEM',
+    'LAB_RESULT',
+    'APPOINTMENT',
+    'DOCTOR',
+    'STAFF',
+    'MEDICINE',
+  ]);
+
+  const patient = allItems.find(
+    (item) => item.entityType === 'PATIENT' && item.patientId === patientId,
+  );
+  if (!patient) {
+    throw new ApiError(404, 'PATIENT_NOT_FOUND', 'Không tìm thấy bệnh nhân');
+  }
+
+  const records = uniqueBy(
+    allItems.filter(
+      (item) =>
+        ['MEDICAL_RECORD', 'RECORD'].includes(item.entityType) &&
+        item.patientId === patientId,
+    ),
+    (item) => item.recordId || item.medicalRecordId || item.citizenId,
+  ).sort((left, right) => {
+    const leftCitizenRank = isTwelveDigitCitizenId(
+      left.recordId || left.medicalRecordId || left.recordCode || left.citizenId,
+    )
+      ? 0
+      : 1;
+    const rightCitizenRank = isTwelveDigitCitizenId(
+      right.recordId || right.medicalRecordId || right.recordCode || right.citizenId,
+    )
+      ? 0
+      : 1;
+    if (leftCitizenRank !== rightCitizenRank) {
+      return leftCitizenRank - rightCitizenRank;
+    }
+    return String(left.createdAt || left.encounterAt || '').localeCompare(
+      String(right.createdAt || right.encounterAt || ''),
+    );
+  });
+  const canonicalRecord = pickCanonicalPatientRecord(records, patient);
+  const canonicalRecordId =
+    canonicalRecord?.recordId ||
+    canonicalRecord?.medicalRecordId ||
+    canonicalRecord?.recordCode ||
+    patient.citizenId ||
+    patient.cccd ||
+    `HSBA-${patientId}`;
+
+  const examinations = uniqueBy(
+    allItems.filter(
+      (item) => item.entityType === 'EXAMINATION' && item.patientId === patientId,
+    ),
+    (item) => item.examinationId,
+  );
+  const prescriptions = uniqueBy(
+    allItems.filter(
+      (item) => item.entityType === 'PRESCRIPTION' && item.patientId === patientId,
+    ),
+    (item) => item.prescriptionId,
+  );
+  const prescriptionItems = allItems.filter(
+    (item) => item.entityType === 'PRESCRIPTION_ITEM',
+  );
+  const labResults = uniqueBy(
+    allItems.filter(
+      (item) => item.entityType === 'LAB_RESULT' && item.patientId === patientId,
+    ),
+    (item) => item.labResultId,
+  );
+  const appointments = uniqueBy(
+    allItems.filter(
+      (item) => item.entityType === 'APPOINTMENT' && item.patientId === patientId,
+    ),
+    (item) => item.appointmentId,
+  );
+
+  const doctorMap = new Map(
+    allItems
+      .filter((item) => item.entityType === 'DOCTOR')
+      .map((item) => [item.doctorId || item.staffId, item]),
+  );
+  const staffMap = new Map(
+    allItems
+      .filter((item) => item.entityType === 'STAFF')
+      .map((item) => [item.staffId, item]),
+  );
+  const medicineMap = new Map(
+    allItems
+      .filter((item) => item.entityType === 'MEDICINE')
+      .map((item) => [item.medicineId, item]),
+  );
+
+  const examinationKeys = new Set(
+    examinations.map((item) => {
+      const occurredAt = eventDateValue(item, ['examinedAt', 'createdAt', 'updatedAt']);
+      return `${datePart(occurredAt)}|${normalizedText(item.diagnosis)}`;
+    }),
+  );
+
+  const events = [];
+
+  for (const record of records) {
+    if (!isClinicalRecordEvent(record)) continue;
+    const occurredAt = eventDateValue(record, [
+      'encounterAt',
+      'examinedAt',
+      'createdAt',
+      'updatedAt',
+    ]);
+    const duplicateKey = `${datePart(occurredAt)}|${normalizedText(record.diagnosis)}`;
+    if (record.diagnosis && examinationKeys.has(duplicateKey)) continue;
+
+    const doctorId = record.doctorId || record.createdBy || null;
+    const doctor = doctorMap.get(doctorId);
+    events.push({
+      id: `record-${record.recordId}`,
+      loai: 'PHIEU_KHAM',
+      type: 'EXAMINATION',
+      nguon: 'MEDICAL_RECORD',
+      thoiGian: occurredAt,
+      occurredAt,
+      maHSBA: record.recordId,
+      recordId: record.recordId,
+      data: {
+        maPK: record.examinationId || record.recordId,
+        examinationId: record.examinationId || record.recordId,
+        maBS: doctorId,
+        doctorId,
+        tenBacSi: doctor?.fullName || doctor?.name || doctorId || 'Chưa cập nhật',
+        trieuChung: record.symptoms || '',
+        symptoms: record.symptoms || '',
+        chuanDoan: record.diagnosis || '',
+        diagnosis: record.diagnosis || '',
+        dieuTri: record.treatment || '',
+        treatment: record.treatment || '',
+        loiDan: record.advice || record.note || record.notes || '',
+        advice: record.advice || record.note || record.notes || '',
+        sinhHieu: record.vitals || {},
+        vitals: record.vitals || {},
+        trangThai: normalizeStatus(record.status || 'COMPLETED'),
+        status: normalizeStatus(record.status || 'COMPLETED'),
+      },
+    });
+  }
+
+  for (const examination of examinations) {
+    const occurredAt = eventDateValue(examination, [
+      'examinedAt',
+      'createdAt',
+      'updatedAt',
+    ]);
+    const doctorId = examination.doctorId || examination.actorId || null;
+    const doctor = doctorMap.get(doctorId);
+    events.push({
+      id: `examination-${examination.examinationId}`,
+      loai: 'PHIEU_KHAM',
+      type: 'EXAMINATION',
+      nguon: 'EXAMINATION',
+      thoiGian: occurredAt,
+      occurredAt,
+      maHSBA: examination.recordId || records[0]?.recordId || null,
+      recordId: examination.recordId || records[0]?.recordId || null,
+      data: {
+        ...toLegacyExamination(examination),
+        tenBacSi: doctor?.fullName || doctor?.name || doctorId || 'Chưa cập nhật',
+      },
+    });
+  }
+
+  for (const prescription of prescriptions) {
+    const occurredAt = eventDateValue(prescription, [
+      'prescribedAt',
+      'createdAt',
+      'updatedAt',
+    ]);
+    const doctorId = prescription.doctorId || prescription.createdBy || null;
+    const doctor = doctorMap.get(doctorId);
+    const medicineItems = buildPrescriptionItems(
+      prescription,
+      prescriptionItems,
+      medicineMap,
+    );
+    events.push({
+      id: `prescription-${prescription.prescriptionId}`,
+      loai: 'DON_THUOC',
+      type: 'PRESCRIPTION',
+      nguon: 'PRESCRIPTION',
+      thoiGian: occurredAt,
+      occurredAt,
+      maHSBA: prescription.recordId || records[0]?.recordId || null,
+      recordId: prescription.recordId || records[0]?.recordId || null,
+      data: {
+        ...toLegacyPrescription({ ...prescription, medicineItems }),
+        tenBacSi: doctor?.fullName || doctor?.name || doctorId || 'Chưa cập nhật',
+        chiTiet: medicineItems,
+        medicineItems,
+      },
+    });
+  }
+
+  for (const result of labResults) {
+    const occurredAt = eventDateValue(result, [
+      'performedAt',
+      'createdAt',
+      'updatedAt',
+    ]);
+    const staff = staffMap.get(result.staffId);
+    const mapped = toLegacyLabResult(result);
+    events.push({
+      id: `lab-result-${result.labResultId}`,
+      loai: 'XET_NGHIEM',
+      type: 'LAB_RESULT',
+      nguon: 'LAB_RESULT',
+      thoiGian: occurredAt,
+      occurredAt,
+      maHSBA: result.recordId || records[0]?.recordId || null,
+      recordId: result.recordId || records[0]?.recordId || null,
+      data: {
+        ...mapped,
+        tenNhanSu:
+          result.staffName || staff?.fullName || staff?.name || result.staffId || '',
+      },
+    });
+  }
+
+  for (const appointment of appointments) {
+    const occurredAt = appointment.appointmentDate
+      ? `${appointment.appointmentDate}T${appointment.appointmentTime || '00:00'}:00+07:00`
+      : eventDateValue(appointment, ['scheduledAt', 'createdAt', 'updatedAt']);
+    const doctor = doctorMap.get(appointment.doctorId);
+    events.push({
+      id: `appointment-${appointment.appointmentId}`,
+      loai: 'LICH_KHAM',
+      type: 'APPOINTMENT',
+      nguon: 'APPOINTMENT',
+      thoiGian: occurredAt,
+      occurredAt,
+      maHSBA: canonicalRecordId || null,
+      recordId: canonicalRecordId || null,
+      data: {
+        ...toLegacyAppointment(appointment),
+        tenBacSi:
+          doctor?.fullName || doctor?.name || appointment.doctorId || 'Chưa cập nhật',
+      },
+    });
+  }
+
+  events.sort((left, right) =>
+    String(right.occurredAt || '').localeCompare(String(left.occurredAt || '')),
+  );
+
+  const allDates = [
+    patient.createdAt,
+    ...records.map((item) => eventDateValue(item, ['createdAt', 'encounterAt'])),
+    ...events.map((item) => item.occurredAt),
+  ];
+  const firstRecord = canonicalRecord || records[0] || null;
+  const recordId = canonicalRecordId || firstRecord?.recordId || `HSBA-${patientId}`;
+  const diagnoses = [
+    ...records.map((item) => item.diagnosis),
+    ...examinations.map((item) => item.diagnosis),
+  ].filter(Boolean);
+  const uniqueDiagnoses = [...new Set(diagnoses.map((item) => String(item).trim()))];
+  const visitDates = new Set(
+    events
+      .filter((item) => ['PHIEU_KHAM', 'LICH_KHAM'].includes(item.loai))
+      .map((item) => datePart(item.occurredAt))
+      .filter(Boolean),
+  );
+
+  return success({
+    hoSo: {
+      maHSBA: recordId,
+      maHSBAHienThi: patient.citizenId || recordId,
+      displayRecordId: patient.citizenId || recordId,
+      recordId,
+      medicalRecordId: recordId,
+      recordCode: patient.citizenId || recordId,
+      citizenId: patient.citizenId || firstRecord?.citizenId || null,
+      cccd: patient.citizenId || firstRecord?.citizenId || null,
+      maBN: patientId,
+      patientId,
+      ngayLap: earliestDate(allDates),
+      createdAt: earliestDate(allDates),
+      lichSuBenh:
+        records.find((item) => item.medicalHistory)?.medicalHistory ||
+        uniqueDiagnoses.join('; '),
+      trangThai: 'ACTIVE',
+      status: 'ACTIVE',
+      benhNhan: toLegacyPatient(patient),
+      legacyRecordIds: records.map((item) => item.recordId),
+    },
+    thongKe: {
+      soDotKham: visitDates.size,
+      soPhieuKham: events.filter((item) => item.loai === 'PHIEU_KHAM').length,
+      soDonThuoc: prescriptions.length,
+      soXetNghiem: labResults.length,
+      soLichKham: appointments.length,
+      tongSuKien: events.length,
+    },
+    suKien: events,
+  });
 }
 
 async function legacyListMedicalRecords(event) {
@@ -1416,37 +2468,110 @@ async function legacyInvoiceStatistics(event) {
 }
 
 const routeHandlers = Object.freeze({
-  'GET /api/benhnhan': legacyListPatients,
-  'GET /api/benhnhan/{patientId}': legacyReadPatient,
-  'PUT /api/benhnhan/{patientId}': updatePatient,
-  'GET /api/benhnhan/findByMaTK/{maTK}': legacyPatientByAccount,
-  'GET /api/bacsi': legacyListDoctors,
+  // Public homepage and public news routes.
+  'GET /api/public/khoa': adminFeatures.listPublicDepartments,
+  'GET /api/public/bacsi': adminFeatures.listPublicDoctors,
+  'GET /api/public/tintuc': adminFeatures.listPublicNews,
+  'GET /api/public/tintuc/{newsId}': adminFeatures.getPublicNews,
+
+  // Doctor and staff management.
+  'GET /api/bacsi': adminFeatures.listDoctors,
+  'POST /api/bacsi': adminFeatures.createDoctor,
+  'GET /api/bacsi/{doctorId}': adminFeatures.getDoctor,
+  'PUT /api/bacsi/{doctorId}': adminFeatures.updateDoctor,
+  'DELETE /api/bacsi/{doctorId}': adminFeatures.deleteDoctor,
   'GET /api/bacsi/maTK/{maTK}': legacyDoctorByAccount,
   'GET /api/bacsi/tk/{maTK}': legacyDoctorByAccount,
-  'GET /api/nhansu': legacyListStaff,
+
+  'GET /api/nhansu': adminFeatures.listStaff,
+  'POST /api/nhansu': adminFeatures.createStaff,
+  'GET /api/nhansu/{staffId}': adminFeatures.getStaff,
+  'PUT /api/nhansu/{staffId}': adminFeatures.updateStaff,
+  'DELETE /api/nhansu/{staffId}': adminFeatures.deleteStaff,
   'GET /api/nhansu/maTK/{maTK}': legacyStaffByAccount,
+
+  // Laboratory test type and test catalog.
+  'GET /api/loaixetnghiem': adminFeatures.listLabTestTypes,
+  'POST /api/loaixetnghiem': adminFeatures.createLabTestType,
+  'GET /api/loaixetnghiem/{typeId}': adminFeatures.getLabTestType,
+  'PUT /api/loaixetnghiem/{typeId}': adminFeatures.updateLabTestType,
+  'DELETE /api/loaixetnghiem/{typeId}': adminFeatures.deleteLabTestType,
+
+  'GET /api/xetnghiem': adminFeatures.listLabTests,
+  'POST /api/xetnghiem': adminFeatures.createLabTest,
+  'GET /api/xetnghiem/{testId}': adminFeatures.getLabTest,
+  'PUT /api/xetnghiem/{testId}': adminFeatures.updateLabTest,
+  'DELETE /api/xetnghiem/{testId}': adminFeatures.deleteLabTest,
+
+  // Feedback management.
+  'GET /api/phanhoi': adminFeatures.listFeedback,
+  'POST /api/phanhoi': adminFeatures.createFeedback,
+  'GET /api/phanhoi/stats': adminFeatures.feedbackStats,
+  'GET /api/phanhoi/benhnhan/{patientId}': adminFeatures.listFeedbackByPatient,
+  'GET /api/phanhoi/{feedbackId}': adminFeatures.getFeedback,
+  'PUT /api/phanhoi/{feedbackId}': adminFeatures.updateFeedback,
+  'DELETE /api/phanhoi/{feedbackId}': adminFeatures.deleteFeedback,
+
+  // News management.
+  'GET /api/tintuc': adminFeatures.listNews,
+  'POST /api/tintuc': adminFeatures.createNews,
+  'GET /api/tintuc/{newsId}': adminFeatures.getNews,
+  'PUT /api/tintuc/{newsId}': adminFeatures.updateNews,
+  'DELETE /api/tintuc/{newsId}': adminFeatures.deleteNews,
+
+  // Existing compatibility and medical routes.
+  'GET /api/benhnhan': adminCatalog.listPatients,
+  'POST /api/benhnhan': adminCatalog.createPatient,
+  'GET /api/benhnhan/{patientId}': adminCatalog.getPatient,
+  'PUT /api/benhnhan/{patientId}': adminCatalog.updatePatient,
+  'DELETE /api/benhnhan/{patientId}': adminCatalog.deletePatient,
+  'GET /api/benhnhan/findByMaTK/{maTK}': legacyPatientByAccount,
   'GET /api/khoa': legacyListDepartments,
   'GET /api/phongkham': legacyListRooms,
   'GET /api/lichkham': legacyListAppointments,
   'GET /api/lichkham/benhnhan/{patientId}': legacyPatientAppointments,
   'GET /api/lichkham/bacsi/{doctorId}': legacyDoctorAppointments,
-  'GET /api/hsba': legacyListMedicalRecords,
-  'GET /api/hsba/benhnhan/{patientId}': legacyPatientMedicalRecords,
+  'GET /api/hsba': adminCatalog.listMedicalRecords,
+  'POST /api/hsba': adminCatalog.createMedicalRecord,
+  'GET /api/hsba/{recordId}': adminCatalog.getMedicalRecord,
+  'PUT /api/hsba/{recordId}': adminCatalog.updateMedicalRecord,
+  'DELETE /api/hsba/{recordId}': adminCatalog.deleteMedicalRecord,
+  'GET /api/hsba/benhnhan/{patientId}': adminCatalog.listMedicalRecordsByPatient,
+  'GET /api/hsba/benhnhan/{patientId}/tong-hop': getPatientMedicalTimeline,
   'GET /api/phieukham': legacyListExaminations,
   'GET /api/phieukham/nurse/queue': legacyListExaminations,
   'GET /api/donthuoc': legacyListPrescriptions,
-  'GET /api/thuoc': legacyListMedicines,
-  'GET /api/thuoc/donvitinh': legacyListUnits,
-  'GET /api/thuoc/nhomthuoc': legacyListMedicineGroups,
+  'GET /api/thuoc': adminCatalog.listMedicines,
+  'POST /api/thuoc': adminCatalog.createMedicine,
+  'GET /api/thuoc/{medicineId}': adminCatalog.getMedicine,
+  'PUT /api/thuoc/{medicineId}': adminCatalog.updateMedicine,
+  'DELETE /api/thuoc/{medicineId}': adminCatalog.deleteMedicine,
+  'GET /api/thuoc/donvitinh': adminCatalog.listMedicineUnits,
+  'POST /api/thuoc/donvitinh': adminCatalog.createMedicineUnit,
+  'GET /api/thuoc/donvitinh/{unitId}': adminCatalog.getMedicineUnit,
+  'PUT /api/thuoc/donvitinh/{unitId}': adminCatalog.updateMedicineUnit,
+  'DELETE /api/thuoc/donvitinh/{unitId}': adminCatalog.deleteMedicineUnit,
+  'GET /api/thuoc/nhomthuoc': adminCatalog.listMedicineGroups,
+  'POST /api/thuoc/nhomthuoc': adminCatalog.createMedicineGroup,
+  'GET /api/thuoc/nhomthuoc/{groupId}': adminCatalog.getMedicineGroup,
+  'PUT /api/thuoc/nhomthuoc/{groupId}': adminCatalog.updateMedicineGroup,
+  'DELETE /api/thuoc/nhomthuoc/{groupId}': adminCatalog.deleteMedicineGroup,
   'GET /api/lichlamviec': legacyListSchedules,
   'GET /api/lichlamviec/bacsi/{doctorId}': legacyDoctorSchedules,
   'GET /api/lichlamviec/nhansu/{staffId}': legacyStaffSchedules,
   'GET /api/catruc': legacyListShifts,
-  'GET /api/hoadon': legacyEmptyList,
-  'GET /api/hoadon/thongke': legacyInvoiceStatistics,
-  'GET /api/xetnghiem': legacyEmptyList,
-  'GET /api/yeucauxetnghiem': legacyEmptyList,
-  'GET /api/phieuxetnghiem': legacyEmptyList,
+  'GET /api/hoadon': adminCatalog.listInvoices,
+  'GET /api/hoadon/thongke': adminCatalog.invoiceStatistics,
+  'GET /api/yeucauxetnghiem': labWorkflow.listLabRequests,
+  'POST /api/yeucauxetnghiem': labWorkflow.createLabRequest,
+  'GET /api/yeucauxetnghiem/{requestId}': labWorkflow.getLabRequest,
+  'PUT /api/yeucauxetnghiem/{requestId}': labWorkflow.updateLabRequest,
+  'DELETE /api/yeucauxetnghiem/{requestId}': labWorkflow.deleteLabRequest,
+  'GET /api/phieuxetnghiem': labWorkflow.listLabResults,
+  'POST /api/phieuxetnghiem': labWorkflow.createLabResult,
+  'GET /api/phieuxetnghiem/{labResultId}': labWorkflow.getLabResult,
+  'PUT /api/phieuxetnghiem/{labResultId}': labWorkflow.updateLabResult,
+  'DELETE /api/phieuxetnghiem/{labResultId}': labWorkflow.deleteLabResult,
   'POST /api/patients': createPatient,
   'GET /api/patients/{patientId}': readPatient,
   'PUT /api/patients/{patientId}': updatePatient,
@@ -1461,6 +2586,7 @@ const routeHandlers = Object.freeze({
   'POST /api/medical/complete-upload': completeUpload,
   'GET /api/medical/download-url': createDownloadUrl,
 });
+
 
 async function handler(event) {
   const routeKey = getRouteKey(event);

@@ -1,10 +1,12 @@
-// src/services/donthuoc/donthuocService.js
-import axios from "../../api/axiosClient";
+import {
+  createPrescriptionForExamination,
+  getExaminationsByRecord,
+  getMedicines,
+  getPrescriptionsByRecord,
+} from "../bacsi/doctorWorkflowService";
 
-// ✅ HÀM MỚI (HOẶC ĐÃ ĐỔI TÊN)
-// Gửi toàn bộ đơn thuốc (gồm cả chi tiết) lên 1 API duy nhất
-export const createDonThuocVoiChiTiet = (data) => axios.post("/donthuoc", data);
-
-
-// HÀM NÀY VẪN CẦN ĐỂ LẤY DANH SÁCH THUỐC
-export const getAllThuoc = () => axios.get("/thuoc");
+export const getDanhSachThuoc = getMedicines;
+export const getPhieuKhamTheoHoSo = getExaminationsByRecord;
+export const getDonThuocTheoHoSo = getPrescriptionsByRecord;
+export const createDonThuocTheoPhieuKham =
+  createPrescriptionForExamination;

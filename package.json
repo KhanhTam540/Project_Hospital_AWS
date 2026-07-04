@@ -1,8 +1,8 @@
 {
-  "name": "hospital-week1-complete-js",
+  "name": "project-hospital-aws-p2tb",
   "version": "1.0.0",
   "private": true,
-  "description": "Hospital P2TB AWS infrastructure for weeks 1-2 using the default CloudFront .net domain (no Route 53/ACM custom domain).",
+  "description": "Hospital P2TB AWS project with medical records, laboratory workflow, medical audit blockchain anchoring, payment gateways and SNS OTP.",
   "scripts": {
     "build": "node scripts/check-js.js",
     "test": "node --test tests/*.test.js",
@@ -34,7 +34,20 @@
     "destroy:edge": "node scripts/cdk-target.js edge destroy HospitalEdgeStack",
     "destroy:app": "node scripts/cdk-target.js app destroy HospitalDevStack",
     "test:ai": "node scripts/test-external-ai.js",
-    "verify:no-bedrock": "node scripts/verify-no-bedrock.js"
+    "verify:no-bedrock": "node scripts/verify-no-bedrock.js",
+    "test:core": "node --test tests/core*.test.js tests/auth.test.js tests/http.test.js tests/validation.test.js tests/dynamodb.test.js",
+    "test:worker": "node --test tests/core-worker.test.js",
+    "check:hoangphuc": "npm run build && npm test && npm run validate:data:local && npm run synth:app && npm run build:web",
+    "validate:data:local": "node scripts/validate-dataset-local.js",
+    "test:core:api": "node scripts/test-core-api.js",
+    "test:dinhbao": "node --test tests/medical-handler.test.js tests/lab-workflow.test.js tests/medical-audit.test.js tests/payment-sms.test.js",
+    "test:payment": "node --test tests/payment-sms.test.js",
+    "test:audit": "node --test tests/medical-audit.test.js",
+    "test:lab": "node --test tests/lab-workflow.test.js",
+    "test:week3:api": "node scripts/test-payment-sms-api.js",
+    "dataset:v2:reset": "node scripts/reset-and-seed-dataset-v2.js",
+    "dataset:v2:verify": "node scripts/verify-dataset-v2.js",
+    "dataset:v2:restore": "node scripts/restore-dataset-backup.js"
   },
   "dependencies": {
     "@aws-sdk/client-cloudformation": "^3.1075.0",
@@ -43,10 +56,14 @@
     "@aws-sdk/client-dynamodb": "^3.1075.0",
     "@aws-sdk/client-s3": "^3.850.0",
     "@aws-sdk/client-secrets-manager": "^3.1075.0",
+    "@aws-sdk/client-sqs": "^3.1075.0",
     "@aws-sdk/lib-dynamodb": "^3.1075.0",
     "@aws-sdk/s3-request-presigner": "^3.850.0",
     "aws-cdk-lib": "^2.260.0",
-    "constructs": "^10.4.2"
+    "constructs": "^10.4.2",
+    "@aws-sdk/client-sns": "^3.1075.0",
+    "@aws-sdk/util-dynamodb": "^3.996.5",
+    "ethers": "6.16.0"
   },
   "devDependencies": {
     "aws-cdk": "^2.260.0",

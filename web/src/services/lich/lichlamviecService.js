@@ -1,16 +1,55 @@
 import axios from "../../api/axiosClient";
 
-//  Lấy lịch làm việc theo mã BÁC SĨ (maBS)
-export const getLichByBS = (maBS) => axios.get(`/lichlamviec/bacsi/${maBS}`);
+const unwrap = (response, fallback = null) => {
+  const body = response?.data;
+  if (body && typeof body === "object" && "data" in body) {
+    return body.data ?? fallback;
+  }
+  return body ?? fallback;
+};
 
-//  Tạo mới lịch làm việc
-export const createLich = (data) => axios.post("/lichlamviec", data);
+const toArray = (value) => {
+  if (Array.isArray(value)) return value;
+  if (Array.isArray(value?.items)) return value.items;
+  return [];
+};
 
-//  Cập nhật lịch làm việc
-export const updateLich = (id, data) => axios.put(`/lichlamviec/${id}`, data);
+export async function getLichByBS(maBS) {
+  if (!maBS) return [];
+  const response = await axios.get(
+    `/lichlamviec/bacsi/${encodeURIComponent(maBS)}`,
+  );
+  return toArray(unwrap(response, []));
+}
 
-//  Xóa lịch làm việc
-export const deleteLich = (id) => axios.delete(`/lichlamviec/${id}`);
+export async function createLich(data) {
+  const response = await axios.post("/lichlamviec", data);
+  return unwrap(response);
+}
 
-// ✅ Lấy số lượng bệnh nhân đã đặt trong mỗi ca
-export const getSoLuongBenhNhan = (params) => axios.get("/lichlamviec/soluong", { params });
+export async function updateLich(id, data) {
+  const response = await axios.put(
+    `/lichlamviec/${encodeURIComponent(id)}`,
+    data,
+  );
+  return unwrap(response);
+}
+
+export async function deleteLich(id) {
+  const response = await axios.delete(
+    `/lichlamviec/${encodeURIComponent(id)}`,
+  );
+  return unwrap(response);
+}
+
+export async function getCaTruc() {
+  const response = await axios.get("/catruc");
+  return toArray(unwrap(response, []));
+}
+
+export async function getSoLuongBenhNhan({ maBS, maCa, ngayLamViec }) {
+  const response = await axios.get("/lichlamviec/soluong", {
+    params: { maBS, maCa, ngayLamViec },
+  });
+  return unwrap(response, { soLuong: 0, toiDa: 10, conLai: 10 });
+}

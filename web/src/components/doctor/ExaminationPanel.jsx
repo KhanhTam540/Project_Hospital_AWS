@@ -1,49 +1,142 @@
-import React, { useState } from "react";
+import React, { useEffect, useMemo, useState } from "react";
 import toast from "react-hot-toast";
-import { FileText, Save } from "lucide-react";
-import axios from "../../api/axiosClient";
+import { CheckCircle2, FileText, Save } from "lucide-react";
 
-const ExaminationPanel = ({ patient, maBS, onSaved, onComplete }) => {
-  const [form, setForm] = useState({
-    trieuChung: "",
-    chuanDoan: "",
-    loiDan: "",
-  });
-  const [file, setFile] = useState(null);
+import {
+  createExaminationForRecord,
+  getDoctorMedicalRecords,
+} from "../../services/bacsi/doctorWorkflowService";
+import { getApiErrorMessage } from "../../utils/apiResponse";
+import MedicalRecordSearchSelect from "./MedicalRecordSearchSelect";
+
+const EMPTY_FORM = {
+  trieuChung: "",
+  chuanDoan: "",
+  dieuTri: "",
+  loiDan: "",
+};
+
+const text = (value) => String(value ?? "").trim();
+const sameId = (left, right) =>
+  text(left).toUpperCase() === text(right).toUpperCase();
+
+const getPatientId = (patient) =>
+  text(patient?.patientId || patient?.maBN || patient?.id);
+
+const getPreferredRecordId = (patient) =>
+  text(
+    patient?.recordId ||
+      patient?.medicalRecordId ||
+      patient?.maHSBA,
+  );
+
+const ExaminationPanel = ({ patient, onSaved, onComplete }) => {
+  const [records, setRecords] = useState([]);
+  const [selectedRecordId, setSelectedRecordId] = useState("");
+  const [form, setForm] = useState(EMPTY_FORM);
+  const [loadingRecords, setLoadingRecords] = useState(false);
   const [saving, setSaving] = useState(false);
+  const [lastCreated, setLastCreated] = useState(null);
 
-  const handleChange = (e) =>
-    setForm((prev) => ({ ...prev, [e.target.name]: e.target.value }));
+  const patientId = useMemo(() => getPatientId(patient), [patient]);
 
-  const handleSubmit = async (e) => {
-    e.preventDefault();
-    if (!patient) return toast.error("Chọn bệnh nhân từ hàng chờ");
-    if (!form.trieuChung || !form.chuanDoan) {
-      return toast.error("Vui lòng nhập triệu chứng và chẩn đoán");
+  const selectedRecord = useMemo(
+    () =>
+      records.find((item) => item.recordId === selectedRecordId) ||
+      null,
+    [records, selectedRecordId],
+  );
+
+  useEffect(() => {
+    let active = true;
+
+    const loadRecords = async () => {
+      setRecords([]);
+      setSelectedRecordId("");
+      setLastCreated(null);
+      setForm(EMPTY_FORM);
+
+      if (!patientId) return;
+
+      setLoadingRecords(true);
+      try {
+        const allRecords = await getDoctorMedicalRecords();
+        if (!active) return;
+
+        const patientRecords = allRecords.filter(
+          (item) => sameId(item.patientId, patientId),
+        );
+        const preferredRecordId = getPreferredRecordId(patient);
+        const nextRecordId =
+          patientRecords.find(
+            (item) => sameId(item.recordId, preferredRecordId),
+          )?.recordId ||
+          patientRecords[0]?.recordId ||
+          "";
+
+        setRecords(patientRecords);
+        setSelectedRecordId(nextRecordId);
+      } catch (error) {
+        if (!active) return;
+        toast.error(
+          getApiErrorMessage(
+            error,
+            "Không thể tải hồ sơ bệnh án của bệnh nhân",
+          ),
+        );
+      } finally {
+        if (active) setLoadingRecords(false);
+      }
+    };
+
+    loadRecords();
+    return () => {
+      active = false;
+    };
+  }, [patientId, patient]);
+
+  const handleChange = (event) => {
+    const { name, value } = event.target;
+    setForm((current) => ({ ...current, [name]: value }));
+  };
+
+  const handleSubmit = async (event) => {
+    event.preventDefault();
+
+    if (!patientId) {
+      toast.error("Vui lòng chọn bệnh nhân từ hàng chờ");
+      return;
+    }
+    if (!selectedRecord) {
+      toast.error("Vui lòng chọn hồ sơ bệnh án");
+      return;
+    }
+    if (!form.trieuChung.trim() || !form.chuanDoan.trim()) {
+      toast.error("Vui lòng nhập triệu chứng và chẩn đoán");
+      return;
     }
 
     setSaving(true);
     try {
-      const fd = new FormData();
-      fd.append("maHSBA", patient.maHSBA);
-      fd.append("maBN", patient.maBN);
-      fd.append("maBS", maBS);
-      fd.append("trieuChung", form.trieuChung);
-      fd.append("chuanDoan", form.chuanDoan);
-      fd.append("loiDan", form.loiDan || "");
-      if (file) fd.append("file", file);
+      const created = await createExaminationForRecord(
+        selectedRecord,
+        {
+          symptoms: form.trieuChung,
+          diagnosis: form.chuanDoan,
+          treatment: form.dieuTri,
+          advice: form.loiDan,
+          vitals: patient?.vitals || {},
+        },
+      );
 
-      await axios.post("/phieukham", fd, {
-        headers: { "Content-Type": "multipart/form-data" },
-      });
-
+      setLastCreated(created);
+      setForm(EMPTY_FORM);
       toast.success("Đã lưu phiếu khám");
-      setForm({ trieuChung: "", chuanDoan: "", loiDan: "" });
-      setFile(null);
-      onSaved?.();
-      if (patient.maLich) onComplete?.(patient);
-    } catch (err) {
-      toast.error(err.response?.data?.message || "Lỗi lưu phiếu khám");
+      onSaved?.(created);
+    } catch (error) {
+      toast.error(
+        getApiErrorMessage(error, "Không thể lưu phiếu khám"),
+      );
     } finally {
       setSaving(false);
     }
@@ -51,7 +144,7 @@ const ExaminationPanel = ({ patient, maBS, onSaved, onComplete }) => {
 
   if (!patient) {
     return (
-      <div className="flex flex-col items-center justify-center min-h-[300px] text-gray-400 bg-white rounded-xl border border-gray-200">
+      <div className="flex min-h-[300px] flex-col items-center justify-center rounded-xl border border-gray-200 bg-white text-gray-400">
         <FileText size={40} className="mb-2 opacity-40" />
         <p className="text-sm">Chọn bệnh nhân để khám</p>
       </div>
@@ -61,74 +154,131 @@ const ExaminationPanel = ({ patient, maBS, onSaved, onComplete }) => {
   return (
     <form
       onSubmit={handleSubmit}
-      className="bg-white rounded-xl border border-gray-200 shadow-sm p-5 space-y-4"
+      className="space-y-4 rounded-xl border border-gray-200 bg-white p-5 shadow-sm"
     >
       <div className="flex items-center justify-between border-b border-gray-100 pb-3">
-        <h3 className="font-semibold text-blue-800 flex items-center gap-2">
-          <FileText size={18} /> Phiếu khám — {patient.hoTenBN}
+        <h3 className="flex items-center gap-2 font-semibold text-blue-800">
+          <FileText size={18} /> Phiếu khám — {patient.hoTenBN || patient.fullName || patientId}
         </h3>
         {patient.vitals && (
           <span className="text-xs text-gray-500">
-            🌡 {patient.vitals.nhietDo ?? "—"}°C · ❤ {patient.vitals.nhipTim ?? "—"}
+            🌡 {patient.vitals.nhietDo ?? patient.vitals.temperature ?? "—"}°C · ❤ {patient.vitals.nhipTim ?? patient.vitals.heartRate ?? "—"}
           </span>
         )}
       </div>
 
       <div>
-        <label className="block text-sm font-medium text-gray-700 mb-1">Triệu chứng *</label>
+        <MedicalRecordSearchSelect
+          records={records}
+          value={selectedRecordId}
+          onChange={(recordId) => {
+            setSelectedRecordId(recordId);
+            setLastCreated(null);
+          }}
+          loading={loadingRecords}
+          disabled={loadingRecords || saving}
+          label="Tra cứu hồ sơ bằng CCCD *"
+          placeholder="Nhập đúng 12 số CCCD của bệnh nhân"
+        />
+        {!loadingRecords && records.length === 0 && (
+          <p className="mt-2 rounded-lg bg-amber-50 px-3 py-2 text-sm text-amber-700">
+            Bệnh nhân chưa có CCCD hợp lệ hoặc chưa được đồng bộ hồ sơ.
+          </p>
+        )}
+      </div>
+
+      <div>
+        <label className="mb-1 block text-sm font-medium text-gray-700">
+          Triệu chứng <span className="text-red-500">*</span>
+        </label>
         <textarea
           name="trieuChung"
           value={form.trieuChung}
           onChange={handleChange}
           rows={3}
-          required
-          className="w-full border border-gray-300 rounded-lg px-3 py-2 focus:ring-2 focus:ring-blue-400"
+          disabled={!selectedRecord || saving}
+          className="w-full rounded-lg border border-gray-300 px-3 py-2 focus:ring-2 focus:ring-blue-400 disabled:bg-gray-100"
           placeholder="Mô tả triệu chứng lâm sàng..."
         />
       </div>
 
       <div>
-        <label className="block text-sm font-medium text-gray-700 mb-1">Chẩn đoán *</label>
+        <label className="mb-1 block text-sm font-medium text-gray-700">
+          Chẩn đoán <span className="text-red-500">*</span>
+        </label>
         <textarea
           name="chuanDoan"
           value={form.chuanDoan}
           onChange={handleChange}
           rows={2}
-          required
-          className="w-full border border-gray-300 rounded-lg px-3 py-2 focus:ring-2 focus:ring-blue-400"
-          placeholder="Chẩn đoán chính..."
+          disabled={!selectedRecord || saving}
+          className="w-full rounded-lg border border-gray-300 px-3 py-2 focus:ring-2 focus:ring-blue-400 disabled:bg-gray-100"
+          placeholder="Nhập chẩn đoán..."
         />
       </div>
 
-      <div>
-        <label className="block text-sm font-medium text-gray-700 mb-1">Lời dặn</label>
-        <textarea
-          name="loiDan"
-          value={form.loiDan}
-          onChange={handleChange}
-          rows={2}
-          className="w-full border border-gray-300 rounded-lg px-3 py-2 focus:ring-2 focus:ring-blue-400"
-          placeholder="Hướng dẫn điều trị, tái khám..."
-        />
+      <div className="grid gap-4 md:grid-cols-2">
+        <div>
+          <label className="mb-1 block text-sm font-medium text-gray-700">
+            Điều trị
+          </label>
+          <textarea
+            name="dieuTri"
+            value={form.dieuTri}
+            onChange={handleChange}
+            rows={2}
+            disabled={!selectedRecord || saving}
+            className="w-full rounded-lg border border-gray-300 px-3 py-2 focus:ring-2 focus:ring-blue-400 disabled:bg-gray-100"
+            placeholder="Hướng điều trị..."
+          />
+        </div>
+        <div>
+          <label className="mb-1 block text-sm font-medium text-gray-700">
+            Lời dặn
+          </label>
+          <textarea
+            name="loiDan"
+            value={form.loiDan}
+            onChange={handleChange}
+            rows={2}
+            disabled={!selectedRecord || saving}
+            className="w-full rounded-lg border border-gray-300 px-3 py-2 focus:ring-2 focus:ring-blue-400 disabled:bg-gray-100"
+            placeholder="Hướng dẫn điều trị, tái khám..."
+          />
+        </div>
       </div>
 
-      <div>
-        <label className="block text-sm font-medium text-gray-700 mb-1">Đính kèm (tuỳ chọn)</label>
-        <input
-          type="file"
-          onChange={(e) => setFile(e.target.files?.[0] || null)}
-          className="w-full text-sm file:mr-3 file:py-2 file:px-4 file:rounded-lg file:border-0 file:bg-blue-50 file:text-blue-700"
-        />
-      </div>
+      <p className="text-xs text-gray-500">
+        Tệp X-quang/MRI được tải ở tab “Phim chẩn đoán”, không gửi chung bằng multipart/form-data với phiếu khám.
+      </p>
 
-      <button
-        type="submit"
-        disabled={saving}
-        className="w-full flex items-center justify-center gap-2 bg-blue-600 hover:bg-blue-700 disabled:opacity-60 text-white font-semibold py-2.5 rounded-lg"
-      >
-        <Save size={16} />
-        {saving ? "Đang lưu..." : "Lưu phiếu khám"}
-      </button>
+      {lastCreated && (
+        <div className="flex items-center gap-2 rounded-lg bg-emerald-50 px-3 py-2 text-sm text-emerald-700">
+          <CheckCircle2 size={16} />
+          Đã tạo phiếu {lastCreated.examinationId || lastCreated.maPK}.
+          Bạn có thể chuyển sang tab “Kê đơn thuốc”.
+        </div>
+      )}
+
+      <div className="flex flex-col gap-2 sm:flex-row sm:justify-end">
+        {lastCreated && patient.maLich && onComplete && (
+          <button
+            type="button"
+            onClick={() => onComplete(patient)}
+            className="rounded-lg border border-emerald-600 px-4 py-2.5 font-semibold text-emerald-700 hover:bg-emerald-50"
+          >
+            Hoàn tất lượt khám
+          </button>
+        )}
+        <button
+          type="submit"
+          disabled={!selectedRecord || saving}
+          className="flex items-center justify-center gap-2 rounded-lg bg-blue-600 px-5 py-2.5 font-semibold text-white hover:bg-blue-700 disabled:opacity-60"
+        >
+          <Save size={16} />
+          {saving ? "Đang lưu..." : "Lưu phiếu khám"}
+        </button>
+      </div>
     </form>
   );
 };
