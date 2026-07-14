@@ -1,0 +1,107 @@
+﻿[
+    {
+        "Username": "a95a65ec-a0d1-7013-27f0-301ddc669f01",
+        "Email": "patient.dung.dataset@example.com",
+        "Status": "CONFIRMED"
+    },
+    {
+        "Username": "a9eab54c-f031-707d-7dc1-dd59e0508c76",
+        "Email": "staff.p2tb@example.com",
+        "Status": "CONFIRMED"
+    },
+    {
+        "Username": "99aab58c-4091-70c3-7ba4-51a25b1235d0",
+        "Email": "doctor.p2tb@example.com",
+        "Status": "CONFIRMED"
+    },
+    {
+        "Username": "a94a656c-0061-7050-3a41-ceeb4722023d",
+        "Email": "doctor.noi.dataset@example.com",
+        "Status": "CONFIRMED"
+    },
+    {
+        "Username": "49daf54c-c071-7065-dff7-793a1b8643c8",
+        "Email": "reception.dataset@example.com",
+        "Status": "CONFIRMED"
+    },
+    {
+        "Username": "c9ead5ec-7021-704d-dfd6-7f39c2ead860",
+        "Email": "khanhtam540@gmail.com",
+        "Status": "CONFIRMED"
+    },
+    {
+        "Username": "891ab5bc-d021-7041-3233-534fbbc99246",
+        "Email": "doctor.ngoai.dataset@example.com",
+        "Status": "CONFIRMED"
+    },
+    {
+        "Username": "f98af57c-7001-70bd-159d-cd6725608e46",
+        "Email": "admin.dataset@example.com",
+        "Status": "CONFIRMED"
+    },
+    {
+        "Username": "293ae53c-7031-70eb-740d-8d3408d39788",
+        "Email": "patient.em.dataset@example.com",
+        "Status": "CONFIRMED"
+    },
+    {
+        "Username": "99ca756c-2041-70ff-32b7-e5dad7e5893c",
+        "Email": "admin.p2tb@example.com",
+        "Status": "CONFIRMED"
+    },
+    {
+        "Username": "397a453c-1081-70ae-0fea-91fee1bd9ea7",
+        "Email": "lab.dataset@example.com",
+        "Status": "CONFIRMED"
+    },
+    {
+        "Username": "392a65ac-b051-701c-5190-4fa5599e96be",
+        "Email": "admin.demo@example.com",
+        "Status": "CONFIRMED"
+    },
+    {
+        "Username": "494ae5bc-30f1-7070-7c6b-2a4c47c6376e",
+        "Email": "patient.chau.dataset@example.com",
+        "Status": "CONFIRMED"
+    },
+    {
+        "Username": "491a358c-4071-709a-470c-710d17030b31",
+        "Email": "doctor.nhi.dataset@example.com",
+        "Status": "CONFIRMED"
+    },
+    {
+        "Username": "89ea653c-30d1-70e5-941e-76d5b6373390",
+        "Email": "staff.demo@example.com",
+        "Status": "CONFIRMED"
+    },
+    {
+        "Username": "09da554c-9091-7081-e416-be1495d86dd6",
+        "Email": "patient.binh.dataset@example.com",
+        "Status": "CONFIRMED"
+    },
+    {
+        "Username": "899ad55c-8061-70c4-80a7-592c6ffa01a4",
+        "Email": "nurse.dataset@example.com",
+        "Status": "CONFIRMED"
+    },
+    {
+        "Username": "59dae5ac-d011-70f7-e60a-16822a7fca2c",
+        "Email": "patient.demo@example.com",
+        "Status": "CONFIRMED"
+    },
+    {
+        "Username": "495a55ec-d001-7092-a523-c73f3b47df56",
+        "Email": "patient.p2tb@example.com",
+        "Status": "CONFIRMED"
+    },
+    {
+        "Username": "d95a95ec-b071-70a0-233c-fee19f8667b6",
+        "Email": "patient.an.dataset@example.com",
+        "Status": "CONFIRMED"
+    },
+    {
+        "Username": "d90af52c-70f1-7038-89e8-8f1a48e1ed4a",
+        "Email": "doctor.demo@example.com",
+        "Status": "CONFIRMED"
+    }
+]

@@ -37,6 +37,16 @@ function primaryRole(groups = []) {
   return domain.SYSTEM_ROLES.find((role) => groups.includes(role)) || null;
 }
 
+function hasHealthInsurance(patient = {}) {
+  return Boolean(
+    patient.healthInsurance ||
+      patient.healthInsuranceNumber ||
+      patient.bhyt ||
+      patient.maBHYT ||
+      patient.soBHYT
+  );
+}
+
 function toFrontendAccount(cognitoUser, appUser) {
   const attributes = cognitoUser.attributes || {};
   const role = primaryRole(cognitoUser.groups || []);
@@ -1513,7 +1523,21 @@ async function handleCreateAppointment(event) {
 
   let payload = domain.normalizeAppointmentPayload(body);
   await requirePatientOwnership(event, payload.patientId);
-  await repo.assertExists(repo.findPatient(payload.patientId), 'PATIENT_NOT_FOUND', 'Không tìm thấy bệnh nhân');
+  const patient = await repo.assertExists(repo.findPatient(payload.patientId), 'PATIENT_NOT_FOUND', 'Không tìm thấy bệnh nhân');
+
+  // Chính sách thanh toán mới:
+  // - Bệnh nhân có BHYT: đặt lịch khám thường được xác nhận ngay, không bắt buộc thanh toán phí khám nhỏ.
+  // - Bệnh nhân chưa có BHYT: lịch hẹn ở trạng thái chờ thanh toán để tạo hóa đơn và thanh toán VNPay/MoMo.
+  // - Nếu admin/nhân sự truyền trạng thái rõ ràng thì tôn trọng trạng thái đó.
+  if (actor.groups.includes('BENHNHAN') && !body.trangThai && !body.status) {
+    payload = {
+      ...payload,
+      status: hasHealthInsurance(patient) ? 'DA_THANH_TOAN' : 'CHO_THANH_TOAN',
+      insurancePolicyApplied: true,
+      healthInsuranceNumber:
+        patient.healthInsurance || patient.healthInsuranceNumber || patient.bhyt || null,
+    };
+  }
 
   if (!payload.doctorId) {
     payload = { ...payload, doctorId: await autoAssignDoctor(payload) };

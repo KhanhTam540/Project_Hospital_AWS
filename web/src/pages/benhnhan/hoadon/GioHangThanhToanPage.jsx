@@ -8,7 +8,7 @@ import {
   getMyHoaDon,
   getThanhToan,
   deleteItemGioHang,
-  createThanhToan,
+  createVnpayPayment,
 } from "../../../services/hoadon_BN/hoadonService";
 import axios from "../../../api/axiosClient";
 import { getCurrentPatientProfile } from "../../../services/benhnhan/patientWorkflowService";
@@ -18,6 +18,40 @@ import {
   getAllXetNghiem,
   getAllPhieuKham,
 } from "../../../services/hoadon_BN/dichVuService";
+
+const PAYMENT_TIMEOUT_MINUTES = 5;
+
+const toValidDate = (value) => {
+  if (!value) return null;
+  const date = new Date(value);
+  return Number.isNaN(date.getTime()) ? null : date;
+};
+
+const getPaymentDeadline = (item) => {
+  const explicit = toValidDate(item?.paymentDeadline || item?.paymentExpiresAt);
+  if (explicit) return explicit;
+  const base = toValidDate(
+    item?.thoiGianTao ||
+      item?.createdAt ||
+      item?.ngayTao ||
+      item?.updatedAt ||
+      item?.appointmentDateTime,
+  );
+  return base ? new Date(base.getTime() + PAYMENT_TIMEOUT_MINUTES * 60 * 1000) : null;
+};
+
+const getRemainingSeconds = (deadline) => {
+  if (!deadline) return null;
+  return Math.max(0, Math.floor((deadline.getTime() - Date.now()) / 1000));
+};
+
+const formatRemaining = (seconds) => {
+  if (seconds === null) return "Đang chờ thanh toán";
+  if (seconds <= 0) return "Đã quá hạn thanh toán";
+  const minutes = Math.floor(seconds / 60);
+  const remainSeconds = seconds % 60;
+  return `${minutes} phút ${String(remainSeconds).padStart(2, "0")} giây`;
+};
 
 const GioHangThanhToanPage = () => {
   const maBN = localStorage.getItem("maBN");
@@ -30,6 +64,7 @@ const GioHangThanhToanPage = () => {
   const [lichChoThanhToan, setLichChoThanhToan] = useState([]);
   const [lichDaHuy, setLichDaHuy] = useState([]);
   const [patientProfile, setPatientProfile] = useState(null);
+  const [clockTick, setClockTick] = useState(Date.now());
   
   // Tab state cho hóa đơn
   const [activeTab, setActiveTab] = useState('pending'); // 'pending' hoặc 'history'
@@ -54,8 +89,13 @@ const GioHangThanhToanPage = () => {
   const [formTT, setFormTT] = useState({
     maHD: "",
     soTien: "",
-    phuongThuc: "BANK_TRANSFER",
+    phuongThuc: "VNPAY",
   });
+
+  useEffect(() => {
+    const timer = setInterval(() => setClockTick(Date.now()), 1000);
+    return () => clearInterval(timer);
+  }, []);
 
   // ✅ Load dữ liệu ban đầu
   useEffect(() => {
@@ -444,14 +484,14 @@ const GioHangThanhToanPage = () => {
     }
   };
 
-  // === XỬ LÝ THANH TOÁN ONLINE ===
+  // === XỬ LÝ THANH TOÁN VNPAY ===
   const handleMaHDChange = (value) => {
     const selected = hoaDonList.find((hd) => hd.maHD === value);
     if (selected) {
-      setFormTT({ ...formTT, maHD: value, soTien: selected.tongTien });
+      setFormTT({ ...formTT, maHD: value, soTien: selected.tongTien, phuongThuc: "VNPAY" });
       handleXemChiTiet(value);
     } else {
-      setFormTT({ ...formTT, maHD: value, soTien: "" });
+      setFormTT({ ...formTT, maHD: value, soTien: "", phuongThuc: "VNPAY" });
       setChiTietThanhToan([]);
     }
   };
@@ -477,11 +517,11 @@ const GioHangThanhToanPage = () => {
       return alert("❌ Không tìm thấy hóa đơn đã chọn.");
     }
 
-    if (selectedHD.trangThai === 'DA_HUY') {
+    if (selectedHD.trangThai === "DA_HUY") {
       return alert("❌ Hóa đơn này đã bị hủy. Không thể thanh toán.");
     }
 
-    if (selectedHD.trangThai === 'DA_THANH_TOAN') {
+    if (selectedHD.trangThai === "DA_THANH_TOAN") {
       return alert("✅ Hóa đơn này đã được thanh toán rồi.");
     }
 
@@ -489,58 +529,40 @@ const GioHangThanhToanPage = () => {
       return alert("⚠️ Số tiền không hợp lệ");
     }
 
-    const isDemoPayment = ['BANK_TRANSFER', 'CASH'].includes(formTT.phuongThuc);
-    const confirmMessage = isDemoPayment
-      ? `Xác nhận thanh toán demo hóa đơn ${formTT.maHD} với số tiền ${parseInt(formTT.soTien).toLocaleString()}đ?`
-      : `Chuyển sang cổng ${formTT.phuongThuc} để thanh toán hóa đơn ${formTT.maHD}?`;
+    const deadline = getPaymentDeadline(selectedHD);
+    const remaining = getRemainingSeconds(deadline);
+    if (remaining !== null && remaining <= 0) {
+      await loadHoaDon(true);
+      await loadLichChoThanhToan();
+      await loadLichDaHuy();
+      return alert("⏰ Hóa đơn đã quá hạn 5 phút. Lịch khám liên quan sẽ bị hủy.");
+    }
 
+    const confirmMessage = `Chuyển sang cổng VNPay Sandbox để thanh toán hóa đơn ${formTT.maHD} với số tiền ${parseInt(formTT.soTien).toLocaleString()}đ? Thời gian thanh toán còn lại: ${formatRemaining(remaining)}.`;
     if (!window.confirm(confirmMessage)) return;
 
     setSubmitting(true);
     try {
-      if (isDemoPayment) {
-        const res = await createThanhToan({
-          maHD: formTT.maHD,
-          soTien: formTT.soTien,
-          phuongThuc: formTT.phuongThuc,
-          ghiChu: 'Thanh toán demo từ cổng bệnh nhân',
-        });
+      const res = await createVnpayPayment({
+        maHD: formTT.maHD,
+        invoiceId: formTT.maHD,
+        locale: "vn",
+        bankCode: "VNPAYQR",
+        expireMinutes: PAYMENT_TIMEOUT_MINUTES,
+      });
 
-        const invoice = res.data?.data?.invoice || res.data?.invoice;
-        const payment = res.data?.data?.payment || res.data?.payment;
+      const payload = res.data?.data || res.data || {};
+      const paymentUrl = payload.paymentUrl;
 
-        if (invoice) {
-          setHoaDonList((current) =>
-            current.map((item) =>
-              item.maHD === invoice.maHD ? { ...item, ...invoice } : item,
-            ),
-          );
-        }
-        if (payment) {
-          setChiTietThanhToan((current) => [payment, ...current]);
-        }
-
-        await loadHoaDon(true);
-        await handleXemChiTiet(formTT.maHD);
-        await loadLichChoThanhToan();
-        setActiveTab('history');
-        alert("✅ Thanh toán demo thành công. Hóa đơn đã chuyển sang Đã thanh toán và sẽ được ghi hash vào blockchain.");
+      if (payload.success && paymentUrl) {
+        window.location.href = paymentUrl;
         return;
       }
 
-      const res = await axios.post("/payment/create-url", {
-        maHD: formTT.maHD,
-        phuongThuc: formTT.phuongThuc,
-      });
-
-      if (res.data.success && res.data.paymentUrl) {
-        window.location.href = res.data.paymentUrl;
-      } else {
-        alert("❌ Lỗi tạo link thanh toán: " + (res.data.message || "Lỗi không xác định"));
-      }
+      alert("❌ Lỗi tạo link thanh toán VNPay: " + (payload.message || "Không nhận được paymentUrl"));
     } catch (err) {
-      console.error("Lỗi thanh toán:", err);
-      alert("❌ Không thể thanh toán: " + (err.response?.data?.message || err.message));
+      console.error("Lỗi thanh toán VNPay:", err);
+      alert("❌ Không thể tạo thanh toán VNPay: " + (err.response?.data?.error?.message || err.response?.data?.message || err.message));
     } finally {
       setSubmitting(false);
     }
@@ -612,11 +634,10 @@ const GioHangThanhToanPage = () => {
             </h3>
             <div className="grid gap-4 md:grid-cols-2">
               {lichChoThanhToan.map((lich) => {
-                const thoiGianTao = normalizeAppointmentTimeBase(lich);
-                const now = new Date();
-                const diffMs = thoiGianTao ? now - thoiGianTao : 0;
-                const diffMins = thoiGianTao ? Math.floor(diffMs / 60000) : 0;
-                const remainingMins = thoiGianTao ? Math.max(0, 15 - diffMins) : null;
+                const deadline = getPaymentDeadline(lich);
+                const remainingSeconds = getRemainingSeconds(deadline);
+                const expired = remainingSeconds !== null && remainingSeconds <= 0;
+                void clockTick;
                 
                 return (
                   <div key={lich.maLich} className="bg-white p-5 rounded-xl border-2 border-yellow-300 shadow-md">
@@ -628,17 +649,17 @@ const GioHangThanhToanPage = () => {
                           <div>👨‍⚕️ {lich.BacSi?.hoTen || lich.maBS}</div>
                         </div>
                         <div className={`text-sm font-bold mt-3 px-3 py-1 rounded-full inline-block ${
-                          remainingMins > 5 ? 'bg-red-100 text-red-700' : 'bg-orange-100 text-orange-700'
+                          expired ? 'bg-red-100 text-red-700' : 'bg-orange-100 text-orange-700'
                         }`}>
-                          ⚠️ {remainingMins === null ? "Đang chờ thanh toán" : `Còn ${remainingMins} phút để thanh toán`}
+                          ⚠️ {expired ? 'Đã quá hạn thanh toán' : `Còn ${formatRemaining(remainingSeconds)} để thanh toán`}
                         </div>
                       </div>
                       <button
                         onClick={() => handleThanhToanLich(lich.maHD, lich)}
-                        disabled={submitting}
+                        disabled={submitting || expired}
                         className="ml-4 bg-yellow-500 hover:bg-yellow-600 text-white font-bold px-6 py-3 rounded-xl transition shadow-lg hover:shadow-xl disabled:opacity-60 disabled:cursor-not-allowed"
                       >
-                        💳 {lich.maHD ? 'Thanh toán' : 'Tạo hóa đơn'}
+                        💳 {expired ? 'Quá hạn' : (lich.maHD ? 'Thanh toán' : 'Tạo hóa đơn')}
                       </button>
                     </div>
                   </div>
@@ -662,7 +683,7 @@ const GioHangThanhToanPage = () => {
                     📅 {lich.ngayKham} - ⏰ {lich.gioKham} | 👨‍⚕️ {lich.BacSi?.hoTen || lich.maBS}
                   </div>
                   <div className="text-xs text-red-600 font-bold mt-2">
-                    ⚠️ Đã quá hạn thanh toán (15 phút) - Lịch đã bị hủy
+                    ⚠️ Đã quá hạn thanh toán (5 phút) - Lịch đã bị hủy
                   </div>
                 </div>
               ))}
@@ -968,37 +989,50 @@ const GioHangThanhToanPage = () => {
                 </div>
                 <div>
                   <label className="block text-sm font-semibold text-gray-700 mb-2">Phương thức</label>
-                  <select 
-                    value={formTT.phuongThuc} 
-                    onChange={(e) => setFormTT({...formTT, phuongThuc: e.target.value})} 
-                    className="w-full px-4 py-3 border-2 border-gray-300 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-blue-500 text-lg"
-                  >
-                    <option value="BANK_TRANSFER">🏦 Chuyển khoản demo</option>
-                    <option value="CASH">💵 Tiền mặt demo</option>
-                    <option value="VNPAY">💳 Ví VNPAY Sandbox</option>
-                    <option value="MOMO">📱 Ví MoMo Sandbox</option>
-                  </select>
+                  <div className="w-full px-4 py-3 border-2 border-blue-200 bg-blue-50 rounded-xl text-lg font-semibold text-blue-700">
+                    💳 VNPay Sandbox
+                  </div>
+                  <p className="mt-2 text-xs text-gray-500">
+                    Hệ thống không tự xác nhận thanh toán. Hóa đơn chỉ chuyển sang đã thanh toán sau khi VNPay gửi IPN hợp lệ về backend.
+                  </p>
                 </div>
               </div>
 
+              {formTT.maHD && (() => {
+                const selected = hoaDonList.find((h) => h.maHD === formTT.maHD);
+                const deadline = getPaymentDeadline(selected);
+                const remaining = getRemainingSeconds(deadline);
+                const expired = remaining !== null && remaining <= 0;
+                return (
+                  <div className={`p-4 rounded-xl border-2 ${expired ? 'bg-red-50 border-red-300 text-red-700' : 'bg-orange-50 border-orange-300 text-orange-700'}`}>
+                    <div className="font-bold">⏱️ Thời hạn thanh toán: {PAYMENT_TIMEOUT_MINUTES} phút</div>
+                    <div className="text-sm mt-1">
+                      {expired
+                        ? 'Hóa đơn đã quá hạn. Lịch khám liên quan sẽ bị hủy.'
+                        : `Còn ${formatRemaining(remaining)} để hoàn tất thanh toán.`}
+                    </div>
+                  </div>
+                );
+              })()}
+
               <button 
                 onClick={handlePaymentOnline}
-                disabled={!formTT.maHD || submitting || (formTT.maHD && hoaDonList.find(h => h.maHD === formTT.maHD)?.trangThai === 'DA_HUY')}
+                disabled={!formTT.maHD || submitting || (formTT.maHD && hoaDonList.find(h => h.maHD === formTT.maHD)?.trangThai === 'DA_HUY') || (formTT.maHD && getRemainingSeconds(getPaymentDeadline(hoaDonList.find(h => h.maHD === formTT.maHD))) === 0)}
                 className={`w-full py-4 mt-2 font-bold rounded-xl shadow-lg transition-all text-lg ${
-                  !formTT.maHD || submitting || (formTT.maHD && hoaDonList.find(h => h.maHD === formTT.maHD)?.trangThai === 'DA_HUY')
+                  !formTT.maHD || submitting || (formTT.maHD && hoaDonList.find(h => h.maHD === formTT.maHD)?.trangThai === 'DA_HUY') || (formTT.maHD && getRemainingSeconds(getPaymentDeadline(hoaDonList.find(h => h.maHD === formTT.maHD))) === 0)
                     ? 'bg-gray-400 text-gray-600 cursor-not-allowed'
                     : 'bg-gradient-to-r from-blue-600 via-indigo-600 to-purple-600 text-white hover:shadow-2xl hover:scale-[1.02]'
                 }`}
               >
                 {submitting 
-                  ? '⏳ Đang xử lý...'
+                  ? '⏳ Đang tạo link VNPay...'
                   : !formTT.maHD 
                   ? 'Vui lòng chọn hóa đơn'
                   : formTT.maHD && hoaDonList.find(h => h.maHD === formTT.maHD)?.trangThai === 'DA_HUY'
                   ? '❌ Hóa đơn đã bị hủy'
-                  : formTT.phuongThuc === 'BANK_TRANSFER' || formTT.phuongThuc === 'CASH'
-                  ? '✅ XÁC NHẬN THANH TOÁN DEMO'
-                  : '🚀 THANH TOÁN ONLINE'}
+                  : formTT.maHD && getRemainingSeconds(getPaymentDeadline(hoaDonList.find(h => h.maHD === formTT.maHD))) === 0
+                  ? '⏰ Hóa đơn đã quá hạn'
+                  : '🚀 THANH TOÁN QUA VNPAY'}
               </button>
             </div>
 
