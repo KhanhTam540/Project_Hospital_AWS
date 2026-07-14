@@ -56,11 +56,12 @@ import HRLichLamViecPage from "../pages/nhansu/hr/HRLichLamViecPage";
 import ThuNganLayout from "../layouts/ThuNganLayout";
 import ThuNganHome from "../pages/ThuNganHome";
 import CashierBillingPage from "../pages/thungan/CashierBillingPage";
+import VnpayReturnPage from "../pages/payment/VnpayReturnPage";
 
 function AppRoutes() {
   return (
     <Routes>
-      {/* Trang công khai */}
+      {/* Trang cÃ´ng khai */}
       <Route path="/" element={<HomePage />} />
       <Route path="/login" element={<LoginPage />} />
       <Route path="/dang-nhap" element={<Navigate to="/login" replace />} />
@@ -73,7 +74,7 @@ function AppRoutes() {
       <Route path="/403" element={<ForbiddenPage />} />
       <Route path="/payment-result" element={<PaymentResultPage />} />
 
-      {/* Khu vực quản trị — chỉ ADMIN + Cognito group ADMIN */}
+      {/* Khu vá»±c quáº£n trá»‹ â€” chá»‰ ADMIN + Cognito group ADMIN */}
       <Route path="/admin" element={<PrivateRoute />}>
         <Route element={<RoleGuard allowedRoles={["ADMIN"]} />}>
           <Route element={<AdminLayout />}>
@@ -155,7 +156,8 @@ function AppRoutes() {
       </Route>
 
       <Route path="*" element={<NotFoundPage />} />
-    </Routes>
+              <Route path="/payment/vnpay-return" element={<VnpayReturnPage />} />
+        </Routes>
   );
 }
 

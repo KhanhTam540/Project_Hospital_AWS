@@ -1,0 +1,97 @@
+{
+  "dataSource": "P2TB_DATASET_V2",
+  "generatedAt": "2026-07-14T20:52:29.550Z",
+  "baseDate": "2026-07-15",
+  "itemCount": 200,
+  "counts": {
+    "APPOINTMENT_SLOT": 10,
+    "APPOINTMENT_REF": 10,
+    "EXAMINATION": 4,
+    "INVOICE": 3,
+    "PRESCRIPTION": 4,
+    "PATIENT": 5,
+    "RECORD": 10,
+    "USER": 12,
+    "LAB_TEST": 5,
+    "FEEDBACK": 2,
+    "LAB_REQUEST": 4,
+    "UNIQUE_CCCD": 5,
+    "SHIFT": 3,
+    "DOCTOR": 3,
+    "WORK_SCHEDULE": 78,
+    "DEPARTMENT": 4,
+    "ROOM": 7,
+    "MEDICINE_UNIT": 3,
+    "LAB_TEST_TYPE": 3,
+    "NEWS": 3,
+    "STAFF": 3,
+    "APPOINTMENT": 5,
+    "LAB_RESULT": 2,
+    "MEDICINE": 6,
+    "PAYMENT": 2,
+    "MEDICINE_GROUP": 3,
+    "EXTERNAL_CLINIC": 1
+  },
+  "demoAccounts": [
+    {
+      "email": "admin.dataset@example.com",
+      "group": "ADMIN",
+      "cccd": null
+    },
+    {
+      "email": "doctor.noi.dataset@example.com",
+      "group": "BACSI",
+      "cccd": null
+    },
+    {
+      "email": "doctor.ngoai.dataset@example.com",
+      "group": "BACSI",
+      "cccd": null
+    },
+    {
+      "email": "doctor.nhi.dataset@example.com",
+      "group": "BACSI",
+      "cccd": null
+    },
+    {
+      "email": "reception.dataset@example.com",
+      "group": "NHANSU",
+      "cccd": null
+    },
+    {
+      "email": "nurse.dataset@example.com",
+      "group": "NHANSU",
+      "cccd": null
+    },
+    {
+      "email": "lab.dataset@example.com",
+      "group": "NHANSU",
+      "cccd": null
+    },
+    {
+      "email": "patient.an.dataset@example.com",
+      "group": "BENHNHAN",
+      "cccd": "079203000001"
+    },
+    {
+      "email": "patient.binh.dataset@example.com",
+      "group": "BENHNHAN",
+      "cccd": "079203000002"
+    },
+    {
+      "email": "patient.chau.dataset@example.com",
+      "group": "BENHNHAN",
+      "cccd": "079203000003"
+    },
+    {
+      "email": "patient.dung.dataset@example.com",
+      "group": "BENHNHAN",
+      "cccd": "079203000004"
+    },
+    {
+      "email": "patient.em.dataset@example.com",
+      "group": "BENHNHAN",
+      "cccd": "079203000005"
+    }
+  ]
+}

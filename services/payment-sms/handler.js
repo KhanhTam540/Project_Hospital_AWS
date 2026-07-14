@@ -42,6 +42,8 @@ const {
   normalizeMoney,
   normalizePhone,
   normalizeProvider,
+  addMinutes,
+  sanitizeVnpayOrderInfo,
   signMomoCreate,
   signVnpay,
   sortedQueryString,
@@ -61,6 +63,16 @@ const PAYMENT_SUCCESS_STATUSES = new Set([
   'SUCCESS',
 ]);
 
+const PAYMENT_EXPIRED_STATUSES = new Set([
+  'EXPIRED',
+  'CANCELLED',
+  'DA_HUY',
+  'HUY_DO_QUA_HAN_THANH_TOAN',
+]);
+
+const PAYMENT_TIMEOUT_MINUTES = Math.max(1, Number(process.env.PAYMENT_EXPIRE_MINUTES || 5));
+
+
 function requireEnvironment() {
   getTableName();
   if (!process.env.INTEGRATION_SECRET_ARN) {
@@ -78,8 +90,85 @@ async function getSecret() {
   const raw =
     response.SecretString ||
     Buffer.from(response.SecretBinary || '', 'base64').toString('utf8');
-  cachedSecret = JSON.parse(raw || '{}');
+  const cleanRaw = String(raw || '{}')
+    .replace(/^\uFEFF/, '')
+    .replace(/^ï»¿/, '')
+    .trim();
+  cachedSecret = JSON.parse(cleanRaw || '{}');
   return cachedSecret;
+}
+
+function configValue(secret, name, fallback = '') {
+  const envValue = process.env[name];
+  if (envValue !== undefined && envValue !== null && String(envValue).trim() !== '') {
+    return String(envValue).trim();
+  }
+
+  const secretValue = secret?.[name];
+  if (
+    secretValue !== undefined &&
+    secretValue !== null &&
+    String(secretValue).trim() !== '' &&
+    String(secretValue).trim() !== 'SET_IN_AWS_CONSOLE'
+  ) {
+    return String(secretValue).trim();
+  }
+
+  return fallback;
+}
+
+function requireConfig(secret, name, fallback = '') {
+  const value = configValue(secret, name, fallback);
+  if (!value) {
+    throw new ApiError(
+      500,
+      'PAYMENT_CONFIG_MISSING',
+      `${name} is not configured`,
+    );
+  }
+  return value;
+}
+
+function frontendResultUrl(secret) {
+  return configValue(
+    secret,
+    'PAYMENT_RESULT_URL',
+    configValue(
+      secret,
+      'VNPAY_FRONTEND_RESULT_URL',
+      configValue(secret, 'FRONTEND_BASE_URL', 'http://localhost:5173').replace(/\/+$/, '') +
+        '/payment-result',
+    ),
+  );
+}
+
+function vnpayConfig(secret) {
+  return {
+    tmnCode: requireConfig(secret, 'VNPAY_TMN_CODE'),
+    hashSecret: requireConfig(secret, 'VNPAY_HASH_SECRET'),
+    paymentUrl: configValue(
+      secret,
+      'VNPAY_PAYMENT_URL',
+      'https://sandbox.vnpayment.vn/paymentv2/vpcpay.html',
+    ),
+    returnUrl: requireConfig(secret, 'VNPAY_RETURN_URL'),
+    resultUrl: frontendResultUrl(secret),
+  };
+}
+
+function getClientIp(event) {
+  const headers = event.headers || {};
+  const forwardedFor =
+    headers['x-forwarded-for'] ||
+    headers['X-Forwarded-For'] ||
+    headers['cf-connecting-ip'] ||
+    headers['CloudFront-Viewer-Address'];
+
+  if (forwardedFor) {
+    return String(forwardedFor).split(',')[0].trim().split(':')[0];
+  }
+
+  return event.requestContext?.http?.sourceIp || '127.0.0.1';
 }
 
 function id(prefix) {
@@ -98,6 +187,10 @@ function normalizeStatus(value, fallback = 'PENDING') {
     THANH_CONG: 'PAID',
     THAT_BAI: 'FAILED',
     HUY: 'CANCELLED',
+    QUA_HAN: 'EXPIRED',
+    HET_HAN: 'EXPIRED',
+    EXPIRED: 'EXPIRED',
+    HUY_DO_QUA_HAN_THANH_TOAN: 'EXPIRED',
   };
   return aliases[text] || text;
 }
@@ -126,11 +219,15 @@ function mapInvoice(item = {}) {
     trangThai:
       item.status === 'PAID'
         ? 'DA_THANH_TOAN'
-        : item.status === 'CANCELLED'
+        : ['CANCELLED', 'EXPIRED'].includes(String(item.status || '').toUpperCase())
           ? 'DA_HUY'
           : 'CHUA_THANH_TOAN',
     ngayLap: item.createdAt,
     phuongThuc: item.paymentProvider || null,
+    paymentDeadline: item.paymentDeadline || null,
+    paymentExpiresAt: item.paymentExpiresAt || null,
+    paymentRequestId: item.paymentRequestId || null,
+    lyDoHuy: item.cancelReason || null,
   };
 }
 
@@ -325,6 +422,131 @@ async function appointmentPaymentWrites(appointmentId, invoice, paymentId, times
     }));
 }
 
+function parseIsoDate(value) {
+  if (!value) return null;
+  const parsed = new Date(value);
+  return Number.isNaN(parsed.getTime()) ? null : parsed;
+}
+
+function createPaymentDeadline(baseDate = new Date()) {
+  return addMinutes(baseDate, PAYMENT_TIMEOUT_MINUTES);
+}
+
+function isPendingPaymentInvoice(invoice = {}) {
+  const status = normalizeStatus(invoice.status);
+  return !PAYMENT_SUCCESS_STATUSES.has(status) && !PAYMENT_EXPIRED_STATUSES.has(status);
+}
+
+function isPaymentDeadlineExpired(invoice = {}, now = new Date()) {
+  if (!isPendingPaymentInvoice(invoice)) return false;
+  const deadline = parseIsoDate(invoice.paymentDeadline);
+  return Boolean(deadline && deadline.getTime() <= now.getTime());
+}
+
+async function appointmentCancelWrites(appointmentId, invoice, timestamp, reason) {
+  if (!appointmentId) return [];
+  const response = await getDocumentClient().send(
+    new ScanCommand({
+      TableName: getTableName(),
+      FilterExpression:
+        'appointmentId = :appointmentId AND (#type = :appt OR #type = :ref OR #type = :slot)',
+      ExpressionAttributeNames: { '#type': 'entityType' },
+      ExpressionAttributeValues: {
+        ':appointmentId': appointmentId,
+        ':appt': 'APPOINTMENT',
+        ':ref': 'APPOINTMENT_REF',
+        ':slot': 'APPOINTMENT_SLOT',
+      },
+    }),
+  );
+
+  const seen = new Set();
+  return (response.Items || [])
+    .filter((item) => {
+      const key = `${item.pk}|${item.sk}`;
+      if (seen.has(key)) return false;
+      seen.add(key);
+      return true;
+    })
+    .map((item) => ({
+      Put: {
+        TableName: getTableName(),
+        Item: {
+          ...item,
+          status: 'DA_HUY',
+          trangThai: 'DA_HUY',
+          paymentStatus: 'EXPIRED',
+          invoiceId: invoice.invoiceId,
+          maHD: invoice.invoiceId,
+          cancelReason: reason,
+          cancelledAt: timestamp,
+          updatedAt: timestamp,
+        },
+      },
+    }));
+}
+
+async function expireInvoiceAndAppointment(invoice, reason = 'Quá 5 phút chưa thanh toán') {
+  if (!isPendingPaymentInvoice(invoice)) return invoice;
+
+  const timestamp = nowIso();
+  const expiredInvoice = {
+    ...invoice,
+    status: 'EXPIRED',
+    trangThai: 'DA_HUY',
+    paymentStatus: 'EXPIRED',
+    cancelReason: reason,
+    cancelledAt: timestamp,
+    updatedAt: timestamp,
+    version: Number(invoice.version || 1) + 1,
+  };
+
+  const transactItems = [
+    { Put: { TableName: getTableName(), Item: expiredInvoice } },
+    { Put: { TableName: getTableName(), Item: invoiceProjection(expiredInvoice) } },
+  ];
+
+  const recordProjection = recordInvoiceProjection(expiredInvoice);
+  if (recordProjection) {
+    transactItems.push({ Put: { TableName: getTableName(), Item: recordProjection } });
+  }
+
+  const appointmentWrites = await appointmentCancelWrites(
+    expiredInvoice.appointmentId,
+    expiredInvoice,
+    timestamp,
+    reason,
+  );
+  transactItems.push(...appointmentWrites);
+
+  if (transactItems.length > 100) {
+    throw new ApiError(
+      500,
+      'PAYMENT_EXPIRE_TRANSACTION_TOO_LARGE',
+      'Too many related appointment items to expire in one transaction',
+    );
+  }
+
+  await getDocumentClient().send(
+    new TransactWriteCommand({ TransactItems: transactItems }),
+  );
+
+  return expiredInvoice;
+}
+
+async function expireOverdueInvoices(items = []) {
+  const now = new Date();
+  const result = [];
+  for (const item of items) {
+    if (isPaymentDeadlineExpired(item, now)) {
+      result.push(await expireInvoiceAndAppointment(item));
+    } else {
+      result.push(item);
+    }
+  }
+  return result;
+}
+
 async function putInvoice(item, { conditionNew = false } = {}) {
   const transactItems = [
     {
@@ -447,7 +669,7 @@ async function listInvoices(event) {
       },
     }),
   );
-  const items = (response.Items || [])
+  const items = (await expireOverdueInvoices(response.Items || []))
     .sort((a, b) => String(b.createdAt).localeCompare(String(a.createdAt)))
     .map(mapInvoice);
   return success(items);
@@ -539,7 +761,7 @@ async function patientInvoices(event) {
       ScanIndexForward: false,
     }),
   );
-  return success((response.Items || []).map(mapInvoice));
+  return success((await expireOverdueInvoices(response.Items || [])).map(mapInvoice));
 }
 
 async function invoiceStatistics(event) {
@@ -889,12 +1111,18 @@ async function createPaymentUrl(event) {
   const body = parseJsonBody(event);
   const invoice = await getInvoice(body.invoiceId || body.maHD);
   await assertPatientAccess(event, invoice.patientId);
+
   if (PAYMENT_SUCCESS_STATUSES.has(normalizeStatus(invoice.status))) {
     throw new ApiError(409, 'INVOICE_ALREADY_PAID', 'Invoice is already paid');
   }
-  const provider = normalizeProvider(body.provider || body.phuongThuc);
-  if (!['VNPAY', 'MOMO'].includes(provider)) {
-    throw new ApiError(400, 'ONLINE_PROVIDER_REQUIRED', 'Provider must be VNPAY or MOMO');
+
+  const provider = normalizeProvider(body.provider || body.phuongThuc || 'VNPAY');
+  if (provider !== 'VNPAY') {
+    throw new ApiError(
+      400,
+      'VNPAY_REQUIRED',
+      'Thanh toán trực tuyến của bệnh nhân hiện chỉ hỗ trợ VNPay. Không còn dùng thanh toán demo.',
+    );
   }
 
   const secret = await getSecret();
@@ -911,6 +1139,16 @@ async function createPaymentUrl(event) {
     }
   }
 
+  if (isPaymentDeadlineExpired(invoice)) {
+    await expireInvoiceAndAppointment(invoice);
+    throw new ApiError(409, 'PAYMENT_EXPIRED', 'Hóa đơn đã quá hạn thanh toán. Lịch khám liên quan đã bị hủy.');
+  }
+
+  const createDate = new Date();
+  const paymentDeadline = createPaymentDeadline(createDate);
+  const paymentDeadlineIso = paymentDeadline.toISOString();
+  const paymentExpiresAt = Math.floor(paymentDeadline.getTime() / 1000);
+
   const paymentRequestId = normalizeId(body.requestId || id('REQ'), 'requestId');
   const requestItem = {
     ...directKey('PAYMENT_REQUEST', paymentRequestId),
@@ -922,8 +1160,11 @@ async function createPaymentUrl(event) {
     amount: invoice.totalAmount,
     status: 'CREATED',
     createdAt: nowIso(),
-    expiresAt: Math.floor(Date.now() / 1000) + 30 * 60,
+    paymentDeadline: paymentDeadlineIso,
+    paymentExpiresAt,
+    expiresAt: paymentExpiresAt,
   };
+
   try {
     await getDocumentClient().send(
       new PutCommand({
@@ -936,87 +1177,69 @@ async function createPaymentUrl(event) {
     if (error.name !== 'ConditionalCheckFailedException') throw error;
   }
 
-  let paymentUrl;
-  if (provider === 'VNPAY') {
-    const required = ['VNPAY_TMN_CODE', 'VNPAY_HASH_SECRET', 'VNPAY_PAYMENT_URL', 'VNPAY_RETURN_URL'];
-    for (const field of required) {
-      if (!secret[field] || secret[field] === 'SET_IN_AWS_CONSOLE') {
-        throw new ApiError(500, 'VNPAY_NOT_CONFIGURED', `${field} is not configured in Secrets Manager`);
-      }
-    }
-    const createDate = vnpDate();
-    const params = {
-      vnp_Version: '2.1.0',
-      vnp_Command: 'pay',
-      vnp_TmnCode: secret.VNPAY_TMN_CODE,
-      vnp_Amount: Number(invoice.totalAmount) * 100,
-      vnp_CurrCode: 'VND',
-      vnp_TxnRef: paymentRequestId,
-      vnp_OrderInfo: `Thanh toan hoa don ${invoice.invoiceId}`,
-      vnp_OrderType: 'other',
-      vnp_Locale: 'vn',
-      vnp_ReturnUrl: secret.VNPAY_RETURN_URL,
-      vnp_IpAddr: event.requestContext?.http?.sourceIp || '127.0.0.1',
-      vnp_CreateDate: createDate,
-    };
-    const signature = signVnpay(params, secret.VNPAY_HASH_SECRET);
-    paymentUrl = `${String(secret.VNPAY_PAYMENT_URL).replace(/\?$/, '')}?${sortedQueryString({ ...params, vnp_SecureHash: signature })}`;
-  } else {
-    const required = [
-      'MOMO_PARTNER_CODE',
-      'MOMO_ACCESS_KEY',
-      'MOMO_SECRET_KEY',
-      'MOMO_ENDPOINT',
-      'MOMO_REDIRECT_URL',
-      'MOMO_IPN_URL',
-    ];
-    for (const field of required) {
-      if (!secret[field] || secret[field] === 'SET_IN_AWS_CONSOLE') {
-        throw new ApiError(500, 'MOMO_NOT_CONFIGURED', `${field} is not configured in Secrets Manager`);
-      }
-    }
-    const payload = {
-      partnerCode: secret.MOMO_PARTNER_CODE,
-      partnerName: 'Hospital P2TB',
-      storeId: 'HospitalP2TB',
-      requestId: paymentRequestId,
-      amount: String(invoice.totalAmount),
-      orderId: paymentRequestId,
-      orderInfo: `Thanh toan hoa don ${invoice.invoiceId}`,
-      redirectUrl: secret.MOMO_REDIRECT_URL,
-      ipnUrl: secret.MOMO_IPN_URL,
-      lang: 'vi',
-      requestType: 'captureWallet',
-      autoCapture: true,
-      extraData: Buffer.from(
-        JSON.stringify({ invoiceId: invoice.invoiceId }),
-        'utf8',
-      ).toString('base64'),
-    };
-    payload.signature = signMomoCreate(
-      payload,
-      secret.MOMO_ACCESS_KEY,
-      secret.MOMO_SECRET_KEY,
-    );
-    const response = await fetch(secret.MOMO_ENDPOINT, {
-      method: 'POST',
-      headers: { 'content-type': 'application/json' },
-      body: JSON.stringify(payload),
-      signal: AbortSignal.timeout(15000),
-    });
-    const result = await response.json();
-    if (!response.ok || !result.payUrl) {
-      throw new ApiError(502, 'MOMO_CREATE_FAILED', result.message || 'MoMo did not return a payment URL');
-    }
-    paymentUrl = result.payUrl;
-  }
+  const config = vnpayConfig(secret);
+  const params = {
+    vnp_Version: '2.1.0',
+    vnp_Command: 'pay',
+    vnp_TmnCode: config.tmnCode,
+    vnp_Amount: String(Number(invoice.totalAmount) * 100),
+    vnp_CurrCode: 'VND',
+    vnp_TxnRef: paymentRequestId,
+    vnp_OrderInfo: sanitizeVnpayOrderInfo(`Thanh toan hoa don ${invoice.invoiceId}`),
+    vnp_OrderType: 'other',
+    vnp_Locale: body.locale || 'vn',
+    vnp_ReturnUrl: config.returnUrl,
+    vnp_IpAddr: getClientIp(event),
+    vnp_CreateDate: vnpDate(createDate),
+    vnp_ExpireDate: vnpDate(paymentDeadline),
+    vnp_BankCode: String(body.bankCode || 'VNPAYQR').trim().toUpperCase(),
+  };
+
+  const signature = signVnpay(params, config.hashSecret);
+  const paymentUrl = `${String(config.paymentUrl).replace(/\?$/, '')}?${sortedQueryString({
+    ...params,
+    vnp_SecureHash: signature,
+  })}`;
+
+  const updatedRequest = {
+    ...requestItem,
+    status: 'PENDING',
+    paymentUrl,
+    vnpCreateParams: params,
+    updatedAt: nowIso(),
+  };
+
+  const invoiceWithDeadline = {
+    ...invoice,
+    status: normalizeStatus(invoice.status),
+    paymentProvider: provider,
+    paymentRequestId,
+    paymentDeadline: paymentDeadlineIso,
+    paymentExpiresAt,
+    updatedAt: nowIso(),
+    version: Number(invoice.version || 1) + 1,
+  };
+
+  await putInvoice(invoiceWithDeadline);
+
+  await getDocumentClient().send(
+    new PutCommand({
+      TableName: getTableName(),
+      Item: updatedRequest,
+    }),
+  );
 
   return json(200, {
     success: true,
+    message: 'Tạo URL thanh toán VNPay thành công',
     paymentUrl,
     provider,
     invoiceId: invoice.invoiceId,
     requestId: paymentRequestId,
+    amount: invoice.totalAmount,
+    paymentDeadline: paymentDeadlineIso,
+    paymentExpiresAt,
+    expireMinutes: PAYMENT_TIMEOUT_MINUTES,
   });
 }
 
@@ -1036,20 +1259,59 @@ async function getPaymentRequest(requestIdValue) {
 async function processVnpay(event, { redirect }) {
   const params = event.queryStringParameters || {};
   const secret = await getSecret();
-  if (!verifyVnpay(params, secret.VNPAY_HASH_SECRET)) {
-    if (redirect) return paymentRedirect(secret, 'fail', null, 'Chữ ký VNPay không hợp lệ');
+  const config = vnpayConfig(secret);
+
+  if (!verifyVnpay(params, config.hashSecret)) {
+    if (redirect) return paymentRedirect(secret, 'fail', null, 'Chu ky VNPay khong hop le', params);
     return json(200, { RspCode: '97', Message: 'Invalid signature' });
   }
 
-  const request = await getPaymentRequest(params.vnp_TxnRef);
-  const invoice = await getInvoice(request.invoiceId);
+  let request;
+  let invoice;
+
+  try {
+    request = await getPaymentRequest(params.vnp_TxnRef);
+    invoice = await getInvoice(request.invoiceId);
+  } catch (error) {
+    if (redirect) {
+      return paymentRedirect(secret, 'fail', null, 'Khong tim thay yeu cau thanh toan', params);
+    }
+
+    if (error instanceof ApiError && error.code === 'PAYMENT_REQUEST_NOT_FOUND') {
+      return json(200, { RspCode: '01', Message: 'Order not found' });
+    }
+
+    throw error;
+  }
+
   const amount = Math.round(Number(params.vnp_Amount || 0) / 100);
   if (amount !== Number(invoice.totalAmount)) {
-    if (redirect) return paymentRedirect(secret, 'fail', invoice.invoiceId, 'Số tiền không khớp');
+    if (redirect) return paymentRedirect(secret, 'fail', invoice.invoiceId, 'So tien khong khop', params);
     return json(200, { RspCode: '04', Message: 'Invalid amount' });
   }
 
   const successful = params.vnp_ResponseCode === '00' && params.vnp_TransactionStatus === '00';
+
+  if (isPaymentDeadlineExpired(invoice)) {
+    await expireInvoiceAndAppointment(invoice);
+    if (redirect) {
+      return paymentRedirect(secret, 'fail', invoice.invoiceId, 'Giao dich da qua han 5 phut. Lich kham da bi huy.', params);
+    }
+    return json(200, { RspCode: '99', Message: 'Payment expired' });
+  }
+
+  if (redirect) {
+    return paymentRedirect(
+      secret,
+      successful ? 'success' : 'fail',
+      invoice.invoiceId,
+      successful
+        ? 'VNPay da tra ket qua thanh cong. He thong dang doi IPN xac nhan hoa don.'
+        : 'Thanh toan VNPay that bai hoac da bi huy.',
+      params,
+    );
+  }
+
   const result = await recordPayment({
     invoice,
     provider: 'VNPAY',
@@ -1060,33 +1322,39 @@ async function processVnpay(event, { redirect }) {
     raw: {
       responseCode: params.vnp_ResponseCode,
       transactionStatus: params.vnp_TransactionStatus,
+      transactionNo: params.vnp_TransactionNo || null,
       bankCode: params.vnp_BankCode || null,
+      bankTranNo: params.vnp_BankTranNo || null,
+      cardType: params.vnp_CardType || null,
+      payDate: params.vnp_PayDate || null,
     },
   });
 
-  if (redirect) {
-    return paymentRedirect(
-      secret,
-      successful ? 'success' : 'fail',
-      invoice.invoiceId,
-      successful ? 'Thanh toán VNPay thành công' : 'Thanh toán VNPay thất bại',
-    );
-  }
   return json(200, {
-    RspCode: '00',
+    RspCode: result.duplicate ? '02' : '00',
     Message: result.duplicate ? 'Order already confirmed' : 'Confirm Success',
   });
 }
 
-function paymentRedirect(secret, status, invoiceId, message) {
-  const base = String(secret.PAYMENT_RESULT_URL || secret.VNPAY_FRONTEND_RESULT_URL || '').trim();
+function paymentRedirect(secret, status, invoiceId, message, vnpayParams = {}) {
+  const base = frontendResultUrl(secret);
   if (!base) {
     return json(200, { success: status === 'success', status, maHD: invoiceId, message });
   }
+
   const url = new URL(base);
   url.searchParams.set('status', status);
   if (invoiceId) url.searchParams.set('maHD', invoiceId);
   if (message) url.searchParams.set('message', message);
+  if (vnpayParams.vnp_TxnRef) url.searchParams.set('vnp_TxnRef', vnpayParams.vnp_TxnRef);
+  if (vnpayParams.vnp_ResponseCode) url.searchParams.set('vnp_ResponseCode', vnpayParams.vnp_ResponseCode);
+  if (vnpayParams.vnp_TransactionStatus) {
+    url.searchParams.set('vnp_TransactionStatus', vnpayParams.vnp_TransactionStatus);
+  }
+  if (vnpayParams.vnp_TransactionNo) {
+    url.searchParams.set('vnp_TransactionNo', vnpayParams.vnp_TransactionNo);
+  }
+
   return {
     statusCode: 302,
     headers: {

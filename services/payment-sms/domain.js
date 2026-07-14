@@ -45,13 +45,20 @@ function hmac(algorithm, secret, text) {
     .digest('hex');
 }
 
+function encodeVnpayValue(value) {
+  return encodeURIComponent(String(value))
+    .replace(/%20/g, '+')
+    .replace(/[!'()*]/g, (char) =>
+      `%${char.charCodeAt(0).toString(16).toUpperCase()}`,
+    );
+}
+
 function sortedQueryString(params = {}) {
-  const pairs = Object.entries(params)
+  return Object.entries(params)
     .filter(([, value]) => value !== undefined && value !== null && value !== '')
     .sort(([left], [right]) => left.localeCompare(right))
-    .map(([key, value]) => [key, String(value)]);
-
-  return new URLSearchParams(pairs).toString();
+    .map(([key, value]) => `${encodeVnpayValue(key)}=${encodeVnpayValue(value)}`)
+    .join('&');
 }
 
 function signVnpay(params, secret) {
@@ -71,6 +78,18 @@ function verifyVnpay(params, secret) {
   if (!received) return false;
   const expected = signVnpay(copy, secret).toLowerCase();
   return timingSafeEqual(expected, received);
+}
+
+function sanitizeVnpayOrderInfo(value) {
+  return String(value || '')
+    .normalize('NFD')
+    .replace(/[\u0300-\u036f]/g, '')
+    .replace(/đ/g, 'd')
+    .replace(/Đ/g, 'D')
+    .replace(/[^a-zA-Z0-9 .:_-]/g, '')
+    .replace(/\s+/g, ' ')
+    .trim()
+    .slice(0, 250) || 'Thanh toan hoa don benh vien';
 }
 
 function momoCreateRawSignature(payload, accessKey) {
@@ -208,8 +227,14 @@ function vnpDate(date = new Date()) {
   return `${parts.year}${parts.month}${parts.day}${parts.hour}${parts.minute}${parts.second}`;
 }
 
+function addMinutes(date, minutes) {
+  return new Date(date.getTime() + Number(minutes || 0) * 60 * 1000);
+}
+
 module.exports = {
+  addMinutes,
   createSignedOtpToken,
+  encodeVnpayValue,
   generateOtp,
   hashOtp,
   hmac,
@@ -218,6 +243,7 @@ module.exports = {
   normalizeMoney,
   normalizePhone,
   normalizeProvider,
+  sanitizeVnpayOrderInfo,
   signMomoCreate,
   signVnpay,
   sortedQueryString,
