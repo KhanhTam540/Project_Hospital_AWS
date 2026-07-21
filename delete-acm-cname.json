@@ -1,0 +1,18 @@
+{
+  "Comment": "Remove unused ACM validation record",
+  "Changes": [
+    {
+      "Action": "DELETE",
+      "ResourceRecordSet": {
+        "Name": "_fe74a4616e36f0d5f0a2630f94040a8f.app.hospital-p2tb.com.",
+        "Type": "CNAME",
+        "TTL": 300,
+        "ResourceRecords": [
+          {
+            "Value": "_752189e2887abad45934ed5244625085.jkddzztszm.acm-validations.aws."
+          }
+        ]
+      }
+    }
+  ]
+}

@@ -1,0 +1,78 @@
+﻿{
+    "Items": [
+        {
+            "patientId": {
+                "S": "BN005"
+            },
+            "entityType": {
+                "S": "APPOINTMENT_SLOT"
+            },
+            "appointmentId": {
+                "S": "LH005"
+            },
+            "updatedAt": {
+                "S": "2026-06-23T20:00:00.000Z"
+            },
+            "createdAt": {
+                "S": "2026-06-23T20:00:00.000Z"
+            },
+            "sk": {
+                "S": "2026-07-06T14:30:00+07:00"
+            },
+            "dataSource": {
+                "S": "P2TB_DATASET_V2"
+            },
+            "pk": {
+                "S": "PATIENT_SLOT#BN005"
+            }
+        },
+        {
+            "patientId": {
+                "S": "BN001"
+            },
+            "entityType": {
+                "S": "APPOINTMENT_SLOT"
+            },
+            "appointmentId": {
+                "S": "LH001"
+            },
+            "updatedAt": {
+                "S": "2026-06-23T20:00:00.000Z"
+            },
+            "createdAt": {
+                "S": "2026-06-23T20:00:00.000Z"
+            },
+            "sk": {
+                "S": "2026-07-03T08:00:00+07:00"
+            },
+            "dataSource": {
+                "S": "P2TB_DATASET_V2"
+            },
+            "pk": {
+                "S": "PATIENT_SLOT#BN001"
+            }
+        },
+        {
+            "entityType": {
+                "S": "APPOINTMENT_REF"
+            },
+            "appointmentTime": {
+                "S": "08:00"
+            },
+            "gsi1sk": {
+                "S": "APPOINTMENT#2026-07-03T08:00:00+07:00#LH001"
+            },
+            "departmentId": {
+                "S": "KHOA_NOI"
+            },
+            "status": {
+                "S": "DA_KHAM"
+            },
+            "roomId": {
+                "S": "PK_NOI_01"
+            },
+            "createdAt": {
+                "S": "2026-06-23T20:00:00.000Z"
+            },
+            "reason": {
+                "S": 

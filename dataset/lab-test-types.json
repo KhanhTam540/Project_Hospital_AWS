@@ -1,0 +1,38 @@
+[
+  {
+    "pk": "LAB_TEST_TYPE#LXN001",
+    "sk": "META",
+    "entityType": "LAB_TEST_TYPE",
+    "testTypeId": "LXN001",
+    "name": "Huyết học",
+    "description": "Các xét nghiệm phân tích tế bào máu và chỉ số huyết học.",
+    "status": "ACTIVE",
+    "dataSource": "P2TB_SAMPLE",
+    "createdAt": "2026-06-24T00:00:00.000Z",
+    "updatedAt": "2026-06-24T00:00:00.000Z"
+  },
+  {
+    "pk": "LAB_TEST_TYPE#LXN002",
+    "sk": "META",
+    "entityType": "LAB_TEST_TYPE",
+    "testTypeId": "LXN002",
+    "name": "Sinh hóa",
+    "description": "Các xét nghiệm đường huyết, chức năng gan, thận và chuyển hóa.",
+    "status": "ACTIVE",
+    "dataSource": "P2TB_SAMPLE",
+    "createdAt": "2026-06-24T00:00:00.000Z",
+    "updatedAt": "2026-06-24T00:00:00.000Z"
+  },
+  {
+    "pk": "LAB_TEST_TYPE#LXN003",
+    "sk": "META",
+    "entityType": "LAB_TEST_TYPE",
+    "testTypeId": "LXN003",
+    "name": "Vi sinh",
+    "description": "Các xét nghiệm phát hiện vi khuẩn, virus và ký sinh trùng.",
+    "status": "ACTIVE",
+    "dataSource": "P2TB_SAMPLE",
+    "createdAt": "2026-06-24T00:00:00.000Z",
+    "updatedAt": "2026-06-24T00:00:00.000Z"
+  }
+]

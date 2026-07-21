@@ -1,0 +1,53 @@
+[
+  {
+    "pk": "NEWS#TIN001",
+    "sk": "META",
+    "entityType": "NEWS",
+    "newsId": "TIN001",
+    "title": "Khám sức khỏe định kỳ giúp phát hiện bệnh sớm",
+    "summary": "Khám định kỳ là cách chủ động theo dõi sức khỏe và phát hiện bất thường từ sớm.",
+    "content": "<p>Khám sức khỏe định kỳ giúp đánh giá tổng quát tình trạng cơ thể, phát hiện sớm nguy cơ bệnh lý và xây dựng kế hoạch chăm sóc phù hợp.</p>",
+    "category": "TIN_TUC",
+    "imageUrl": "/images/news-1.jpg",
+    "status": "HIEN_THI",
+    "viewCount": 128,
+    "publishedAt": "2026-06-25T08:00:00.000Z",
+    "dataSource": "P2TB_SAMPLE",
+    "createdAt": "2026-06-25T08:00:00.000Z",
+    "updatedAt": "2026-06-25T08:00:00.000Z"
+  },
+  {
+    "pk": "NEWS#TIN002",
+    "sk": "META",
+    "entityType": "NEWS",
+    "newsId": "TIN002",
+    "title": "Hướng dẫn đặt lịch khám trực tuyến",
+    "summary": "Người bệnh có thể đặt lịch theo bác sĩ và khung giờ phù hợp ngay trên hệ thống.",
+    "content": "<p>Đăng nhập tài khoản bệnh nhân, chọn chuyên khoa, bác sĩ, ngày khám và xác nhận lịch hẹn.</p>",
+    "category": "HUONG_DAN",
+    "imageUrl": "/images/news-2.jpg",
+    "status": "HIEN_THI",
+    "viewCount": 94,
+    "publishedAt": "2026-06-26T08:00:00.000Z",
+    "dataSource": "P2TB_SAMPLE",
+    "createdAt": "2026-06-26T08:00:00.000Z",
+    "updatedAt": "2026-06-26T08:00:00.000Z"
+  },
+  {
+    "pk": "NEWS#TIN003",
+    "sk": "META",
+    "entityType": "NEWS",
+    "newsId": "TIN003",
+    "title": "Thông báo lịch làm việc cuối tuần",
+    "summary": "Bệnh viện tiếp tục tiếp nhận bệnh nhân vào sáng thứ Bảy.",
+    "content": "<p>Thời gian tiếp nhận cuối tuần từ 07:00 đến 12:00 vào thứ Bảy.</p>",
+    "category": "THONG_BAO",
+    "imageUrl": "/images/news-3.jpg",
+    "status": "HIEN_THI",
+    "viewCount": 67,
+    "publishedAt": "2026-06-27T08:00:00.000Z",
+    "dataSource": "P2TB_SAMPLE",
+    "createdAt": "2026-06-27T08:00:00.000Z",
+    "updatedAt": "2026-06-27T08:00:00.000Z"
+  }
+]

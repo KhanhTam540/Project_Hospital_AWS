@@ -1,0 +1,55 @@
+# Dependencies
+node_modules/
+web/node_modules/
+
+# AWS CDK
+cdk.out/
+# Frontend build
+web/dist/
+# Environment files
+.env
+.env.*
+!.env.example
+web/.env
+web/.env.*
+!web/.env.example
+# Generated deployment output
+docs/aws-dev-outputs.json
+docs/aws-edge-outputs.json
+# Editors and operating systems
+.vscode/
+.idea/
+.DS_Store
+Thumbs.db
+# Secrets and credentials
+*.pem
+*.key
+credentials.json
+# Logs
+*.log
+npm-debug.log*
+# Temporary integration-test tokens and patch backups
+.medical-test-tokens.json
+_backup_dinhbao_week1_*/
+_backup_audit_fix_*/
+_backup_complete_fix_*/
+_backup_khanhtam_cloudfront_net_*/
+_backup_caothien_week1_2_*/
+# Local infrastructure settings
+.env.infrastructure
+# Flutter Mobile
+mobile/.dart_tool/
+mobile/build/
+mobile/.flutter-plugins
+mobile/.flutter-plugins-dependencies
+mobile/.packages
+mobile/android/key.properties
+mobile/android/local.properties
+**/android/local.properties
+mobile/**/*.jks
+mobile/**/*.keystore
+mobile/.env
+mobile/.env.*
+!mobile/.env.example
+mobile/ios/Runner/GoogleService-Info.plist
+mobile/macos/Runner/GoogleService-Info.plist

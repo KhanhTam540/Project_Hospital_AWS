@@ -1,0 +1,28 @@
+[
+  {
+    "pk": "SHIFT#CA_SANG",
+    "sk": "META",
+    "entityType": "SHIFT",
+    "shiftId": "CA_SANG",
+    "shiftName": "Ca sáng",
+    "startTime": "07:00",
+    "endTime": "12:00",
+    "status": "ACTIVE",
+    "dataSource": "P2TB_SAMPLE",
+    "createdAt": "2026-06-24T00:00:00.000Z",
+    "updatedAt": "2026-06-24T00:00:00.000Z"
+  },
+  {
+    "pk": "SHIFT#CA_CHIEU",
+    "sk": "META",
+    "entityType": "SHIFT",
+    "shiftId": "CA_CHIEU",
+    "shiftName": "Ca chiều",
+    "startTime": "13:00",
+    "endTime": "18:00",
+    "status": "ACTIVE",
+    "dataSource": "P2TB_SAMPLE",
+    "createdAt": "2026-06-24T00:00:00.000Z",
+    "updatedAt": "2026-06-24T00:00:00.000Z"
+  }
+]

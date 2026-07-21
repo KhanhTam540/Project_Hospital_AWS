@@ -1,0 +1,84 @@
+{
+  "generatedAt": "2026-07-04T04:43:30.776Z",
+  "mode": "full",
+  "stackName": "HospitalDevStack",
+  "region": "ap-southeast-1",
+  "tableName": "HospitalDevStack-HospitalTable8F827962-1KADQ4K327F7V",
+  "userPoolId": "ap-southeast-1_kjKB8PPZl",
+  "totalBefore": 341,
+  "selectedForDelete": 341,
+  "demoUsers": [
+    {
+      "key": "admin",
+      "email": "admin.dataset@example.com",
+      "group": "ADMIN",
+      "cccd": null
+    },
+    {
+      "key": "doctor1",
+      "email": "doctor.noi.dataset@example.com",
+      "group": "BACSI",
+      "cccd": null
+    },
+    {
+      "key": "doctor2",
+      "email": "doctor.ngoai.dataset@example.com",
+      "group": "BACSI",
+      "cccd": null
+    },
+    {
+      "key": "doctor3",
+      "email": "doctor.nhi.dataset@example.com",
+      "group": "BACSI",
+      "cccd": null
+    },
+    {
+      "key": "staffReception",
+      "email": "reception.dataset@example.com",
+      "group": "NHANSU",
+      "cccd": null
+    },
+    {
+      "key": "staffNurse",
+      "email": "nurse.dataset@example.com",
+      "group": "NHANSU",
+      "cccd": null
+    },
+    {
+      "key": "staffLab",
+      "email": "lab.dataset@example.com",
+      "group": "NHANSU",
+      "cccd": null
+    },
+    {
+      "key": "patient1",
+      "email": "patient.an.dataset@example.com",
+      "group": "BENHNHAN",
+      "cccd": "079203000001"
+    },
+    {
+      "key": "patient2",
+      "email": "patient.binh.dataset@example.com",
+      "group": "BENHNHAN",
+      "cccd": "079203000002"
+    },
+    {
+      "key": "patient3",
+      "email": "patient.chau.dataset@example.com",
+      "group": "BENHNHAN",
+      "cccd": "079203000003"
+    },
+    {
+      "key": "patient4",
+      "email": "patient.dung.dataset@example.com",
+      "group": "BENHNHAN",
+      "cccd": "079203000004"
+    },
+    {
+      "key": "patient5",
+      "email": "patient.em.dataset@example.com",
+      "group": "BENHNHAN",
+      "cccd": "079203000005"
+    }
+  ]
+}

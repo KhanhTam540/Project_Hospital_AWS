@@ -1,0 +1,74 @@
+[
+  {
+    "pk": "DEPARTMENT#KHOA_NOI",
+    "sk": "ROOM#PK_NOI_01",
+    "entityType": "ROOM",
+    "roomId": "PK_NOI_01",
+    "departmentId": "KHOA_NOI",
+    "roomName": "Phòng khám Nội 01",
+    "status": "ACTIVE",
+    "dataSource": "P2TB_SAMPLE",
+    "createdAt": "2026-06-24T00:00:00.000Z",
+    "updatedAt": "2026-06-24T00:00:00.000Z"
+  },
+  {
+    "pk": "DEPARTMENT#KHOA_NOI",
+    "sk": "ROOM#PK_NOI_02",
+    "entityType": "ROOM",
+    "roomId": "PK_NOI_02",
+    "departmentId": "KHOA_NOI",
+    "roomName": "Phòng khám Nội 02",
+    "status": "ACTIVE",
+    "dataSource": "P2TB_SAMPLE",
+    "createdAt": "2026-06-24T00:00:00.000Z",
+    "updatedAt": "2026-06-24T00:00:00.000Z"
+  },
+  {
+    "pk": "DEPARTMENT#KHOA_NGOAI",
+    "sk": "ROOM#PK_NGOAI_01",
+    "entityType": "ROOM",
+    "roomId": "PK_NGOAI_01",
+    "departmentId": "KHOA_NGOAI",
+    "roomName": "Phòng khám Ngoại 01",
+    "status": "ACTIVE",
+    "dataSource": "P2TB_SAMPLE",
+    "createdAt": "2026-06-24T00:00:00.000Z",
+    "updatedAt": "2026-06-24T00:00:00.000Z"
+  },
+  {
+    "pk": "DEPARTMENT#KHOA_NGOAI",
+    "sk": "ROOM#PK_NGOAI_02",
+    "entityType": "ROOM",
+    "roomId": "PK_NGOAI_02",
+    "departmentId": "KHOA_NGOAI",
+    "roomName": "Phòng khám Ngoại 02",
+    "status": "ACTIVE",
+    "dataSource": "P2TB_SAMPLE",
+    "createdAt": "2026-06-24T00:00:00.000Z",
+    "updatedAt": "2026-06-24T00:00:00.000Z"
+  },
+  {
+    "pk": "DEPARTMENT#KHOA_XN",
+    "sk": "ROOM#XN_01",
+    "entityType": "ROOM",
+    "roomId": "XN_01",
+    "departmentId": "KHOA_XN",
+    "roomName": "Phòng xét nghiệm 01",
+    "status": "ACTIVE",
+    "dataSource": "P2TB_SAMPLE",
+    "createdAt": "2026-06-24T00:00:00.000Z",
+    "updatedAt": "2026-06-24T00:00:00.000Z"
+  },
+  {
+    "pk": "DEPARTMENT#KHOA_XN",
+    "sk": "ROOM#XN_02",
+    "entityType": "ROOM",
+    "roomId": "XN_02",
+    "departmentId": "KHOA_XN",
+    "roomName": "Phòng xét nghiệm 02",
+    "status": "ACTIVE",
+    "dataSource": "P2TB_SAMPLE",
+    "createdAt": "2026-06-24T00:00:00.000Z",
+    "updatedAt": "2026-06-24T00:00:00.000Z"
+  }
+]

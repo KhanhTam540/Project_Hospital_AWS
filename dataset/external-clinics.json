@@ -1,0 +1,17 @@
+[
+  {
+    "pk": "EXTERNAL_CLINIC#PKN001",
+    "sk": "META",
+    "entityType": "EXTERNAL_CLINIC",
+    "clinicId": "PKN001",
+    "clinicName": "Phòng khám liên kết P2TB",
+    "address": "Thành phố Hồ Chí Minh",
+    "phoneNumber": "0900000011",
+    "email": "clinic.p2tb@example.com",
+    "note": "Dữ liệu minh họa",
+    "status": "ACTIVE",
+    "dataSource": "P2TB_SAMPLE",
+    "createdAt": "2026-06-24T00:00:00.000Z",
+    "updatedAt": "2026-06-24T00:00:00.000Z"
+  }
+]
